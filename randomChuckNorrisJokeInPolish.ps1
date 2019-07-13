@@ -1,0 +1,1 @@
+﻿Invoke-RestMethod -Uri https://api.chucknorris.io/jokes/random | Select -ExpandProperty value
