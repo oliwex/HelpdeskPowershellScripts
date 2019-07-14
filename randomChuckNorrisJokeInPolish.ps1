@@ -17,5 +17,5 @@ $response = Invoke-WebRequest -Uri 'http://api.whatsmate.net/v1/translation/tran
                           -Body (ConvertTo-Json $jsonObj)
 
 #writing joke on screen
-Write-host  "Translation: " $response.Content
+Write-host $response.Content
 
