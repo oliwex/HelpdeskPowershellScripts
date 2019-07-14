@@ -19,3 +19,7 @@ $response = Invoke-WebRequest -Uri 'http://api.whatsmate.net/v1/translation/tran
 #writing joke on screen
 Write-host $response.Content
 
+
+#sending mail to user
+
+Send-MailMessage -From 'yourboss@gmail.com' -To 'yourboss@gmail.com' -Subject $response.Content
