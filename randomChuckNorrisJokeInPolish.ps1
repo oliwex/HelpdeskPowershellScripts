@@ -22,4 +22,4 @@ Write-host $response.Content
 
 #sending mail to user
 
-Send-MailMessage -From 'yourboss@gmail.com' -To 'yourboss@gmail.com' -Subject $response.Content
+Send-MailMessage -From 'you@gmail.com' -To 'yourboss@gmail.com' -Subject $response.Content
