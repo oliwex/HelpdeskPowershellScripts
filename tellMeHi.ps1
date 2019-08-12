@@ -1,3 +1,3 @@
 Add-Type -AssemblyName System.speech
 $speak = New-Object System.Speech.Synthesis.SpeechSynthesizer
-$speak.Speak('Hi') 
+$speak.Speak('Czesc Slawek') 

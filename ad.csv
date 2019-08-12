@@ -1,0 +1,3 @@
+Name;Surname;GivenName;DisplayName;CannotChangePassword;PasswordNeverExpires;SamAccountName;UPN;OU;Enabled
+Jack Robinson;Robinson;Jack;Jack Robinson;true;true;jrobinson;jrobinson@domena.pl;Uzytkownicy;true
+Jan Kowalski;Kowalski;Jan;Jan Kowalski;true;true;jkowalski;jkowalski@domena.pl;Uzytkownicy;true
