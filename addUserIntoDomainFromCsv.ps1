@@ -1,5 +1,7 @@
 ﻿$content=Import-Csv -Path C:\test\ad.csv -Delimiter ";"
 
+$domainName=Get-ADDomain | Select -ExpandProperty forest
+
 foreach($line in $content)
 {
     $name=$line.("name")
@@ -28,11 +30,30 @@ foreach($line in $content)
         }
 
         $samAccountName=$line.("SamAccountName")
-
-        $upn=$line.("UPN") #bool
+        $compare=$samAccountName+"@"+$domainName
     
-        $ou=$line.("OU") #bool
+        $upn=$line.("UPN") #bool
+        
+        if ($upn -eq $compare)
+        {
+            $upn
+        }
+        else
+        {
+            $upn #error here
+        }
 
+
+        $ou=$line.("OU") #bool
+        $checkOUInAD=Get-ADOrganizationalUnit -Filter 'Name -like $ou' | Select  -ExpandProperty name
+        if($checkOUInAD -eq $ou)
+        {
+            $ou
+        }
+        else
+        {
+            continue
+        }
         
         $enabled=$line.("Enabled")
         if ($enabled -like "*true*")
@@ -47,3 +68,6 @@ foreach($line in $content)
 New-ADUser -Name $name -Surname $surname -GivenName $givenName -DisplayName $displayName -CannotChangePassword $true -PasswordNeverExpires $true -SamAccountName $samAccountName -UserPrincipalName $upn -Path "OU=$ou,DC=domena,DC=local" -AccountPassword(Read-Host -AsSecureString "Input Password") -Enabled $true
 
 }
+
+
+#New-ADUser -Name "Jack Robinson" -Surname "Robinson" -GivenName "Jack" -DisplayName "Jack Robinson" -CannotChangePassword $true -PasswordNeverExpires $true -SamAccountName "jrobinson" -UserPrincipalName "jrobinson@domena.pl" -Path "OU=Uzytkownicy,DC=domena,DC=local" -AccountPassword(Read-Host -AsSecureString "Input Password") -Enabled $true
