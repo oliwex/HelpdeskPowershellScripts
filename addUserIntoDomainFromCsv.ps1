@@ -1,6 +1,7 @@
 ﻿$content=Import-Csv -Path C:\test\ad.csv -Delimiter ";"
 
 $domainName=Get-ADDomain | Select -ExpandProperty forest
+$defaultUserContainer=(Get-ADDomain | Select -ExpandProperty UsersContainer).Substring(3,$userContainter.IndexOf(",")-3) 
 
 foreach($line in $content)
 {
@@ -9,8 +10,8 @@ foreach($line in $content)
     $givenName=$line.("GivenName")
     $displayName=$line.("DisplayName")
 
-    $cannotChangePassword=$line.("CannotChangePassword") 
-        if ($cannotChangePassword -like "*true*")
+    
+        if ($line.("CannotChangePassword")  -like "*true*")
         {
             $cannotChangePassword=$true
         }
@@ -19,8 +20,8 @@ foreach($line in $content)
             $cannotChangePassword=$false
         }
         
-        $passwordNeverExpires=$line.("PasswordNeverExpires") 
-        if ($cannotChangePassword -like "*true*")
+
+        if ($line.("PasswordNeverExpires")  -like "*true*")
         {
             $passwordNeverExpires=$true
         }
@@ -30,33 +31,34 @@ foreach($line in $content)
         }
 
         $samAccountName=$line.("SamAccountName")
-        $compare=$samAccountName+"@"+$domainName
     
         $upn=$line.("UPN") #bool
         
-        if ($upn -eq $compare)
+        if ($upn -eq $samAccountName+"@"+$domainName)
         {
             $upn
         }
         else
         {
-            $upn #error here
+            "Error in UPN. UPN is set as " >> test.txt
+            $upn
         }
 
 
         $ou=$line.("OU") #bool
         $checkOUInAD=Get-ADOrganizationalUnit -Filter 'Name -like $ou' | Select  -ExpandProperty name
-        if($checkOUInAD -eq $ou)
+        if($checkOUInAD -eq $line.("OU"))
         {
             $ou
         }
         else
         {
-            continue
+            "Error in Organizational Unit. User added into default Container" >> test.txt
+            $ou=$defaultUserContainer
         }
         
-        $enabled=$line.("Enabled")
-        if ($enabled -like "*true*")
+
+        if ($line.("Enabled") -like "*true*")
         {
             $enabled=$true
         }
@@ -68,6 +70,3 @@ foreach($line in $content)
 New-ADUser -Name $name -Surname $surname -GivenName $givenName -DisplayName $displayName -CannotChangePassword $true -PasswordNeverExpires $true -SamAccountName $samAccountName -UserPrincipalName $upn -Path "OU=$ou,DC=domena,DC=local" -AccountPassword(Read-Host -AsSecureString "Input Password") -Enabled $true
 
 }
-
-
-#New-ADUser -Name "Jack Robinson" -Surname "Robinson" -GivenName "Jack" -DisplayName "Jack Robinson" -CannotChangePassword $true -PasswordNeverExpires $true -SamAccountName "jrobinson" -UserPrincipalName "jrobinson@domena.pl" -Path "OU=Uzytkownicy,DC=domena,DC=local" -AccountPassword(Read-Host -AsSecureString "Input Password") -Enabled $true
