@@ -1,10 +1,13 @@
 ﻿$content=Import-Csv -Path C:\test\ad.csv -Delimiter ";"
 
-$domainName=Get-ADDomain | Select -ExpandProperty forest
-$defaultUserContainer=(Get-ADDomain | Select -ExpandProperty UsersContainer).Substring(3,$userContainter.IndexOf(",")-3) 
+$domainName=Get-ADDomain | Select -ExpandProperty Forest
+$userContainer=Get-ADDomain | Select -ExpandProperty UsersContainer
+
+$defaultUserContainer=$userContainer.Substring(3,$userContainer.IndexOf(",")-3) 
 
 foreach($line in $content)
 {
+    
     $name=$line.("name")
     $surname=$line.("surname")
     $givenName=$line.("GivenName")
@@ -34,29 +37,31 @@ foreach($line in $content)
     
         $upn=$line.("UPN") #bool
         
-        if ($upn -eq $samAccountName+"@"+$domainName)
+        if ($line.("UPN") -eq $line.("SamAccountName")+"@"+$domainName)
         {
-            $upn
+            $upn=$line.("UPN")
         }
         else
         {
-            "Error in UPN. UPN is set as " >> test.txt
-            $upn
+            "Error in UPN. UPN is set as NULL" >> test.txt
+            $upn=""
         }
 
 
-        $ou=$line.("OU") #bool
-        $checkOUInAD=Get-ADOrganizationalUnit -Filter 'Name -like $ou' | Select  -ExpandProperty name
+
+        $checkOUInAD=Get-ADOrganizationalUnit -Filter { Name -like $line.("OU")} | Select  -ExpandProperty name
+
+
         if($checkOUInAD -eq $line.("OU"))
         {
-            $ou
+            $folder="OU="+$line.("OU")
         }
         else
         {
             "Error in Organizational Unit. User added into default Container" >> test.txt
-            $ou=$defaultUserContainer
+            $folder="CN="+$defaultUserContainer
         }
-        
+
 
         if ($line.("Enabled") -like "*true*")
         {
@@ -67,6 +72,6 @@ foreach($line in $content)
             $enabled=$false
         }
         
-New-ADUser -Name $name -Surname $surname -GivenName $givenName -DisplayName $displayName -CannotChangePassword $true -PasswordNeverExpires $true -SamAccountName $samAccountName -UserPrincipalName $upn -Path "OU=$ou,DC=domena,DC=local" -AccountPassword(Read-Host -AsSecureString "Input Password") -Enabled $true
+New-ADUser -Name $name -Surname $surname -GivenName $givenName -DisplayName $displayName -CannotChangePassword $cannotChangePassword -PasswordNeverExpires $passwordNeverExpires -SamAccountName $samAccountName -UserPrincipalName $upn -Path "$folder,DC=domena,DC=local" -AccountPassword(Read-Host -AsSecureString "Input Password") -Enabled $enabled
 
 }
