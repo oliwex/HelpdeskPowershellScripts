@@ -1,6 +1,4 @@
-﻿
-
-function Get-ApplockerListofApps
+﻿function Get-ApplockerListofApps
 {
     <#
     .SYNOPSIS
@@ -20,25 +18,44 @@ function Get-ApplockerListofApps
     .LINK
     Applocker
     https://docs.microsoft.com/en-us/windows/security/threat-protection/windows-defender-application-control/applocker/what-is-applocker
-
+    
     .EXAMPLE
     Get-ApplockerListOfApps
 
+    .OUTPUT
+    List of Apps which is used by user and how many times is used ex.
+    Name        |   Value
+    Chrome.exe  |     3
+    Word.exe    |     2
+    Excel.exe   |     1
     #>
 
 
     $list=Get-AppLockerFileInformation -EventLog -Statistics | Select FilePath,Counter
-    $list=foreach($element in $list)
+
+    if ($list.Count -gt 0)
     {
-        $element.FilePath=$element.FilePath.Path.Substring($element.FilePath.Path.LastIndexOf("\")+1)
-        $element
+        $list=foreach($element in $list)
+        {
+            $element.FilePath=$element.FilePath.Path.Substring($element.FilePath.Path.LastIndexOf("\")+1)
+            $element
+
+        }
+
+        $dictionary = @{}
+        foreach($element in $list)
+        {
+            $dictionary.Add($element.FilePath,$element.Counter) 
+        }
+        $dictionary.GetEnumerator() | sort Value -Descending
     }
-    $dictionary = @{}
-    foreach($element in $list)
+    else
     {
-        $dictionary.Add($element.FilePath,$element.Counter) 
+        "Probably you dont have logs for Applocker"
     }
 
-
-    $dictionary.GetEnumerator() | sort Value -Descending
+    
+   
+    
 }
+Get-ApplockerListofApps
