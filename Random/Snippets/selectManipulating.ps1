@@ -1,0 +1,1 @@
+﻿Get-LocalUser | Select @{Name="Nazwa";Expression={$_.Enabled}},Description
