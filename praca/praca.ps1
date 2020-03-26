@@ -8,6 +8,9 @@
 $folderName="test"
 $path=$env:HOMEDRIVE+"\"+$folderName
 
+
+
+
 #endregion global
 
 #region filenames
@@ -35,7 +38,7 @@ $test1=@(
     "Take ownership of files or other objects",
     "Allow log on through Remote Desktop Services")
 
-$listTest=@{}
+$policyList=[ordered]@{}
 
 
 #endregion dictionary
@@ -52,6 +55,14 @@ function Get-SeceditContent([string]$path)
     $seceditContent=Get-Content -Path $seceditPath
     return $seceditContent
 }
+
+function Add-ElementToPolicyList($rawElement)
+{
+    $richElement=($rawElement).ToString().Replace(' ','').Split("=")
+    $policyList.Add($richElement[0],$richElement[1])
+}
+
+
 #endregion functions
 
 
@@ -60,33 +71,42 @@ Clear-Host
 
 $seceditContent= Get-SeceditContent($path)
 
-$var=($seceditContent | Select-String -Pattern EnableAdminAccount).ToString().Replace(' ','').Split("=")
-$listTest.Add($var[0],$var[1])
 
-$listTest
 
-<#
+Add-ElementToPolicyList($seceditContent | Select-String -Pattern EnableAdminAccount)
+Add-ElementToPolicyList($seceditContent | Select-String -Pattern NewAdministratorName)
+Add-ElementToPolicyList($seceditContent | Select-String -Pattern NewGuestName)
 
-$seceditContent | Select-String -Pattern EnableGuestAccount
-$seceditContent | Select-String -Pattern NewAdministratorName
-$seceditContent | Select-String -Pattern NewGuestName
+Add-ElementToPolicyList($seceditContent | Select-String -Pattern SeTakeOwnershipPrivilege)
+Add-ElementToPolicyList($seceditContent | Select-String -Pattern SeRemoteInteractiveLogonRight)
+Add-ElementToPolicyList($seceditContent | Select-String -Pattern DontDisplayLastUserName)
+Add-ElementToPolicyList($seceditContent | Select-String -Pattern LegalNoticeCaption)
+Add-ElementToPolicyList($seceditContent | Select-String -Pattern LegalNoticeText)
 
-$seceditContent | Select-String -Pattern SeTakeOwnershipPrivilege
-$seceditContent | Select-String -Pattern SeRemoteInteractiveLogonRight
-$seceditContent | Select-String -Pattern DontDisplayLastUserName
-$seceditContent | Select-String -Pattern LegalNoticeCaption
-$seceditContent | Select-String -Pattern LegalNoticeText
 
-"UAC"
-$seceditContent | Select-String -Pattern ConsentPromptBehaviorAdmin
-$seceditContent | Select-String -Pattern ConsentPromptBehaviorUser
 
-$seceditContent | Select-String -Pattern ClearPageFileAtShutdown
-$seceditContent | Select-String -Pattern ForceUnlockLogon
-$seceditContent | Select-String -Pattern CachedLogonsCount
-$seceditContent | Select-String -Pattern PasswordExpiryWarning
+Add-ElementToPolicyList($seceditContent | Select-String -Pattern ConsentPromptBehaviorAdmin)
+Add-ElementToPolicyList($seceditContent | Select-String -Pattern ConsentPromptBehaviorUser)
 
-#>
+
+
+Add-ElementToPolicyList($seceditContent | Select-String -Pattern ClearPageFileAtShutdown)
+Add-ElementToPolicyList($seceditContent | Select-String -Pattern ForceUnlockLogon)
+Add-ElementToPolicyList($seceditContent | Select-String -Pattern CachedLogonsCount)
+Add-ElementToPolicyList($seceditContent | Select-String -Pattern PasswordExpiryWarning)
+
+
+
+$policyList | Format-Table -AutoSize
+
+
+
+
+
+
+
+
+
 <#
 "Członkowie grupy Użytkownicy pulpitu zdalnego"
 (Get-LocalGroupMember "Użytkownicy pulpitu zdalnego").Name
