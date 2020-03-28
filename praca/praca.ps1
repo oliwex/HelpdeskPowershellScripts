@@ -168,8 +168,39 @@ Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE | fl OSEncryptionTy
 
 #endregion Bitlocker
 
+#region DHCP i ip
+#TODO Probowac powershellem
+ipconfig /all | Select-String "DHCP wĄczone","Adres IPv4","Maska podsieci","Brama domylna","Serwer DHCP","Serwery DNS"
+
+#lub
+
+Get-WmiObject -Class Win32_NetworkAdapterConfiguration -Filter IPEnabled=TRUE | fl * | Select-Object DHCPServer,DHCPEnabled,IpAddress,DefaultIPGateway,IPSubnet
+
+oraz
+
+$networkAdapterInfo=Get-WmiObject -Class Win32_NetworkAdapterConfiguration -Filter IPEnabled=TRUE  | Select-Object DHCPServer,DHCPEnabled,IpAddress,DefaultIPGateway,IPSubnet
+$networkAdapterInfo.DHCPEnabled
+$networkAdapterInfo.DHCPServer
+
+$networkAdapterInfo.IpAddress[0]
+$networkAdapterInfo.DefaultIpGateway
+$networkAdapterInfo.IpSubnet[0]
+
+#endregion DHCP i ip
 
 
 
 #endregion rozdzial2
+
+
+#region rozdzial3
+
+#region Applocker
+Get-AppLockerPolicy -Effective | Test-AppLockerPolicy -Path "C:\windows\*.exe","C:\Program Files\*.exe" -User Wszyscy #wszyscy mogą odpalać z 2 folderów
+Get-AppLockerPolicy -Effective | Test-AppLockerPolicy -Path "C:\Windows\System32\*.exe"  -User BUILTIN\Administratorzy #administratorzy mogą odpalać wszystkie pliki
+
+Get-AppLockerPolicy -Effective | Test-AppLockerPolicy -Path "C:\Program Files (x86)\Internet Explorer\iexplore.exe" -User Wszyscy #wybrane programy explorer,mozilla,chrome
+#endregion Applocker
+
+#endregion rozdzial3
 
