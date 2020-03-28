@@ -94,7 +94,6 @@ Add-ElementToPolicyList($seceditContent | Select-String -Pattern PasswordExpiryW
 <#
 "Członkowie grupy Użytkownicy pulpitu zdalnego"
 (Get-LocalGroupMember "Użytkownicy pulpitu zdalnego").Name
-
 "Członkowie grupy Administratorzy: "
 (Get-LocalGroupMember "Administratorzy").Name
 #>
@@ -137,19 +136,23 @@ Get-NetIpsecRule -All
 
 #endregion firewall
 
+#region podgladzdarzen
 
-Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Application\AutoBackupFiles
+Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Application | fl AutoBackupLogFiles,MaxSize,Retention
+Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Setup | fl AutoBackupLogFiles,MaxSize,Retention
+Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\System | fl AutoBackupLogFiles,MaxSize,Retention
+Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security | fl AutoBackupLogFiles,MaxSize,Retention
+
+#endregion podgladzdarzen
+
+#region WindowsUpdate
+Get-ItemProperty -PAth HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate\AU | fl NoAutoUpdate,AuOptions,ScheduledInstallDay,ScheduledInstallTime #to wszystko w tej polityce
+
+Get-ItemProperty -PAth HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate\AU |fl UseWuServer #włączenie polityki
+Get-ItemProperty -PAth HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate | fl WuServer,WUStatusServer,UpdateServiceUrlAlternate #servery alternatywne
+
+Get-ItemProperty -PAth HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate\AU
+#endregion WindowsUpdate
 
 #endregion rozdzial2
 
-
-
-
-
-
-#region MESS
-
-#$seceditContent | Select-String -Pattern DontDisplayLastUserName
-#$seceditContent | Select-String -Pattern PromptOnSecureDesktop
-
-#endregion MESS
