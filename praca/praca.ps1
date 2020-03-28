@@ -154,5 +154,22 @@ Get-ItemProperty -PAth HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate | 
 Get-ItemProperty -PAth HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate\AU
 #endregion WindowsUpdate
 
+#region Bitlocker
+Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE | fl ActiveDirectoryBackup
+Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE | fl DefaultRecoveryFolderPath
+Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE | fl EncryptionMethodNoDiffuser
+#fixed disk
+Get-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Policies\Microsoft\FVE | fl DenyWriteAccess
+Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE | fl FDVPassphrase,FDVPassphraseComplexity,FDVPassphraseLength
+
+#operating system disk
+Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE | fl UseAdvancedStartup,EnableBDEWithNoTP,UseTPM,UseTPMPIN,UseTPMKey,UseTPMKeyPIN
+Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE | fl OSEncryptionType
+
+#endregion Bitlocker
+
+
+
+
 #endregion rozdzial2
 
