@@ -173,8 +173,8 @@ Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE | fl OSEncryptionTy
 ipconfig /all | Select-String "DHCP wĄczone","Adres IPv4","Maska podsieci","Brama domylna","Serwer DHCP","Serwery DNS"
 
 #lub
-#TODO podmienić na CIM
-Get-WmiObject -Class Win32_NetworkAdapterConfiguration -Filter IPEnabled=TRUE  | Select-Object DHCPServer,DHCPEnabled,@{label="IPAddress";expression={$_.ipaddress[0]}},@{label="DefaultIPGateway";expression={$_.DefaultIPGateway[0]}},@{label="IPSubnet";expression={$_.IPSubnet[0]}} 
+
+Get-CimInstance -Class Win32_NetworkAdapterConfiguration -Filter IPEnabled=TRUE  | Select-Object DHCPServer,DHCPEnabled,@{label="IPAddress";expression={$_.ipaddress[0]}},@{label="DefaultIPGateway";expression={$_.DefaultIPGateway[0]}},@{label="IPSubnet";expression={$_.IPSubnet[0]}} 
 
 #endregion DHCP i ip
 
@@ -222,6 +222,10 @@ Get-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows\RemovableStorageDevi
 #pendrive podłączone
 Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Enum\USBSTOR\*\* | fl FriendlyName
 
+#lub 
+
+Get-PnpDevice -FriendlyName '*USB*'
+
 #endregion magazynWymienny
 
 #endregion rozdzial3
@@ -263,3 +267,15 @@ Get-ItemProperty HKLM:\System\CurrentControlSet\Policies |fl NtfsEncryptPagingFi
 
 
 #endregion rozdzial4
+
+#region rozdzial5
+
+#endregion rozdzial5
+
+#region rozdzial6
+Get-ItemProperty "HKCU:\Software\Policies\Microsoft\Windows\Control Panel\Desktop" | fl ScreenSaverIsSecure
+Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System" | fl NoDispScrSavPage
+
+#okres bezycznnosci
+Get-ItemProperty "HKCU:\Software\Policies\Microsoft\Windows\Control Panel\Desktop" | fl ScreenSaveTimeOut
+#endregion rozdzial6
