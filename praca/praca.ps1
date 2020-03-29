@@ -173,18 +173,8 @@ Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE | fl OSEncryptionTy
 ipconfig /all | Select-String "DHCP wĄczone","Adres IPv4","Maska podsieci","Brama domylna","Serwer DHCP","Serwery DNS"
 
 #lub
-
-Get-WmiObject -Class Win32_NetworkAdapterConfiguration -Filter IPEnabled=TRUE | fl * | Select-Object DHCPServer,DHCPEnabled,IpAddress,DefaultIPGateway,IPSubnet
-
-oraz
-
-$networkAdapterInfo=Get-WmiObject -Class Win32_NetworkAdapterConfiguration -Filter IPEnabled=TRUE  | Select-Object DHCPServer,DHCPEnabled,IpAddress,DefaultIPGateway,IPSubnet
-$networkAdapterInfo.DHCPEnabled
-$networkAdapterInfo.DHCPServer
-
-$networkAdapterInfo.IpAddress[0]
-$networkAdapterInfo.DefaultIpGateway
-$networkAdapterInfo.IpSubnet[0]
+#TODO podmienić na CIM
+Get-WmiObject -Class Win32_NetworkAdapterConfiguration -Filter IPEnabled=TRUE  | Select-Object DHCPServer,DHCPEnabled,@{label="IPAddress";expression={$_.ipaddress[0]}},@{label="DefaultIPGateway";expression={$_.DefaultIPGateway[0]}},@{label="IPSubnet";expression={$_.IPSubnet[0]}} 
 
 #endregion DHCP i ip
 
@@ -196,11 +186,80 @@ $networkAdapterInfo.IpSubnet[0]
 #region rozdzial3
 
 #region Applocker
+
+
+#TODO do weryfikacji - byłem mega zmęczony
 Get-AppLockerPolicy -Effective | Test-AppLockerPolicy -Path "C:\windows\*.exe","C:\Program Files\*.exe" -User Wszyscy #wszyscy mogą odpalać z 2 folderów
 Get-AppLockerPolicy -Effective | Test-AppLockerPolicy -Path "C:\Windows\System32\*.exe"  -User BUILTIN\Administratorzy #administratorzy mogą odpalać wszystkie pliki
 
 Get-AppLockerPolicy -Effective | Test-AppLockerPolicy -Path "C:\Program Files (x86)\Internet Explorer\iexplore.exe" -User Wszyscy #wybrane programy explorer,mozilla,chrome
+
+#region ######### Aplikacje wbudowane w Win10#########
+##TODO
+#endregion ######### Aplikacje wbudowane w Win10#########
+
+
+#region monitorowanie aplikacji
+Get-AppLockerFileInformation -EventLog -Statistics | Select @{label="FilePath";expression={$_.FilePath.Path.Substring($_.FilePath.Path.LastIndexOf("\")+1)}}, Counter | sort Counter -Descending | fl *
+#endregion
+
 #endregion Applocker
+
+#region Autorun
+Get-ItemProperty HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer | fl NoAutorun
+Get-ItemProperty HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer | fl NoDriveTypeAutoRun
+#endregion Autorun
+
+#region drivers
+Get-ItemProperty HKLM:\Software\Policies\Microsoft\Windows\DriverInstall\Restrictions | fl AllowUserDeviceClasses 
+Get-ItemProperty HKCU:\Software\Policies\Microsoft\Windows\DriverSearching | fl DontSearchCD
+Get-ItemProperty "HKCU:\Software\Policies\Microsoft\Windows NT\Driver Signing" | fl BehaviorOnFailedVerify
+#endregion drivers
+
+#region magazynWymienny
+Get-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows\RemovableStorageDevices" | fl Deny_All
+
+#pendrive podłączone
+Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Enum\USBSTOR\*\* | fl FriendlyName
+
+#endregion magazynWymienny
 
 #endregion rozdzial3
 
+#region rozdzial4
+
+#region registry
+Get-ItemProperty HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System |fl DisableRegistryTools
+#endregion registry
+
+#region cmd
+Get-ItemProperty HKCU:\Software\Policies\Microsoft\Windows\System |fl DisableCMD
+#endregion cmd
+
+#region managerZadan
+Get-ItemProperty HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System |fl DisableTaskMgr
+#endregion managerZadan
+
+#region uslugi
+#TODO weryfikacja uslug XBOX,Application Identity
+#endregion uslugi
+
+#region PowershellLog
+Get-ItemProperty HKLM:\Software\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging |fl EnableScriptBlockLogging
+#endregion PowershellLog
+
+
+#region polaczeniaZdalne
+Get-ItemProperty HKLM:\Software\Policies\Microsoft\Windows\WinRM\Service |fl AllowUnencryptedTraffic
+
+Get-ItemProperty HKLM:\Software\Policies\Microsoft\Windows\WinRM\Service |fl DisableRunAs
+
+Get-ItemProperty HKLM:\Software\Policies\Microsoft\Windows\WinRM\Service |fl AllowBasic
+#endregion polaczeniaZdalne
+
+#region szyfrowanie pliku stronnicowanie
+Get-ItemProperty HKLM:\System\CurrentControlSet\Policies |fl NtfsEncryptPagingFile
+#endregion szyfrowanie pliku stronnicowanie
+
+
+#endregion rozdzial4
