@@ -125,9 +125,9 @@ $FirewallStatus = ($FirewallStatus + 1)
 If ($FirewallStatus -eq 3) {Write-Host "Compliant"}
 ELSE {Write-Host "Non-Compliant"}
 
-#lub
 
-netsh advfirewall show allprofiles | Select-String Stan,FileName,MaxFileSize
+#lub
+Get-NetFirewallProfile -PolicyStore ActiveStore | Select Enabled,LogFileName,LogMaxSizeKilobytes | fl *
 
 #ipsec
 
@@ -195,8 +195,15 @@ Get-AppLockerPolicy -Effective | Test-AppLockerPolicy -Path "C:\Windows\System32
 Get-AppLockerPolicy -Effective | Test-AppLockerPolicy -Path "C:\Program Files (x86)\Internet Explorer\iexplore.exe" -User Wszyscy #wybrane programy explorer,mozilla,chrome
 
 #region ######### Aplikacje wbudowane w Win10#########
-##TODO
+#Do testów-może być bardziej optymalne od powyższego
+Get-AppLockerPolicy -Effective -Xml | Set-Content ('c:\test\curr.xml')
+[xml]$cn = Get-Content C:\test\curr.xml
+$cn.AppLockerPolicy.RuleCollection.Get(0).FilePublisherRule | Select UserOrGroupSid,Action,@{Label="PublisherName"; Expression={$_.Conditions.FilePublisherCondition.PublisherName}},@{Label="ProductName"; Expression={$_.Conditions.FilePublisherCondition.ProductName}},@{Label="BinaryName"; Expression={$_.Conditions.FilePublisherCondition.BinaryName}} | ft
+$cn.AppLockerPolicy.RuleCollection.Get(2).FilePathRule | Select USerOrGroupSid,Action,@{Label="Path"; Expression={$_.Conditions.FilePathCondition.Path}}
+
 #endregion ######### Aplikacje wbudowane w Win10#########
+
+
 
 
 #region monitorowanie aplikacji
@@ -245,7 +252,8 @@ Get-ItemProperty HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System
 #endregion managerZadan
 
 #region uslugi
-#TODO weryfikacja uslug XBOX,Application Identity
+Get-Service XblAuthManager,XblGameSave,XboxGipSvc,XboxNetApiSvc,AppIDSvc | Select Name,Status
+Get-Service AppIDSvc | Select Name, StartType
 #endregion uslugi
 
 #region PowershellLog
@@ -269,6 +277,41 @@ Get-ItemProperty HKLM:\System\CurrentControlSet\Policies |fl NtfsEncryptPagingFi
 #endregion rozdzial4
 
 #region rozdzial5
+
+#panel
+Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization | fl NoLockScreenCamera
+Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization | fl NoLockScreenSlideShow
+####brak nauki pisma ręcznego####
+#####zezwalaj użytkownikom na włączanie rozpoznawania mowy online#####
+
+#biometria
+Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\Biometrics\FacialFeatures | fl EnhancedAntiSpoofing
+
+#aparat
+Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\Camera | fl AllowCamera
+
+#microsoft edge
+Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\BrowserEmulation | fl MSCompatibilityMode
+Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Privacy | fl ClearBrowsingHistoryOnExit
+Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main | fl "FormSuggest Passwords" #sugerowanie hasel
+Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter | fl EnabledV9
+Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\BooksLibrary | fl EnableExtendedBooksTelemetry
+Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main | fl PreventAccessToAboutFlagsInMicrosoftEdge
+Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main | fl PreventLiveTileDataCollection
+
+
+#Windows Defender
+Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender" | fl DisableAntiSpyware
+Get-MpPreference | Select PUAProtection | fl
+Get-MpPreference | Select DisableBehaviorMonitoring | fl
+Get-MpPreference | Select DisableRemovableDriveScanning | fl
+Get-MpPreference | Select EnableNetworkProtection | fl
+
+
+#lokalizacja i czujniki
+Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors | fl DisableLocationScripting
+Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors | fl DisableLocation
+Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors | fl DisableSensors
 
 #endregion rozdzial5
 
