@@ -3,6 +3,12 @@
 ##            secedit           ###
 ##                              ###
 ###################################
+#region required
+#Requires -Modules PSWindowsUpdate
+#requires -Module hashdata
+
+#endregion required
+
 #region global
 
 $folderName="test"
@@ -62,6 +68,21 @@ function Add-ElementToPolicyList($rawElement)
     $policyList.Add($richElement[0],$richElement[1])
 }
 
+function New-HashTableWithDisabledValue($hashtableFromSystem)
+{
+#IN:$hashtableFromSystem-Get hashtable from system with system settings
+#OUT:Returning hashtable with DISABLED value where null existed
+    ($hashtableFromSystem.GetEnumerator()) | ForEach-Object {if ($_.Value -eq $null) { $hashtableFromSystem[$_.Name] = 'DISABLED' }}
+    return $hashtableFromSystem
+}
+function UniwersalWrapper($powershellCommand)  #wrapper
+{
+#IN:$hashtableFromSystem-Get hashtable from system with system settings
+#OUT:Returning hashtable with DISABLED value where null existed
+    $result=New-HashTableWithDisabledValue(ConvertTo-Hashtable($poershellCommand))
+    return $result
+}
+
 
 #endregion functions
 
@@ -106,28 +127,18 @@ $policyList | Format-Table -AutoSize
 #region rozdzial2
 
 #region firewall
-$FirewallStatus = 0
-$SysFirewallReg1 = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\DomainProfile" -Name EnableFirewall | Select-Object -ExpandProperty EnableFirewall
-If ($SysFirewallReg1 -eq 1) {
-$FirewallStatus = 1
-}
-
-$SysFirewallReg2 = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PublicProfile" -Name EnableFirewall | Select-Object -ExpandProperty EnableFirewall
-If ($SysFirewallReg2 -eq 1) {
-$FirewallStatus = ($FirewallStatus + 1)
-}
-
-$SysFirewallReg3 = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\StandardProfile" -Name EnableFirewall | Select-Object -ExpandProperty EnableFirewall
-If ($SysFirewallReg3 -eq 1) {
-$FirewallStatus = ($FirewallStatus + 1)
-}
-
-If ($FirewallStatus -eq 3) {Write-Host "Compliant"}
-ELSE {Write-Host "Non-Compliant"}
+<#
+$domainProfileResult=UniWersalWrapper((Get-NetFirewallProfile -PolicyStore ActiveStore | Select Name,Enabled,@{label="LogFilePath";expression={$_.LogFileName}},@{label="LogSize";expression={$_.LogMaxSizeKilobytes}})[0])
+$domainProfileResult
 
 
-#lub
-Get-NetFirewallProfile -PolicyStore ActiveStore | Select Enabled,LogFileName,LogMaxSizeKilobytes | fl *
+$privateProfileResult=UniWersalWrapper((Get-NetFirewallProfile -PolicyStore ActiveStore | Select Name,Enabled,@{label="LogFilePath";expression={$_.LogFileName}},@{label="LogSize";expression={$_.LogMaxSizeKilobytes}})[0])
+$privateProfileResult
+
+$publicProfileResult=UniWersalWrapper((Get-NetFirewallProfile -PolicyStore ActiveStore | Select Name,Enabled,@{label="LogFilePath";expression={$_.LogFileName}},@{label="LogSize";expression={$_.LogMaxSizeKilobytes}})[0])
+$publicProfileResult
+
+#>
 
 #ipsec
 
@@ -139,26 +150,87 @@ Show-NetIPsecRule -PolicyStore ActiveStore | Select @{label="LocalAddress";expre
 
 #region podgladzdarzen
 
-Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Application | fl AutoBackupLogFiles,MaxSize,Retention
-Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Setup | fl AutoBackupLogFiles,MaxSize,Retention
-Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\System | fl AutoBackupLogFiles,MaxSize,Retention
-Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security | fl AutoBackupLogFiles,MaxSize,Retention
 
-#lub
 
-Get-WinEvent -ListLog Security | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security | Select -ExpandProperty Retention}}
-Get-WinEvent -ListLog Application | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Application | Select -ExpandProperty Retention}}
-Get-WinEvent -ListLog System | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\System | Select -ExpandProperty Retention}}
+#required -Module hashdata
+<#
+$result=UniwersallWrapper(Get-WinEvent -ListLog Application | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Application | Select -ExpandProperty Retention}})
+$result
 
+$result=UniwersallWrapper(Get-WinEvent -ListLog Setup | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Setup | Select -ExpandProperty Retention}})
+$result
+
+$result=UniwersallWrapper(Get-WinEvent -ListLog System | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\System | Select -ExpandProperty Retention}})
+$result
+
+$result=UniwersallWrapper(Get-WinEvent -ListLog Security | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security | Select -ExpandProperty Retention}})
+$result
+#>
 #endregion podgladzdarzen
 
 #region WindowsUpdate
-Get-ItemProperty -PAth HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate\AU | fl NoAutoUpdate,AuOptions,ScheduledInstallDay,ScheduledInstallTime #to wszystko w tej polityce
 
-Get-ItemProperty -PAth HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate\AU |fl UseWuServer #włączenie polityki
-Get-ItemProperty -PAth HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate | fl WuServer,WUStatusServer,UpdateServiceUrlAlternate #servery alternatywne
 
-Get-ItemProperty -PAth HKLM\Software\Policies\Microsoft\Windows\WindowsUpdate\AU
+#Install-Module -Name PSWindowsUpdate
+
+#dziala w 70% procentach
+
+$wsusList=[ordered]@{
+'AutoUpdate'='DISABLED';
+'InstallUpdateType'='DISABLED';
+'InstallDay'='DISABLED';
+'InstallTime'='DISABLED';
+'UseWsus'='DISABLED';
+'WSUSServer1'='DISABLED';
+'WSUSStatServer'='DISABLED';
+'WSUSServer2'='DISABLED';
+'WSUSGroupPolicy'='DISABLED';
+'WSUSGroup'='DISABLED';
+}
+try
+{
+    $wsus=Get-WUSettings | 
+    Select @{Label='AutoUpdate';Expression={$_.NoAutoUpdate}},
+    @{Label='InstallUpdateType';Expression={$_.AuOptions.Substring(0,1)}},
+    @{Label='InstallDay';Expression={$_.ScheduledInstallDay.Substring(0,1)}},
+    @{Label='InstallTime';Expression={$_.ScheduledInstallTime}},
+    @{Label='UseWsus';Expression={$_.UseWUServer}},
+    @{Label='WSUSServer1';Expression={$_.WuServer}},
+    @{Label='WSUSStatServer';Expression={$_.WUStatusServer}},
+    @{Label='WSUSServer2';Expression={$_.UpdateServiceUrlAlternate}},
+    @{Label='WSUSGroupPolicy';Expression={$_.TargetGroupEnabled}},
+    @{Label='WSUSGroup';Expression={$_.TargetGroup}}
+}
+catch [System.NullReferenceException]
+{      
+            $wsus=Get-ItemProperty -PAth  HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU | fl @{Label='AutoUpdate';Expression={$_.NoAutoUpdate}},
+            @{Label='InstallUpdateType';Expression={$_.AuOptions}},
+            @{Label='InstallDay';Expression={$_.ScheduledInstallDay}},
+            @{Label='InstallTime';Expression={$_.ScheduledInstallTime}}
+        
+
+            $wsus+=Get-ItemProperty -PAth HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate | fl @{Label='UseWsus';Expression={$_.WuServer}},
+            @{Label='WSUSStatServer';Expression={$_.WUStatusServer}},
+            @{Label='WSUSServer2';Expression={$_.UpdateServiceUrlAlternate}},
+            @{Label='WSUSGroupPolicy';Expression={$_.TargetGroupEnabled}},
+            @{Label='WSUSGroup';Expression={$_.TargetGroup}}
+
+
+}
+
+if ($wsus)
+{
+$i=0
+$wsus.psobject.Properties.Where({$_.Value -ne $null}) | ForEach-Object { 
+$wsusList.Item($i) = $_.Value
+$i=$i+1 
+}
+}
+
+$wsusList
+
+
+
 #endregion WindowsUpdate
 
 #region Bitlocker
