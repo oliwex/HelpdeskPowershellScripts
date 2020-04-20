@@ -83,6 +83,60 @@ function UniwersalWrapper($powershellCommand)  #wrapper
     return $result
 }
 
+function New-BitlockerReport
+{
+#OUT:$result-hashtable with result of Bitlocker Report
+$result=[ordered]@{}
+
+if (Test-Path HKLM:\SOFTWARE\Policies\Microsoft\FVE)
+{
+
+$result=UniwersalWrapper(Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE | fl @{label="BitlockerActiveDirectoryBackup";expression={$_.ActiveDirectoryBackup}},
+@{label="BitlockerRecoveryFilepath";expression={$_.DefaultRecoveryFolderPath}},
+@{label="BitlockerEncryptionMethod";expression={$_.EncryptionMethodNoDiffuser}},
+@{label="BitlockerPasswordOnFixed";expression={$_.FDVPassphrase}},
+@{label="BitlockerPasswordOnFixedComplexity";expression={$_.FDVPassphraseComplexity}},
+@{label="BitlockerPasswordOnFixedLength";expression={$_.FDVPassphraseLength}},
+@{label="BitlockerAditionalAuthenticationOnStartup";expression={$_.UseAdvancedStartup}},
+@{label="BitlockerWithoutTPM";expression={$_.EnableBDEWithNoTP}},
+@{label="BitlockerWithTPM";expression={$_.UseTPM}},
+@{label="BitlockerPINWithTPM";expression={$_.UseTPMPIN}},
+@{label="BitlockerKeyWithTPM";expression={$_.UseTPMKey}},
+@{label="BitlockerKeyAndPINWithTPM";expression={$_.UseTPMKeyPIN}},
+@{label="BitlockerEncryptionMethod";expression={$_.OSEncryptionType}}
+)
+
+}
+else
+{
+$result.add('BitlockerActiveDirectoryBackup','DISABLED')
+$result.add('BitlockerRecoveryFilepath','DISABLED')
+$result.add('BitlockerEncryptionMethod','DISABLED')
+$result.add('BitlockerPasswordOnFixed','DISABLED')
+$result.add('BitlockerPasswordOnFixedComplexity','DISABLED')
+$result.add('BitlockerPasswordOnFixedLength','DISABLED')
+$result.add('BitlockerAditionalAuthenticationOnStartup','DISABLED')
+$result.add('BitlockerWithoutTPM','DISABLED')
+$result.add('BitlockerWithTPM','DISABLED')
+$result.add('BitlockerKeyWithTPM','DISABLED')
+$result.add('BitlockerKeyAndPINWithTPM','DISABLED')
+$result.add('BitlockerEncryptionMethod','DISABLED') 
+}
+
+
+if (Test-Path HKLM:\SYSTEM\CurrentControlSet\Policies\Microsoft\FVE)
+{
+$value=Get-ItemPropertyValue -Path HKLM:\SYSTEM\CurrentControlSet\Policies\Microsoft\FVE -Name FDVDenyWriteAccess
+}
+else
+{
+$value='DISABLED'
+}
+$result.add('BitlockerDenyWriteAccessToFixedDataDrivesWithoutBitlocker',$value) 
+$result | ft -AutoSize
+
+return $result
+}
 
 #endregion functions
 
@@ -142,8 +196,8 @@ $publicProfileResult
 
 #ipsec
 
-Show-NetIPsecRule -PolicyStore ActiveStore | Select @{label="LocalAddress";expression={$_.LocalAddress}},@{label="RemoteAddress";expression={$_.RemoteAddress}},@{label="Auth1Level";expression={($_ | Get-NetIPsecPhase1AuthSet).Name}},@{label="Auth2Level";expression={($_ | Get-NetIPsecPhase2AuthSet).Name}}
-
+#$result=UniwersalWrapper(((Show-NetIPsecRule -PolicyStore ActiveStore | Select @{label="LocalAddress";expression={$_ | Get-NetFirewallAddressFilter | select -ExpandProperty LocalAddress}},@{label="RemoteAddress";expression={$_ | Get-NetFirewallAddressFilter | select -ExpandProperty RemoteAddress}},@{label="Auth1Level";expression={($_ | Get-NetIPsecPhase1AuthSet).Name}},@{label="Auth2Level";expression={($_ | Get-NetIPsecPhase2AuthSet).Name}})[0]))
+#$result
 
 
 #endregion firewall
@@ -174,7 +228,7 @@ $result
 #Install-Module -Name PSWindowsUpdate
 
 #dziala w 70% procentach
-
+<#
 $wsusList=[ordered]@{
 'AutoUpdate'='DISABLED';
 'InstallUpdateType'='DISABLED';
@@ -228,23 +282,14 @@ $i=$i+1
 }
 
 $wsusList
-
+#>
 
 
 #endregion WindowsUpdate
 
 #region Bitlocker
-Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE | fl ActiveDirectoryBackup
-Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE | fl DefaultRecoveryFolderPath
-Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE | fl EncryptionMethodNoDiffuser
-#fixed disk
-Get-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Policies\Microsoft\FVE | fl DenyWriteAccess
-Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE | fl FDVPassphrase,FDVPassphraseComplexity,FDVPassphraseLength
-
-#operating system disk
-Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE | fl UseAdvancedStartup,EnableBDEWithNoTP,UseTPM,UseTPMPIN,UseTPMKey,UseTPMKeyPIN
-Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE | fl OSEncryptionType
-
+$lama=New-BitlockerReport
+$lama
 #endregion Bitlocker
 
 #region DHCP i ip
