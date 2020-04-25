@@ -184,14 +184,10 @@ $policyList | Format-Table -AutoSize
 <#
 $domainProfileResult=UniWersalWrapper((Get-NetFirewallProfile -PolicyStore ActiveStore | Select Name,Enabled,@{label="LogFilePath";expression={$_.LogFileName}},@{label="LogSize";expression={$_.LogMaxSizeKilobytes}})[0])
 $domainProfileResult
-
-
 $privateProfileResult=UniWersalWrapper((Get-NetFirewallProfile -PolicyStore ActiveStore | Select Name,Enabled,@{label="LogFilePath";expression={$_.LogFileName}},@{label="LogSize";expression={$_.LogMaxSizeKilobytes}})[0])
 $privateProfileResult
-
 $publicProfileResult=UniWersalWrapper((Get-NetFirewallProfile -PolicyStore ActiveStore | Select Name,Enabled,@{label="LogFilePath";expression={$_.LogFileName}},@{label="LogSize";expression={$_.LogMaxSizeKilobytes}})[0])
 $publicProfileResult
-
 #>
 
 #ipsec
@@ -210,13 +206,10 @@ $publicProfileResult
 <#
 $result=UniwersallWrapper(Get-WinEvent -ListLog Application | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Application | Select -ExpandProperty Retention}})
 $result
-
 $result=UniwersallWrapper(Get-WinEvent -ListLog Setup | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Setup | Select -ExpandProperty Retention}})
 $result
-
 $result=UniwersallWrapper(Get-WinEvent -ListLog System | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\System | Select -ExpandProperty Retention}})
 $result
-
 $result=UniwersallWrapper(Get-WinEvent -ListLog Security | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security | Select -ExpandProperty Retention}})
 $result
 #>
@@ -262,16 +255,12 @@ catch [System.NullReferenceException]
             @{Label='InstallDay';Expression={$_.ScheduledInstallDay}},
             @{Label='InstallTime';Expression={$_.ScheduledInstallTime}}
         
-
             $wsus+=Get-ItemProperty -PAth HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate | fl @{Label='UseWsus';Expression={$_.WuServer}},
             @{Label='WSUSStatServer';Expression={$_.WUStatusServer}},
             @{Label='WSUSServer2';Expression={$_.UpdateServiceUrlAlternate}},
             @{Label='WSUSGroupPolicy';Expression={$_.TargetGroupEnabled}},
             @{Label='WSUSGroup';Expression={$_.TargetGroup}}
-
-
 }
-
 if ($wsus)
 {
 $i=0
@@ -280,7 +269,6 @@ $wsusList.Item($i) = $_.Value
 $i=$i+1 
 }
 }
-
 $wsusList
 #>
 
