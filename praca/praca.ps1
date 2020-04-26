@@ -79,69 +79,83 @@ function UniwersalWrapper($powershellCommand)  #wrapper
 {
 #IN:$hashtableFromSystem-Get hashtable from system with system settings
 #OUT:Returning hashtable with DISABLED value where null existed
-    $result=New-HashTableWithDisabledValue(ConvertTo-Hashtable($poershellCommand))
+    $result=New-HashTableWithDisabledValue(ConvertTo-Hashtable($powershellCommand))
     return $result
+}
+
+function New-FirewallReport
+{
+#OUT:Hashtable with FirewallReport
+#domain
+#private
+#public
+
+$domainProfileResult=UniwersalWrapper((Get-NetFirewallProfile -PolicyStore ActiveStore | Select Name,Enabled,@{label="LogFilePath";expression={$_.LogFileName}},@{label="LogSize";expression={$_.LogMaxSizeKilobytes}})[0])
+$privateProfileResult=UniwersalWrapper((Get-NetFirewallProfile -PolicyStore ActiveStore | Select Name,Enabled,@{label="LogFilePath";expression={$_.LogFileName}},@{label="LogSize";expression={$_.LogMaxSizeKilobytes}})[1])
+$publicProfileResult=UniwersalWrapper((Get-NetFirewallProfile -PolicyStore ActiveStore | Select Name,Enabled,@{label="LogFilePath";expression={$_.LogFileName}},@{label="LogSize";expression={$_.LogMaxSizeKilobytes}})[2])
+
+$firewallReport=[ordered]@{
+Domain=$domainProfileResult;
+Private=$privateProfileResult;
+Public=$publicProfileResult
+}
+
+return $firewallReport
+
+}
+
+function New-IpsecReport
+{
+#OUT:Hashtable with ipsec report
+    $ipsecResult=UniwersalWrapper(((Show-NetIPsecRule -PolicyStore ActiveStore | Select @{label="LocalAddress";expression={$_ | Get-NetFirewallAddressFilter | select -ExpandProperty LocalAddress}},@{label="RemoteAddress";expression={$_ | Get-NetFirewallAddressFilter | select -ExpandProperty RemoteAddress}},@{label="Auth1Level";expression={($_ | Get-NetIPsecPhase1AuthSet).Name}},@{label="Auth2Level";expression={($_ | Get-NetIPsecPhase2AuthSet).Name}})[0]))
+    return $ipsecResult
+}
+
+function New-LogReport
+{
+$applicationLogResult=UniwersalWrapper(Get-WinEvent -ListLog Application | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Application | Select -ExpandProperty Retention}})
+
+$setupLogResult=UniwersalWrapper(Get-WinEvent -ListLog Setup | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Setup | Select -ExpandProperty Retention}})
+$systemLogResult=UniwersalWrapper(Get-WinEvent -ListLog System | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\System | Select -ExpandProperty Retention}})
+$securityLogResult=UniwersalWrapper(Get-WinEvent -ListLog Security | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security | Select -ExpandProperty Retention}})
+
+$logReport=[ordered]@{
+Application=$domainProfileResult;
+Setup=$privateProfileResult;
+System=$publicProfileResult;
+Security=$securityLogResult
+}
+
+return $logReport
 }
 
 function New-BitlockerReport
 {
 #OUT:$result-hashtable with result of Bitlocker Report
-$result=[ordered]@{}
+$bitlockerReport=[ordered]@{}
 
-if (Test-Path HKLM:\SOFTWARE\Policies\Microsoft\FVE)
-{
+Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck ActiveDirectoryBackup -HashtableRowName BitlockerActiveDirectoryBackup -HashtableResult $result
+Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck DefaultRecoveryFolderPath -HashtableRowName BitlockerRecoveryFilepath -HashtableResult $result
+Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck EncryptionMethodNoDiffuser -HashtableRowName BitlockerEncryptionMethod -HashtableResult $result
+Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck FDVPassphrase -HashtableRowName BitlockerPasswordOnFixed -HashtableResult $result
+Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck FDVPassphraseComplexity -HashtableRowName BitlockerPasswordOnFixedComplexity -HashtableResult $result
+Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck FDVPassphraseLength -HashtableRowName BitlockerPasswordOnFixedLength -HashtableResult $result
+Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck UseAdvancedStartup -HashtableRowName BitlockerAditionalAuthenticationOnStartup -HashtableResult $result
+Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck EnableBDEWithNoTP -HashtableRowName BitlockerWithoutTPM -HashtableResult $result
+Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck UseTPM -HashtableRowName BitlockerWithTPM -HashtableResult $result
+Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck UseTPMPIN -HashtableRowName BitlockerPINWithTPM -HashtableResult $result
+Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck UseTPMKey -HashtableRowName BitlockerKeyWithTPM -HashtableResult $result
+Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck UseTPMKeyPIN -HashtableRowName BitlockerKeyAndPINWithTPM -HashtableResult $result
+Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck OSEncryptionType -HashtableRowName BitlockerEncryptionMethod -HashtableResult $result
+Get-RegistryValueWithDisabledValue -Path HKLM:\SYSTEM\CurrentControlSet\Policies\Microsoft\FVE -ValueToCheck FDVDenyWriteAccess -HashtableRowName BitlockerDenyWriteAccessToFixedDataDrivesWithoutBitlocker -HashtableResult $result
 
-$result=UniwersalWrapper(Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE | fl @{label="BitlockerActiveDirectoryBackup";expression={$_.ActiveDirectoryBackup}},
-@{label="BitlockerRecoveryFilepath";expression={$_.DefaultRecoveryFolderPath}},
-@{label="BitlockerEncryptionMethod";expression={$_.EncryptionMethodNoDiffuser}},
-@{label="BitlockerPasswordOnFixed";expression={$_.FDVPassphrase}},
-@{label="BitlockerPasswordOnFixedComplexity";expression={$_.FDVPassphraseComplexity}},
-@{label="BitlockerPasswordOnFixedLength";expression={$_.FDVPassphraseLength}},
-@{label="BitlockerAditionalAuthenticationOnStartup";expression={$_.UseAdvancedStartup}},
-@{label="BitlockerWithoutTPM";expression={$_.EnableBDEWithNoTP}},
-@{label="BitlockerWithTPM";expression={$_.UseTPM}},
-@{label="BitlockerPINWithTPM";expression={$_.UseTPMPIN}},
-@{label="BitlockerKeyWithTPM";expression={$_.UseTPMKey}},
-@{label="BitlockerKeyAndPINWithTPM";expression={$_.UseTPMKeyPIN}},
-@{label="BitlockerEncryptionMethod";expression={$_.OSEncryptionType}}
-)
-
-}
-else
-{
-$result.add('BitlockerActiveDirectoryBackup','DISABLED')
-$result.add('BitlockerRecoveryFilepath','DISABLED')
-$result.add('BitlockerEncryptionMethod','DISABLED')
-$result.add('BitlockerPasswordOnFixed','DISABLED')
-$result.add('BitlockerPasswordOnFixedComplexity','DISABLED')
-$result.add('BitlockerPasswordOnFixedLength','DISABLED')
-$result.add('BitlockerAditionalAuthenticationOnStartup','DISABLED')
-$result.add('BitlockerWithoutTPM','DISABLED')
-$result.add('BitlockerWithTPM','DISABLED')
-$result.add('BitlockerKeyWithTPM','DISABLED')
-$result.add('BitlockerKeyAndPINWithTPM','DISABLED')
-$result.add('BitlockerEncryptionMethod','DISABLED') 
-}
-
-
-if (Test-Path HKLM:\SYSTEM\CurrentControlSet\Policies\Microsoft\FVE)
-{
-$value=Get-ItemPropertyValue -Path HKLM:\SYSTEM\CurrentControlSet\Policies\Microsoft\FVE -Name FDVDenyWriteAccess
-}
-else
-{
-$value='DISABLED'
-}
-$result.add('BitlockerDenyWriteAccessToFixedDataDrivesWithoutBitlocker',$value) 
-$result | ft -AutoSize
-
-return $result
+return $bitlockerReport
 }
 
 Function Test-RegistryValue 
 {
 param(
-        [Alias("PSPath")]
+
         [Parameter(Position = 0, Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
         [String]$Path
         ,
@@ -172,7 +186,7 @@ param(
 function Get-RegistryValueWithDisabledValue()
 {
 param(
-        [Alias("PSPath")]
+
         [Parameter(Position = 0, Mandatory = $true)]
         [String]$Path
         ,
@@ -197,6 +211,47 @@ param(
     }
 }
 
+function New-AutorunReport
+{
+    $autorunReport=[ordered]@{}
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -ValueToCheck NoAutorun -HashtableRowName AutorunEnabled -HashtableResult $autorunReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -ValueToCheck NoDriveTypeAutoRun -HashtableRowName DefaultAutorunAction -HashtableResult $autorunReport
+    return $autorunReport
+}
+
+function New-DriversReport
+{
+    $driversReport=[ordered]@{}
+    if (Test-RegistryValue -Path HKLM:\Software\Policies\Microsoft\Windows\DriverInstall\Restrictions -Name AllowUserDeviceClasses)
+    {
+        $driversReport.Add("AllowUserDeviceClasses",(Get-ItemPropertyValue HKLM:\Software\Policies\Microsoft\Windows\DriverInstall\Restrictions -Name AllowUserDeviceClasses))
+        Test-RegistryValue -Path HKLM:\Software\Policies\Microsoft\Windows\DriverInstall\Restrictions\AllowUserDeviceClasses -Name 1
+        if (Test-RegistryValue -Path HKLM:\Software\Policies\Microsoft\Windows\DriverInstall\Restrictions\AllowUserDeviceClasses -Name 1)
+        {
+            $driversReport.Remove("AllowUserDeviceClasses")
+            $driversReport.Add("AllowUserDeviceClasses", 'DISABLED') #Drivers classess exists 
+        }
+    }
+    else
+    {
+        $result.Add("AllowUserDeviceClasses","DISABLED")
+    }
+    Get-RegistryValueWithDisabledValue -Path 'HKCU:\Software\Policies\Microsoft\Windows\DriverSearching' -ValueToCheck DontSearchFloppies -HashtableRowName DontSearchInFloppiesForDrivers -HashtableResult $driversReport
+    Get-RegistryValueWithDisabledValue -Path 'HKCU:\Software\Policies\Microsoft\Windows NT\Driver Signing' -ValueToCheck BehaviorOnFailedVerify -HashtableRowName DigitalSignDrivers -HashtableResult $driversReport
+    return $driversReport
+}
+
+function New-RemovableStorageAccessReport
+{
+    $removableStorageAccessReport=[ordered]@{}
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\RemovableStorageDevices' -ValueToCheck Deny_All -HashtableRowName DenyAccessToRemovableStorageAccess -HashtableResult $removableStorageAccessReport
+    return $removableStorageAccessReport
+}
+function New-USBHistoryList
+{
+    $usbList=(Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Enum\USBSTOR\*\* | Select -ExpandProperty FriendlyName)
+    return $usbList
+}
 #endregion functions
 
 
@@ -241,37 +296,22 @@ $policyList | Format-Table -AutoSize
 
 #region firewall
 <#
-$domainProfileResult=UniWersalWrapper((Get-NetFirewallProfile -PolicyStore ActiveStore | Select Name,Enabled,@{label="LogFilePath";expression={$_.LogFileName}},@{label="LogSize";expression={$_.LogMaxSizeKilobytes}})[0])
-$domainProfileResult
-$privateProfileResult=UniWersalWrapper((Get-NetFirewallProfile -PolicyStore ActiveStore | Select Name,Enabled,@{label="LogFilePath";expression={$_.LogFileName}},@{label="LogSize";expression={$_.LogMaxSizeKilobytes}})[0])
-$privateProfileResult
-$publicProfileResult=UniWersalWrapper((Get-NetFirewallProfile -PolicyStore ActiveStore | Select Name,Enabled,@{label="LogFilePath";expression={$_.LogFileName}},@{label="LogSize";expression={$_.LogMaxSizeKilobytes}})[0])
-$publicProfileResult
+$firewallReport=New-FirewallReport
+$firewallReport.Domain.LogFilePath
 #>
 
 #ipsec
 
-#$result=UniwersalWrapper(((Show-NetIPsecRule -PolicyStore ActiveStore | Select @{label="LocalAddress";expression={$_ | Get-NetFirewallAddressFilter | select -ExpandProperty LocalAddress}},@{label="RemoteAddress";expression={$_ | Get-NetFirewallAddressFilter | select -ExpandProperty RemoteAddress}},@{label="Auth1Level";expression={($_ | Get-NetIPsecPhase1AuthSet).Name}},@{label="Auth2Level";expression={($_ | Get-NetIPsecPhase2AuthSet).Name}})[0]))
-#$result
-
+#$ipsecReport=New-IpsecReport
+#$ipsecReport
 
 #endregion firewall
 
 #region podgladzdarzen
 
+#$logReport=New-LogReport
+#$logReport.Application.LogFilePath
 
-
-#required -Module hashdata
-<#
-$result=UniwersalWrapper(Get-WinEvent -ListLog Application | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Application | Select -ExpandProperty Retention}})
-$result
-$result=UniwersalWrapper(Get-WinEvent -ListLog Setup | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Setup | Select -ExpandProperty Retention}})
-$result
-$result=UniwersalWrapper(Get-WinEvent -ListLog System | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\System | Select -ExpandProperty Retention}})
-$result
-$result=UniwersalWrapper(Get-WinEvent -ListLog Security | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security | Select -ExpandProperty Retention}})
-$result
-#>
 #endregion podgladzdarzen
 
 #region WindowsUpdate
@@ -385,41 +425,18 @@ Get-AppLockerFileInformation -EventLog -Statistics | Select @{label="FilePath";e
 
 #region Autorun
 ##################################
-$=[ordered]@{}
-
-
-Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -ValueToCheck NoAutorun -HashtableRowName AutorunEnabled -HashtableResult $result
-Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -ValueToCheck NoDriveTypeAutoRun -HashtableRowName DefaultAutorunAction -HashtableResult $result
-
+$autorunReport=New-AutorunReport
+$autorunReport
 ##################################
-
-if (Test-RegistryKeyValue -Path HKLM:\Software\Policies\Microsoft\Windows\DriverInstall\Restrictions -Name AllowUserDeviceClasses)
-{
-    $result.Add("AllowUserDeviceClasses",(Get-ItemPropertyValue HKLM:\Software\Policies\Microsoft\Windows\DriverInstall\Restrictions -Name AllowUserDeviceClasses))
-    
-    if (Test-RegistryKeyValue -Path HKLM:\Software\Policies\Microsoft\Windows\DriverInstall\Restrictions\AllowUserDeviceClasses -Name 1)
-    {
-        $result.Remove("AllowUserDeviceClasses")
-        $result.Add("AllowUserDeviceClasses", 'DISABLED') #Drivers classess exists 
-    }
-}
-else
-{
-    $result.Add("AllowUserDeviceClasses","DISABLED")
-}
-
-Get-RegistryValueWithDisabledValue -Path 'HKCU:\Software\Policies\Microsoft\Windows\DriverSearching' -ValueToCheck DontSearchFloppies -HashtableRowName DontSearchInFloppiesForDrivers -HashtableResult $result
-Get-RegistryValueWithDisabledValue -Path 'HKCU:\Software\Policies\Microsoft\Windows NT\Driver Signing' -ValueToCheck BehaviorOnFailedVerify -HashtableRowName DigitalSignDrivers -HashtableResult $result
+$driversReport=New-DriversReport
+$driversReport
 ######################################
-Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\RemovableStorageDevices' -ValueToCheck Deny_All -HashtableRowName DenyAccessToRemovableStorageAccess -HashtableResult $result
-
-$result
-
+$removableStorageAccessReport=New-RemovableStorageAccessReport
+$removableStorageAccessReport
 ######################################
 #Lista podlaczonych pendrivow#
-$usbList=(Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Enum\USBSTOR\*\* | Select -ExpandProperty FriendlyName)
+$usbList=New-USBHistoryList
 $usbList
-
 #endregion magazynWymienny
 
 #endregion rozdzial3
