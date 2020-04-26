@@ -138,6 +138,65 @@ $result | ft -AutoSize
 return $result
 }
 
+Function Test-RegistryValue 
+{
+param(
+        [Alias("PSPath")]
+        [Parameter(Position = 0, Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
+        [String]$Path
+        ,
+        [Parameter(Position = 1, Mandatory = $true)]
+        [String]$Name
+        ,
+        [Switch]$PassThru
+    ) 
+
+    process {
+        if (Test-Path $Path) {
+            $Key = Get-Item -LiteralPath $Path
+            if ($Key.GetValue($Name, $null) -ne $null) {
+                if ($PassThru) {
+                    Get-ItemProperty $Path $Name
+                } else {
+                    $true
+                }
+            } else {
+                $false
+            }
+        } else {
+            $false
+        }
+    }
+}
+
+function Get-RegistryValueWithDisabledValue()
+{
+param(
+        [Alias("PSPath")]
+        [Parameter(Position = 0, Mandatory = $true)]
+        [String]$Path
+        ,
+        [Parameter(Position = 1, Mandatory = $true)]
+        [String]$ValueToCheck
+        ,
+        [Parameter(Position = 2, Mandatory = $true)]
+        $HashtableRowName
+        ,
+        [Parameter(Position = 3, Mandatory = $true)]
+        $HashtableResult
+    ) 
+    
+    if (Test-RegistryValue -Path $Path -Name $valueToCheck)
+    {
+        $HashtableResult.Add($HashtableRowName,(Get-ItemPropertyValue $Path -Name $ValueToCheck))
+    }
+    else
+    {
+        $HashtableResult.Add($HashtableRowName,"DISABLED")
+
+    }
+}
+
 #endregion functions
 
 
@@ -204,13 +263,13 @@ $publicProfileResult
 
 #required -Module hashdata
 <#
-$result=UniwersallWrapper(Get-WinEvent -ListLog Application | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Application | Select -ExpandProperty Retention}})
+$result=UniwersalWrapper(Get-WinEvent -ListLog Application | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Application | Select -ExpandProperty Retention}})
 $result
-$result=UniwersallWrapper(Get-WinEvent -ListLog Setup | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Setup | Select -ExpandProperty Retention}})
+$result=UniwersalWrapper(Get-WinEvent -ListLog Setup | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Setup | Select -ExpandProperty Retention}})
 $result
-$result=UniwersallWrapper(Get-WinEvent -ListLog System | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\System | Select -ExpandProperty Retention}})
+$result=UniwersalWrapper(Get-WinEvent -ListLog System | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\System | Select -ExpandProperty Retention}})
 $result
-$result=UniwersallWrapper(Get-WinEvent -ListLog Security | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security | Select -ExpandProperty Retention}})
+$result=UniwersalWrapper(Get-WinEvent -ListLog Security | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security | Select -ExpandProperty Retention}})
 $result
 #>
 #endregion podgladzdarzen
@@ -276,8 +335,8 @@ $wsusList
 #endregion WindowsUpdate
 
 #region Bitlocker
-$lama=New-BitlockerReport
-$lama
+$bitlockerReport=New-BitlockerReport
+$bitlockerReport
 #endregion Bitlocker
 
 #region DHCP i ip
@@ -325,25 +384,41 @@ Get-AppLockerFileInformation -EventLog -Statistics | Select @{label="FilePath";e
 #endregion Applocker
 
 #region Autorun
-Get-ItemProperty HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer | fl NoAutorun
-Get-ItemProperty HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer | fl NoDriveTypeAutoRun
-#endregion Autorun
+##################################
+$=[ordered]@{}
 
-#region drivers
-Get-ItemProperty HKLM:\Software\Policies\Microsoft\Windows\DriverInstall\Restrictions | fl AllowUserDeviceClasses 
-Get-ItemProperty HKCU:\Software\Policies\Microsoft\Windows\DriverSearching | fl DontSearchCD
-Get-ItemProperty "HKCU:\Software\Policies\Microsoft\Windows NT\Driver Signing" | fl BehaviorOnFailedVerify
-#endregion drivers
 
-#region magazynWymienny
-Get-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows\RemovableStorageDevices" | fl Deny_All
+Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -ValueToCheck NoAutorun -HashtableRowName AutorunEnabled -HashtableResult $result
+Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -ValueToCheck NoDriveTypeAutoRun -HashtableRowName DefaultAutorunAction -HashtableResult $result
 
-#pendrive podłączone
-Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Enum\USBSTOR\*\* | fl FriendlyName
+##################################
 
-#lub 
+if (Test-RegistryKeyValue -Path HKLM:\Software\Policies\Microsoft\Windows\DriverInstall\Restrictions -Name AllowUserDeviceClasses)
+{
+    $result.Add("AllowUserDeviceClasses",(Get-ItemPropertyValue HKLM:\Software\Policies\Microsoft\Windows\DriverInstall\Restrictions -Name AllowUserDeviceClasses))
+    
+    if (Test-RegistryKeyValue -Path HKLM:\Software\Policies\Microsoft\Windows\DriverInstall\Restrictions\AllowUserDeviceClasses -Name 1)
+    {
+        $result.Remove("AllowUserDeviceClasses")
+        $result.Add("AllowUserDeviceClasses", 'DISABLED') #Drivers classess exists 
+    }
+}
+else
+{
+    $result.Add("AllowUserDeviceClasses","DISABLED")
+}
 
-Get-PnpDevice -FriendlyName '*USB*'
+Get-RegistryValueWithDisabledValue -Path 'HKCU:\Software\Policies\Microsoft\Windows\DriverSearching' -ValueToCheck DontSearchFloppies -HashtableRowName DontSearchInFloppiesForDrivers -HashtableResult $result
+Get-RegistryValueWithDisabledValue -Path 'HKCU:\Software\Policies\Microsoft\Windows NT\Driver Signing' -ValueToCheck BehaviorOnFailedVerify -HashtableRowName DigitalSignDrivers -HashtableResult $result
+######################################
+Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\RemovableStorageDevices' -ValueToCheck Deny_All -HashtableRowName DenyAccessToRemovableStorageAccess -HashtableResult $result
+
+$result
+
+######################################
+#Lista podlaczonych pendrivow#
+$usbList=(Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Enum\USBSTOR\*\* | Select -ExpandProperty FriendlyName)
+$usbList
 
 #endregion magazynWymienny
 
