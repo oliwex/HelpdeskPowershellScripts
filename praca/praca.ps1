@@ -72,9 +72,12 @@ function New-HashTableWithDisabledValue($hashtableFromSystem)
 {
 #IN:$hashtableFromSystem-Get hashtable from system with system settings
 #OUT:Returning hashtable with DISABLED value where null existed
-    ($hashtableFromSystem.GetEnumerator()) | ForEach-Object {if ($_.Value -eq $null) { $hashtableFromSystem[$_.Name] = 'DISABLED' }}
+   $hashtableFromSystemTMP=($hashtableFromSystem.GetEnumerator()) | ? {$_.Value -eq $null}
+   $hashtableFromSystemTMP | ForEach-Object {if ($_.Value -eq $null) { $hashtableFromSystem[$_.Name] = 'DISABLED' }}
+
     return $hashtableFromSystem
 }
+
 function UniwersalWrapper($powershellCommand)  #wrapper
 {
 #IN:$hashtableFromSystem-Get hashtable from system with system settings
@@ -151,6 +154,46 @@ Get-RegistryValueWithDisabledValue -Path HKLM:\SYSTEM\CurrentControlSet\Policies
 
 return $bitlockerReport
 }
+
+function New-WSUSReport
+{
+#OUT: Hashtable with wsusReport
+    $wsusList=[ordered]@{}  
+ 
+    try
+    {
+
+        $wsusList=UniwersalWrapper(Get-WUSettings | 
+        Select @{Label='AutoUpdate';Expression={$_.NoAutoUpdate}},
+        @{Label='InstallUpdateType';Expression={$_.AuOptions.Substring(0,1)}},
+        @{Label='InstallDay';Expression={$_.ScheduledInstallDay.Substring(0,1)}},
+        @{Label='InstallTime';Expression={$_.ScheduledInstallTime}},
+        @{Label='UseWsus';Expression={$_.UseWUServer}},
+        @{Label='WSUSServer1';Expression={$_.WuServer}},
+        @{Label='WSUSStatServer';Expression={$_.WUStatusServer}},
+        @{Label='WSUSServer2';Expression={$_.UpdateServiceUrlAlternate}},
+        @{Label='WSUSGroupPolicy';Expression={$_.TargetGroupEnabled}},
+        @{Label='WSUSGroup';Expression={$_.TargetGroup}})
+    }
+    catch [System.NullReferenceException]
+    {      
+
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -ValueToCheck NoAutoUpdate -HashtableRowName AutoUpdate -HashtableResult $wsusList
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -ValueToCheck AuOptions -HashtableRowName InstallUpdateType -HashtableResult $wsusList
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -ValueToCheck ScheduledInstallDay -HashtableRowName InstallDay -HashtableResult $wsusList
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -ValueToCheck ScheduledInstallTime -HashtableRowName InstallTime -HashtableResult $wsusList
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -ValueToCheck UseWUServer -HashtableRowName UseWsus -HashtableResult $wsusList
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -ValueToCheck WuServer -HashtableRowName WSUSServer1 -HashtableResult $wsusList
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -ValueToCheck WUStatusServer -HashtableRowName WSUSStatServer -HashtableResult $wsusList
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -ValueToCheck UpdateServiceUrlAlternate -HashtableRowName WSUSServer2 -HashtableResult $wsusList
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -ValueToCheck TargetGroupEnabled -HashtableRowName WSUSGroupPolicy -HashtableResult $wsusList
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -ValueToCheck TargetGroup -HashtableRowName WSUSGroup -HashtableResult $wsusList
+
+    }
+
+   return $wsusList
+}
+
 
 Function Test-RegistryValue 
 {
@@ -319,55 +362,8 @@ $firewallReport.Domain.LogFilePath
 
 #Install-Module -Name PSWindowsUpdate
 
-#dziala w 70% procentach
-<#
-$wsusList=[ordered]@{
-'AutoUpdate'='DISABLED';
-'InstallUpdateType'='DISABLED';
-'InstallDay'='DISABLED';
-'InstallTime'='DISABLED';
-'UseWsus'='DISABLED';
-'WSUSServer1'='DISABLED';
-'WSUSStatServer'='DISABLED';
-'WSUSServer2'='DISABLED';
-'WSUSGroupPolicy'='DISABLED';
-'WSUSGroup'='DISABLED';
-}
-try
-{
-    $wsus=Get-WUSettings | 
-    Select @{Label='AutoUpdate';Expression={$_.NoAutoUpdate}},
-    @{Label='InstallUpdateType';Expression={$_.AuOptions.Substring(0,1)}},
-    @{Label='InstallDay';Expression={$_.ScheduledInstallDay.Substring(0,1)}},
-    @{Label='InstallTime';Expression={$_.ScheduledInstallTime}},
-    @{Label='UseWsus';Expression={$_.UseWUServer}},
-    @{Label='WSUSServer1';Expression={$_.WuServer}},
-    @{Label='WSUSStatServer';Expression={$_.WUStatusServer}},
-    @{Label='WSUSServer2';Expression={$_.UpdateServiceUrlAlternate}},
-    @{Label='WSUSGroupPolicy';Expression={$_.TargetGroupEnabled}},
-    @{Label='WSUSGroup';Expression={$_.TargetGroup}}
-}
-catch [System.NullReferenceException]
-{      
-            $wsus=Get-ItemProperty -PAth  HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU | fl @{Label='AutoUpdate';Expression={$_.NoAutoUpdate}},
-            @{Label='InstallUpdateType';Expression={$_.AuOptions}},
-            @{Label='InstallDay';Expression={$_.ScheduledInstallDay}},
-            @{Label='InstallTime';Expression={$_.ScheduledInstallTime}}
-        
-            $wsus+=Get-ItemProperty -PAth HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate | fl @{Label='UseWsus';Expression={$_.WuServer}},
-            @{Label='WSUSStatServer';Expression={$_.WUStatusServer}},
-            @{Label='WSUSServer2';Expression={$_.UpdateServiceUrlAlternate}},
-            @{Label='WSUSGroupPolicy';Expression={$_.TargetGroupEnabled}},
-            @{Label='WSUSGroup';Expression={$_.TargetGroup}}
-}
-if ($wsus)
-{
-$i=0
-$wsus.psobject.Properties.Where({$_.Value -ne $null}) | ForEach-Object { 
-$wsusList.Item($i) = $_.Value
-$i=$i+1 
-}
-}
+
+$wsusList=New-WSUSReport
 $wsusList
 #>
 
