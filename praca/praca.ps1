@@ -295,6 +295,58 @@ function New-USBHistoryList
     $usbList=(Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Enum\USBSTOR\*\* | Select -ExpandProperty FriendlyName)
     return $usbList
 }
+
+function New-PanelReport
+{
+    $panelReport=[ordered]@{}
+    #panel
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization' -ValueToCheck NoLockScreenCamera -HashtableRowName NoLockScreenCamera -HashtableResult $panelReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization' -ValueToCheck NoLockScreenSlideShow -HashtableRowName NoLockScreenSlideShow -HashtableResult $panelReport
+    ####brak nauki pisma ręcznego####
+    #####brak zezwalaj użytkownikom na włączanie rozpoznawania mowy online#####
+
+    #biometria
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Camera' -ValueToCheck AllowCamera -HashtableRowName AllowCamera -HashtableResult $panelReport
+
+    #aparat
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Camera' -ValueToCheck AllowCamera -HashtableRowName AllowCamera -HashtableResult $panelReport
+
+
+    #microsoft edge
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\BrowserEmulation' -ValueToCheck MSCompatibilityMode -HashtableRowName MSCompatibilityMode -HashtableResult $panelReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Privacy' -ValueToCheck ClearBrowsingHistoryOnExit -HashtableRowName ClearBrowsingHistoryOnExit -HashtableResult $panelReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main' -ValueToCheck 'FormSuggest Passwords' -HashtableRowName 'FormSuggest Passwords' -HashtableResult $panelReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -ValueToCheck EnabledV9 -HashtableRowName EnabledV9 -HashtableResult $panelReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\BooksLibrary' -ValueToCheck EnableExtendedBooksTelemetry -HashtableRowName EnableExtendedBooksTelemetry -HashtableResult $panelReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main' -ValueToCheck PreventAccessToAboutFlagsInMicrosoftEdge -HashtableRowName PreventAccessToAboutFlagsInMicrosoftEdge -HashtableResult $panelReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main' -ValueToCheck PreventLiveTileDataCollection -HashtableRowName PreventLiveTileDataCollection -HashtableResult $panelReport
+
+    #Windows Defender
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -ValueToCheck DisableAntiSpyware -HashtableRowName DisableAntiSpyware -HashtableResult $panelReport
+    $panelReport+=UniwersalWrapper(Get-MpPreference | Select PUAProtection,DisableBehaviorMonitoring,DisableRemovableDriveScanning,EnableNetworkProtection | fl)
+
+    #lokalizacja i czujniki
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors' -ValueToCheck DisableLocationScripting -HashtableRowName DisableLocationScripting -HashtableResult $panelReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors' -ValueToCheck DisableLocation -HashtableRowName DisableLocation -HashtableResult $panelReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors' -ValueToCheck DisableSensors -HashtableRowName DisableSensors -HashtableResult $panelReport
+
+    return $panelReport
+}
+
+
+function New-ScreenSaverReport
+{
+    $screensaverReport=[ordered]@{}
+    Get-RegistryValueWithDisabledValue -Path 'HKCU:\Software\Policies\Microsoft\Windows\Control Panel\Desktop' -ValueToCheck ScreenSaverIsSecure -HashtableRowName ScreenSaverIsSecure -HashtableResult $screensaverReport
+    Get-RegistryValueWithDisabledValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System' -ValueToCheck NoDispScrSavPage -HashtableRowName NoDispScrSavPage -HashtableResult $screensaverReport
+
+    Get-RegistryValueWithDisabledValue -Path 'HKCU:\Software\Policies\Microsoft\Windows\Control Panel\Desktop' -ValueToCheck ScreenSaveTimeOut -HashtableRowName ScreenSaveTimeOut -HashtableResult $screensaverReport
+
+    return $screensaverReport
+}
+
+
+
 #endregion functions
 
 
@@ -477,48 +529,12 @@ Get-ItemProperty HKLM:\System\CurrentControlSet\Policies |fl NtfsEncryptPagingFi
 #endregion rozdzial4
 
 #region rozdzial5
-
-#panel
-Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization | fl NoLockScreenCamera
-Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization | fl NoLockScreenSlideShow
-####brak nauki pisma ręcznego####
-#####zezwalaj użytkownikom na włączanie rozpoznawania mowy online#####
-
-#biometria
-Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\Biometrics\FacialFeatures | fl EnhancedAntiSpoofing
-
-#aparat
-Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\Camera | fl AllowCamera
-
-#microsoft edge
-Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\BrowserEmulation | fl MSCompatibilityMode
-Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Privacy | fl ClearBrowsingHistoryOnExit
-Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main | fl "FormSuggest Passwords" #sugerowanie hasel
-Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter | fl EnabledV9
-Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\BooksLibrary | fl EnableExtendedBooksTelemetry
-Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main | fl PreventAccessToAboutFlagsInMicrosoftEdge
-Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main | fl PreventLiveTileDataCollection
-
-
-#Windows Defender
-Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender" | fl DisableAntiSpyware
-Get-MpPreference | Select PUAProtection | fl
-Get-MpPreference | Select DisableBehaviorMonitoring | fl
-Get-MpPreference | Select DisableRemovableDriveScanning | fl
-Get-MpPreference | Select EnableNetworkProtection | fl
-
-
-#lokalizacja i czujniki
-Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors | fl DisableLocationScripting
-Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors | fl DisableLocation
-Get-ItemProperty HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors | fl DisableSensors
-
+$panelReport=New-PanelRaport
+$panelReport
 #endregion rozdzial5
 
 #region rozdzial6
-Get-ItemProperty "HKCU:\Software\Policies\Microsoft\Windows\Control Panel\Desktop" | fl ScreenSaverIsSecure
-Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System" | fl NoDispScrSavPage
-
-#okres bezycznnosci
-Get-ItemProperty "HKCU:\Software\Policies\Microsoft\Windows\Control Panel\Desktop" | fl ScreenSaveTimeOut
+$screensaverReport=New-ScreenSaverReport
+$screensaverReport
 #endregion rozdzial6
+
