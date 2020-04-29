@@ -6,6 +6,7 @@
 #region required
 #Requires -Modules PSWindowsUpdate
 #requires -Module hashdata
+#requires -Module Carbon
 
 #endregion required
 
@@ -22,13 +23,13 @@ $path=$env:HOMEDRIVE+"\"+$folderName
 #region filenames
 #TODO create list
 
-
+$applockerFile="secedit.cfg"
 $seceditFile="secedit.cfg"
 #endregion filenames
 
 #region paths
 #TODO create list
-
+$applockerPath=$path+"\"+$applockerFile
 $seceditPath=$path+"\"+$seceditFile
 #endregion paths
 
@@ -153,6 +154,36 @@ Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -
 Get-RegistryValueWithDisabledValue -Path HKLM:\SYSTEM\CurrentControlSet\Policies\Microsoft\FVE -ValueToCheck FDVDenyWriteAccess -HashtableRowName BitlockerDenyWriteAccessToFixedDataDrivesWithoutBitlocker -HashtableResult $result
 
 return $bitlockerReport
+}
+function New-ApplockerReport
+{
+param(
+
+        [Parameter(Position = 0, Mandatory = $true)]
+        [String]$Path
+    )
+    Get-AppLockerPolicy -Effective -Xml | Set-Content ($Path)
+    [xml]$cn = Get-Content $Path
+
+    $exeCollection=$cn.AppLockerPolicy.RuleCollection.Get(2) #dla windows7 jest 1
+    $appxCollection=$cn.AppLockerPolicy.RuleCollection.Get(0)
+
+
+    $exeRules=foreach($element in $exeCollection)
+    {
+        $element.FilePublisherRule | Select Action,@{Label="UserOrGroupSid"; Expression={Resolve-CIdentity -SID ($_.UserOrGroupSid) | Select -ExpandProperty FullName}},@{Label="Product"; Expression={$_.Conditions.FilePublisherCondition.ProductName}},@{Label="PublisherName"; Expression={$_.Conditions.FilePublisherCondition.PublisherName}}
+        $element.FilePathRule | Select Action,@{Label="UserOrGroupSid"; Expression={Resolve-CIdentity -SID ($_.UserOrGroupSid) | Select -ExpandProperty FullName}},@{Label="Product"; Expression={$_.Conditions.FilePathCondition.Path}},@{Label="PublisherName"; Expression={'PathRule'}}
+    }
+    $appxRules=foreach($element in $appxCollection)
+    {
+        $element.FilePublisherRule | Select Action,@{Label="UserOrGroupSid"; Expression={Resolve-CIdentity -SID ($_.UserOrGroupSid) | Select -ExpandProperty FullName}},@{Label="Product"; Expression={$_.Conditions.FilePublisherCondition.ProductName}},@{Label="PublisherName"; Expression={$_.Conditions.FilePublisherCondition.PublisherName}}
+    }
+
+
+    $applockerReport=[ordered]@{}
+    $applockerReport=$exeRules+$appxRules
+
+    return $applockerReport
 }
 
 function New-WSUSReport
@@ -287,7 +318,7 @@ function New-DriversReport
 function New-RemovableStorageAccessReport
 {
     $removableStorageAccessReport=[ordered]@{}
-    Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\RemovableStorageDevices' -ValueToCheck Deny_All -HashtableRowName DenyAccessToRemovableStorageAccess -HashtableResult $removableStorageAccessReport
+    Get-RegistryValueWithDisabledValuSe -Path 'HKLM:\Software\Policies\Microsoft\Windows\RemovableStorageDevices' -ValueToCheck Deny_All -HashtableRowName DenyAccessToRemovableStorageAccess -HashtableResult $removableStorageAccessReport
     return $removableStorageAccessReport
 }
 function New-USBHistoryList
@@ -390,11 +421,8 @@ $policyList | Format-Table -AutoSize
 #region rozdzial2
 
 #region firewall
-<#
-$firewallReport=New-FirewallReport
-$firewallReport.Domain.LogFilePath
-#>
-
+#$firewallReport=New-FirewallReport
+#$firewallReport.Domain.LogFilePath #example
 #ipsec
 
 #$ipsecReport=New-IpsecReport
@@ -403,28 +431,18 @@ $firewallReport.Domain.LogFilePath
 #endregion firewall
 
 #region podgladzdarzen
-
 #$logReport=New-LogReport
-#$logReport.Application.LogFilePath
-
+#$logReport.Application.LogFilePath #example
 #endregion podgladzdarzen
 
 #region WindowsUpdate
-
-
-#Install-Module -Name PSWindowsUpdate
-
-
-$wsusList=New-WSUSReport
-$wsusList
-#>
-
-
+#$wsusList=New-WSUSReport
+#$wsusList
 #endregion WindowsUpdate
 
 #region Bitlocker
-$bitlockerReport=New-BitlockerReport
-$bitlockerReport
+#$bitlockerReport=New-BitlockerReport
+#$bitlockerReport
 #endregion Bitlocker
 
 #region DHCP i ip
@@ -434,10 +452,8 @@ ipconfig /all | Select-String "DHCP wĄczone","Adres IPv4","Maska podsieci","B
 #lub
 #ewentualnie zamazać dane
 $ipAddress=UniwersalWrapper(Get-CimInstance -Class Win32_NetworkAdapterConfiguration -Filter IPEnabled=TRUE  | Select-Object @{label="IPAddress";expression={$_.ipaddress[0]}},@{label="IPSubnet";expression={$_.IPSubnet[0]}},MACAddress,@{label="DefaultIPGateway";expression={$_.DefaultIPGateway[0]}},DHCPServer,DHCPEnabled,DNSDomain,DNSServerSearchOrder)
-$ipAddress
+$ipAddress #odpalić na maszynie
 #endregion DHCP i ip
-
-
 
 #endregion rozdzial2
 
@@ -445,33 +461,9 @@ $ipAddress
 #region rozdzial3
 
 #region Applocker
-
-
-#TODO do weryfikacji - byłem mega zmęczony
-Get-AppLockerPolicy -Effective | Test-AppLockerPolicy -Path "C:\windows\*.exe","C:\Program Files\*.exe" -User Wszyscy #wszyscy mogą odpalać z 2 folderów
-Get-AppLockerPolicy -Effective | Test-AppLockerPolicy -Path "C:\Windows\System32\*.exe"  -User BUILTIN\Administratorzy #administratorzy mogą odpalać wszystkie pliki
-
-Get-AppLockerPolicy -Effective | Test-AppLockerPolicy -Path "C:\Program Files (x86)\Internet Explorer\iexplore.exe" -User Wszyscy #wybrane programy explorer,mozilla,chrome
-
-#region ######### Aplikacje wbudowane w Win10#########
-#Do testów-może być bardziej optymalne od powyższego
-Get-AppLockerPolicy -Effective -Xml | Set-Content ('c:\test\curr.xml')
-[xml]$cn = Get-Content C:\test\curr.xml
-
-$exeRule=$cn.AppLockerPolicy.RuleCollection.Get(1)
-
-foreach($element in $exeRule)
-{
-    $element.FilePublisherRule | Select Action,@{Label="UserOrGroupSid"; Expression={Resolve-CIdentity -SID ($_.UserOrGroupSid) | Select -ExpandProperty FullName}},@{Label="Product"; Expression={$_.Conditions.FilePublisherCondition.ProductName}},@{Label="PublisherName"; Expression={$_.Conditions.FilePublisherCondition.PublisherName}}
-    $element.FilePathRule | Select Action,@{Label="UserOrGroupSid"; Expression={Resolve-CIdentity -SID ($_.UserOrGroupSid) | Select -ExpandProperty FullName}},@{Label="Product"; Expression={$_.Conditions.FilePathCondition.Path}},@{Label="PublisherName"; Expression={'PathRule'}}
-}
-
-$cn.AppLockerPolicy.RuleCollection.Get(2).FilePathRule | Select USerOrGroupSid,Action,@{Label="Path"; Expression={$_.Conditions.FilePathCondition.Path}}
-
+#$applockerReport=New-ApplockerReport -Path $Path
+#$applockerReport
 #endregion ######### Aplikacje wbudowane w Win10#########
-
-
-
 
 #region monitorowanie aplikacji
 Get-AppLockerFileInformation -EventLog -Statistics | Select @{label="FilePath";expression={$_.FilePath.Path.Substring($_.FilePath.Path.LastIndexOf("\")+1)}}, Counter | sort Counter -Descending | fl *
@@ -481,18 +473,18 @@ Get-AppLockerFileInformation -EventLog -Statistics | Select @{label="FilePath";e
 
 #region Autorun
 ##################################
-$autorunReport=New-AutorunReport
-$autorunReport
+#$autorunReport=New-AutorunReport
+#$autorunReport
 ##################################
-$driversReport=New-DriversReport
-$driversReport
+#$driversReport=New-DriversReport
+#$driversReport
 ######################################
-$removableStorageAccessReport=New-RemovableStorageAccessReport
-$removableStorageAccessReport
+#$removableStorageAccessReport=New-RemovableStorageAccessReport
+#$removableStorageAccessReport
 ######################################
 #Lista podlaczonych pendrivow#
-$usbList=New-USBHistoryList
-$usbList
+#$usbList=New-USBHistoryList
+#$usbList
 #endregion magazynWymienny
 
 #endregion rozdzial3
@@ -537,12 +529,12 @@ Get-ItemProperty HKLM:\System\CurrentControlSet\Policies |fl NtfsEncryptPagingFi
 #endregion rozdzial4
 
 #region rozdzial5
-$panelReport=New-PanelRaport
-$panelReport
+#$panelReport=New-PanelRaport
+#$panelReport
 #endregion rozdzial5
 
 #region rozdzial6
-$screensaverReport=New-ScreenSaverReport
-$screensaverReport
+#$screensaverReport=New-ScreenSaverReport
+#$screensaverReport
 #endregion rozdzial6
 
