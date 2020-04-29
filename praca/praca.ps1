@@ -433,8 +433,8 @@ ipconfig /all | Select-String "DHCP wĄczone","Adres IPv4","Maska podsieci","B
 
 #lub
 #ewentualnie zamazać dane
-Get-CimInstance -Class Win32_NetworkAdapterConfiguration -Filter IPEnabled=TRUE  | Select-Object DHCPServer,DHCPEnabled,@{label="IPAddress";expression={$_.ipaddress[0]}},@{label="DefaultIPGateway";expression={$_.DefaultIPGateway[0]}},@{label="IPSubnet";expression={$_.IPSubnet[0]}} 
-
+$ipAddress=UniwersalWrapper(Get-CimInstance -Class Win32_NetworkAdapterConfiguration -Filter IPEnabled=TRUE  | Select-Object @{label="IPAddress";expression={$_.ipaddress[0]}},@{label="IPSubnet";expression={$_.IPSubnet[0]}},MACAddress,@{label="DefaultIPGateway";expression={$_.DefaultIPGateway[0]}},DHCPServer,DHCPEnabled,DNSDomain,DNSServerSearchOrder)
+$ipAddress
 #endregion DHCP i ip
 
 
@@ -457,7 +457,15 @@ Get-AppLockerPolicy -Effective | Test-AppLockerPolicy -Path "C:\Program Files (x
 #Do testów-może być bardziej optymalne od powyższego
 Get-AppLockerPolicy -Effective -Xml | Set-Content ('c:\test\curr.xml')
 [xml]$cn = Get-Content C:\test\curr.xml
-$cn.AppLockerPolicy.RuleCollection.Get(0).FilePublisherRule | Select UserOrGroupSid,Action,@{Label="PublisherName"; Expression={$_.Conditions.FilePublisherCondition.PublisherName}},@{Label="ProductName"; Expression={$_.Conditions.FilePublisherCondition.ProductName}},@{Label="BinaryName"; Expression={$_.Conditions.FilePublisherCondition.BinaryName}} | ft
+
+$exeRule=$cn.AppLockerPolicy.RuleCollection.Get(1)
+
+foreach($element in $exeRule)
+{
+    $element.FilePublisherRule | Select Action,@{Label="UserOrGroupSid"; Expression={Resolve-CIdentity -SID ($_.UserOrGroupSid) | Select -ExpandProperty FullName}},@{Label="Product"; Expression={$_.Conditions.FilePublisherCondition.ProductName}},@{Label="PublisherName"; Expression={$_.Conditions.FilePublisherCondition.PublisherName}}
+    $element.FilePathRule | Select Action,@{Label="UserOrGroupSid"; Expression={Resolve-CIdentity -SID ($_.UserOrGroupSid) | Select -ExpandProperty FullName}},@{Label="Product"; Expression={$_.Conditions.FilePathCondition.Path}},@{Label="PublisherName"; Expression={'PathRule'}}
+}
+
 $cn.AppLockerPolicy.RuleCollection.Get(2).FilePathRule | Select USerOrGroupSid,Action,@{Label="Path"; Expression={$_.Conditions.FilePathCondition.Path}}
 
 #endregion ######### Aplikacje wbudowane w Win10#########
