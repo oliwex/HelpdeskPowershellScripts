@@ -4,7 +4,7 @@
 ##                              ###
 ###################################
 #region required
-#Requires -Modules PSWindowsUpdate
+#Requires -Module PSWindowsUpdate
 #requires -Module hashdata
 #requires -Module Carbon
 
@@ -23,7 +23,7 @@ $path=$env:HOMEDRIVE+"\"+$folderName
 #region filenames
 #TODO create list
 
-$applockerFile="secedit.cfg"
+$applockerFile="applocker.xml"
 $seceditFile="secedit.cfg"
 #endregion filenames
 
@@ -35,39 +35,39 @@ $seceditPath=$path+"\"+$seceditFile
 
 
 #region dictionary
-
-$test1=@{
-    "EnableAdminAccount" = "EnableAdminAccount";
-    "EnableGuestAccount" = "EnableAdminAccount";
-
-    "NewAdministratorName"="AdministratorName";
-    "NewGuestName"="GuestName";
-    "SeTakeOwnershipPrivilege"="Take ownership of files or other objects";
-    "SeRemoteInteractiveLogonRight"="Allow log on through Remote Desktop Services";}
-
-$policyList=[ordered]@{}
+#TODO:
 
 
 #endregion dictionary
 
 #region functions
-function Get-SeceditContent([string]$path)
+function Get-SeceditContent()
 {
-    if (!(Test-Path $path))
-    {
-        New-Item -Path $path 
-    }
+param(
 
-    secedit /export /cfg $seceditPath
-    $seceditContent=Get-Content -Path $seceditPath
-    return $seceditContent
+        [Parameter(Position = 0, Mandatory = $true)]
+        [String]$PathToSecedit
+     )
+    secedit /export /cfg $PathToSecedit
+    $SeceditContent=Get-Content -Path $PathToSecedit
+    return $SeceditContent
 }
 
-function Add-ElementToPolicyList($rawElement)
+function Add-ElementToPolicyList()
 {
-    $richElement=($rawElement).ToString().Replace(' ','').Split("=")
+param(
+
+        [Parameter(Position = 0, Mandatory = $true)]
+        [String]$SeceditElement
+        ,
+        [Parameter(Position = 0, Mandatory = $true)]
+        [String]$Hashtable
+        
+     )
+    $richElement=($SeceditElement).Replace(' ','').Split("=")
     $policyList.Add($richElement[0],$richElement[1])
 }
+
 
 function New-HashTableWithDisabledValue($hashtableFromSystem)
 {
@@ -79,6 +79,7 @@ function New-HashTableWithDisabledValue($hashtableFromSystem)
     return $hashtableFromSystem
 }
 
+#Not for registry
 function UniwersalWrapper($powershellCommand)  #wrapper
 {
 #IN:$hashtableFromSystem-Get hashtable from system with system settings
@@ -86,7 +87,111 @@ function UniwersalWrapper($powershellCommand)  #wrapper
     $result=New-HashTableWithDisabledValue(ConvertTo-Hashtable($powershellCommand))
     return $result
 }
+#For registry
+Function Test-RegistryValue 
+{
+param(
 
+        [Parameter(Position = 0, Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
+        [String]$Path
+        ,
+        [Parameter(Position = 1, Mandatory = $true)]
+        [String]$Name
+        ,
+        [Switch]$PassThru
+    ) 
+
+    process {
+        if (Test-Path $Path) {
+            $Key = Get-Item -LiteralPath $Path
+            if ($Key.GetValue($Name, $null) -ne $null) {
+                if ($PassThru) {
+                    Get-ItemProperty $Path $Name
+                } else {
+                    $true
+                }
+            } else {
+                $false
+            }
+        } else {
+            $false
+        }
+    }
+}
+
+function Get-RegistryValueWithDisabledValue()
+{
+param(
+
+        [Parameter(Position = 0, Mandatory = $true)]
+        [String]$Path
+        ,
+        [Parameter(Position = 1, Mandatory = $true)]
+        [String]$ValueToCheck
+        ,
+        [Parameter(Position = 2, Mandatory = $true)]
+        $HashtableRowName
+        ,
+        [Parameter(Position = 3, Mandatory = $true)]
+        $HashtableResult
+    ) 
+    
+    if (Test-RegistryValue -Path $Path -Name $valueToCheck)
+    {
+        $HashtableResult.Add($HashtableRowName,(Get-ItemPropertyValue $Path -Name $ValueToCheck))
+    }
+    else
+    {
+        $HashtableResult.Add($HashtableRowName,"DISABLED")
+
+    }
+}
+function New-RightsReport()
+{
+param(
+
+        [Parameter(Position = 0, Mandatory = $true)]
+        [String]$PathToSecedit
+     )
+
+    $policyTable=[ordered]@{}
+    $SeceditContent=Get-SeceditContent -PathToSecedit $PathToSecedit
+
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern SeTakeOwnershipPrivilege) -Hashtable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern SeRemoteInteractiveLogonRight) -Hashtable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern EnableAdminAccount) -Hashtable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern EnableGuestAccount) -Hashtable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern NewGuestName) -Hashtable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern NewAdministratorName) -Hashtable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern DontDisplayLastUserName) -Hashtable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern ForceUnlockLogon) -Hashtable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern CachedLogonsCount) -Hashtable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern PasswordExpiryWarning) -Hashtable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern LegalNoticeCaption) -Hashtable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern LegalNoticeText) -Hashtable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern ConsentPromptBehaviorUser) -Hashtable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern ConsentPromptBehaviorAdmin) -Hashtable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern ClearPageFileAtShutdown) -Hashtable $policyTable
+
+    return $policyTable
+}
+
+
+function New-GroupReport()
+{
+
+$adminsGroup=(Get-LocalGroupMember 'Administratorzy').Name
+$remoteaccessGroup=(Get-LocalGroupMember 'Użytkownicy pulpitu zdalnego').Name
+$remoteaccessGroup=(Get-LocalGroupMember 'Administratorzy Domeny').Name
+
+$groupTable=[ordered]@{
+    Administrators=$adminsGroup;
+    RemoteAccess=$remoteaccessGroup;
+    DomainAdmins=$remoteaccessGroup
+    }
+
+    return $groupTable
+}
 function New-FirewallReport
 {
 #OUT:Hashtable with FirewallReport
@@ -155,6 +260,14 @@ Get-RegistryValueWithDisabledValue -Path HKLM:\SYSTEM\CurrentControlSet\Policies
 
 return $bitlockerReport
 }
+
+function New-NetworkReport
+{
+    $networkReport=UniwersalWrapper(Get-CimInstance -Class Win32_NetworkAdapterConfiguration -Filter IPEnabled=TRUE  | Select-Object @{label="IPAddress";expression={$_.ipaddress[0]}},@{label="IPSubnet";expression={$_.IPSubnet[0]}},MACAddress,@{label="DefaultIPGateway";expression={$_.DefaultIPGateway[0]}},DHCPServer,DHCPEnabled,DNSDomain,DNSServerSearchOrder | Select -First 1)
+    return $networkReport
+}
+
+
 function New-ApplockerReport
 {
 param(
@@ -184,6 +297,13 @@ param(
     $applockerReport=$exeRules+$appxRules
 
     return $applockerReport
+}
+
+function New-ApplockerList
+{
+   $applockerlist=[ordered]@{}
+   $applockerlist = ConvertTo-Hashtable (Get-AppLockerFileInformation -EventLog -Statistics | Select @{label="FilePath";expression={$_.FilePath.Path.Substring($_.FilePath.Path.LastIndexOf("\")+1)}}, Counter | sort Counter -Descending | fl *)
+   return $applockerlist
 }
 
 function New-WSUSReport
@@ -226,64 +346,7 @@ function New-WSUSReport
 }
 
 
-Function Test-RegistryValue 
-{
-param(
 
-        [Parameter(Position = 0, Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
-        [String]$Path
-        ,
-        [Parameter(Position = 1, Mandatory = $true)]
-        [String]$Name
-        ,
-        [Switch]$PassThru
-    ) 
-
-    process {
-        if (Test-Path $Path) {
-            $Key = Get-Item -LiteralPath $Path
-            if ($Key.GetValue($Name, $null) -ne $null) {
-                if ($PassThru) {
-                    Get-ItemProperty $Path $Name
-                } else {
-                    $true
-                }
-            } else {
-                $false
-            }
-        } else {
-            $false
-        }
-    }
-}
-
-function Get-RegistryValueWithDisabledValue()
-{
-param(
-
-        [Parameter(Position = 0, Mandatory = $true)]
-        [String]$Path
-        ,
-        [Parameter(Position = 1, Mandatory = $true)]
-        [String]$ValueToCheck
-        ,
-        [Parameter(Position = 2, Mandatory = $true)]
-        $HashtableRowName
-        ,
-        [Parameter(Position = 3, Mandatory = $true)]
-        $HashtableResult
-    ) 
-    
-    if (Test-RegistryValue -Path $Path -Name $valueToCheck)
-    {
-        $HashtableResult.Add($HashtableRowName,(Get-ItemPropertyValue $Path -Name $ValueToCheck))
-    }
-    else
-    {
-        $HashtableResult.Add($HashtableRowName,"DISABLED")
-
-    }
-}
 
 function New-AutorunReport
 {
@@ -327,6 +390,51 @@ function New-USBHistoryList
     return $usbList
 }
 
+function New-ToolReport
+{
+    #region rozdzial4
+
+    #region registry
+    Get-RegistryValueWithDisabledValue -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System -ValueToCheck DisableRegistryTools -HashtableRowName DisableRegistryTools -HashtableResult $toolReport
+    #endregion registry
+
+    #region cmd
+    Get-RegistryValueWithDisabledValue -Path HKCU:\Software\Policies\Microsoft\Windows\System -ValueToCheck DisableCMD -HashtableRowName DisableCMD -HashtableResult $toolReport
+    #endregion cmd
+
+    #region managerZadan
+    Get-RegistryValueWithDisabledValue -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System -ValueToCheck DisableTaskMgr -HashtableRowName DisableTaskMgr -HashtableResult $toolReport
+    #endregion managerZadan
+
+    #region PowershellLog
+    Get-RegistryValueWithDisabledValue -Path HKLM:\Software\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging -ValueToCheck EnableScriptBlockLogging -HashtableRowName EnableScriptBlockLogging -HashtableResult $toolReport
+    #endregion PowershellLog
+
+
+    #region polaczeniaZdalne
+    #allow unencrypted traffice
+    Get-RegistryValueWithDisabledValue -Path HKLM:\Software\Policies\Microsoft\Windows\WinRM\Service -ValueToCheck AllowUnencryptedTraffic -HashtableRowName AllowUnencryptedTraffic -HashtableResult $toolReport
+
+    #disable token runas
+    Get-RegistryValueWithDisabledValue -Path HKLM:\Software\Policies\Microsoft\Windows\WinRM\Service -ValueToCheck DisableRunAs -HashtableRowName DisableRunAs -HashtableResult $toolReport
+
+    #basic authentication
+    Get-RegistryValueWithDisabledValue -Path HKLM:\Software\Policies\Microsoft\Windows\WinRM\Service -ValueToCheck AllowBasic -HashtableRowName AllowBasic -HashtableResult $toolReport
+    #endregion polaczeniaZdalne
+
+    #region szyfrowanie pliku stronnicowanie
+    Get-RegistryValueWithDisabledValue -Path HKLM:\System\CurrentControlSet\Policies -ValueToCheck NtfsEncryptPagingFile -HashtableRowName NtfsEncryptPagingFile -HashtableResult $toolReport
+    #endregion szyfrowanie pliku stronnicowanie
+
+    return $toolReport
+}
+
+function New-Service
+{
+    $serviceReport=Get-Service XblAuthManager,XblGameSave,XboxGipSvc,XboxNetApiSvc,AppIDSvc | Select Name,Status,StartType
+    return $serviceReport
+}
+
 function New-PanelReport
 {
     $panelReport=[ordered]@{}
@@ -336,32 +444,53 @@ function New-PanelReport
     ####brak nauki pisma ręcznego####
     #####brak zezwalaj użytkownikom na włączanie rozpoznawania mowy online#####
 
-    #biometria
-    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Camera' -ValueToCheck AllowCamera -HashtableRowName AllowCamera -HashtableResult $panelReport
+    #biometria-rozszerzone przeciwdziałanie przeciw podszywaniu się
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Biometrics\FacialFeatures' -ValueToCheck EnhancedAntiSpoofing -HashtableRowName EnhancedAntiSpoofing -HashtableResult $panelReport
 
     #aparat
     Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Camera' -ValueToCheck AllowCamera -HashtableRowName AllowCamera -HashtableResult $panelReport
 
+    return $panelReport
+}
 
-    #microsoft edge
-    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\BrowserEmulation' -ValueToCheck MSCompatibilityMode -HashtableRowName MSCompatibilityMode -HashtableResult $panelReport
-    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Privacy' -ValueToCheck ClearBrowsingHistoryOnExit -HashtableRowName ClearBrowsingHistoryOnExit -HashtableResult $panelReport
-    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main' -ValueToCheck 'FormSuggest Passwords' -HashtableRowName 'FormSuggest Passwords' -HashtableResult $panelReport
-    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -ValueToCheck EnabledV9 -HashtableRowName EnabledV9 -HashtableResult $panelReport
-    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\BooksLibrary' -ValueToCheck EnableExtendedBooksTelemetry -HashtableRowName EnableExtendedBooksTelemetry -HashtableResult $panelReport
-    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main' -ValueToCheck PreventAccessToAboutFlagsInMicrosoftEdge -HashtableRowName PreventAccessToAboutFlagsInMicrosoftEdge -HashtableResult $panelReport
-    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main' -ValueToCheck PreventLiveTileDataCollection -HashtableRowName PreventLiveTileDataCollection -HashtableResult $panelReport
+
+function New-LocationReport
+{
+    $locationReport=[ordered]@{}
+    
+    #location and sensor
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors' -ValueToCheck DisableLocationScripting -HashtableRowName DisableLocationScripting -HashtableResult $locationReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors' -ValueToCheck DisableLocation -HashtableRowName DisableLocation -HashtableResult $locationReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors' -ValueToCheck DisableSensors -HashtableRowName DisableSensors -HashtableResult $locationReport
+    
+    return $locationReport
+}
+
+function New-DefenderReport
+{
+    $defenderReport=[ordered]@{}
 
     #Windows Defender
-    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -ValueToCheck DisableAntiSpyware -HashtableRowName DisableAntiSpyware -HashtableResult $panelReport
-    $panelReport+=UniwersalWrapper(Get-MpPreference | Select PUAProtection,DisableBehaviorMonitoring,DisableRemovableDriveScanning,EnableNetworkProtection | fl)
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -ValueToCheck DisableAntiSpyware -HashtableRowName DisableAntiSpyware -HashtableResult $defenderReport
+    $defenderReport+=UniwersalWrapper(Get-MpPreference | Select PUAProtection,DisableBehaviorMonitoring,DisableRemovableDriveScanning,EnableNetworkProtection | fl)
+    
+    return $defenderReport
+}
 
-    #lokalizacja i czujniki
-    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors' -ValueToCheck DisableLocationScripting -HashtableRowName DisableLocationScripting -HashtableResult $panelReport
-    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors' -ValueToCheck DisableLocation -HashtableRowName DisableLocation -HashtableResult $panelReport
-    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors' -ValueToCheck DisableSensors -HashtableRowName DisableSensors -HashtableResult $panelReport
+function New-EdgeReport
+{
+    $edgeReport=[ordered]@{}
+    
+    #microsoft edge
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\BrowserEmulation' -ValueToCheck MSCompatibilityMode -HashtableRowName MSCompatibilityMode -HashtableResult $edgeReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Privacy' -ValueToCheck ClearBrowsingHistoryOnExit -HashtableRowName ClearBrowsingHistoryOnExit -HashtableResult $edgeReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main' -ValueToCheck 'FormSuggest Passwords' -HashtableRowName 'FormSuggest Passwords' -HashtableResult $edgeReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -ValueToCheck EnabledV9 -HashtableRowName EnabledV9 -HashtableResult $edgeReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\BooksLibrary' -ValueToCheck EnableExtendedBooksTelemetry -HashtableRowName EnableExtendedBooksTelemetry -HashtableResult $edgeReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main' -ValueToCheck PreventAccessToAboutFlagsInMicrosoftEdge -HashtableRowName PreventAccessToAboutFlagsInMicrosoftEdge -HashtableResult $edgeReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main' -ValueToCheck PreventLiveTileDataCollection -HashtableRowName PreventLiveTileDataCollection -HashtableResult $edgeReport
 
-    return $panelReport
+    return $edgeReport
 }
 
 
@@ -382,39 +511,15 @@ function New-ScreenSaverReport
 
 
 #code
-Clear-Host
 
-$seceditContent= Get-SeceditContent($path)
+
 
 #region rozdzial1
-
-Add-ElementToPolicyList($seceditContent | Select-String -Pattern EnableAdminAccount)
-Add-ElementToPolicyList($seceditContent | Select-String -Pattern EnableGuestAccount)
-Add-ElementToPolicyList($seceditContent | Select-String -Pattern NewAdministratorName)
-Add-ElementToPolicyList($seceditContent | Select-String -Pattern NewGuestName)
-Add-ElementToPolicyList($seceditContent | Select-String -Pattern SeTakeOwnershipPrivilege)
-Add-ElementToPolicyList($seceditContent | Select-String -Pattern SeRemoteInteractiveLogonRight)
-Add-ElementToPolicyList($seceditContent | Select-String -Pattern DontDisplayLastUserName)
-Add-ElementToPolicyList($seceditContent | Select-String -Pattern LegalNoticeCaption)
-Add-ElementToPolicyList($seceditContent | Select-String -Pattern LegalNoticeText)
-Add-ElementToPolicyList($seceditContent | Select-String -Pattern ConsentPromptBehaviorAdmin)
-Add-ElementToPolicyList($seceditContent | Select-String -Pattern ConsentPromptBehaviorUser)
-Add-ElementToPolicyList($seceditContent | Select-String -Pattern ClearPageFileAtShutdown)
-Add-ElementToPolicyList($seceditContent | Select-String -Pattern ForceUnlockLogon)
-Add-ElementToPolicyList($seceditContent | Select-String -Pattern CachedLogonsCount)
-Add-ElementToPolicyList($seceditContent | Select-String -Pattern PasswordExpiryWarning)
-
+#$rightReport=New-RightsReport -PathToSecedit $seceditPath
+#$rightReport
 #grupy wbudowane#
-
-<#
-"Członkowie grupy Użytkownicy pulpitu zdalnego"
-(Get-LocalGroupMember "Użytkownicy pulpitu zdalnego").Name
-"Członkowie grupy Administratorzy: "
-(Get-LocalGroupMember "Administratorzy").Name
-#>
-
-$policyList | Format-Table -AutoSize
-
+#$groupReport=New-GroupReport
+#$groupReport
 #endregion rozdzial1
 
 
@@ -446,13 +551,9 @@ $policyList | Format-Table -AutoSize
 #endregion Bitlocker
 
 #region DHCP i ip
-#TODO Probowac powershellem
-ipconfig /all | Select-String "DHCP wĄczone","Adres IPv4","Maska podsieci","Brama domylna","Serwer DHCP","Serwery DNS"
-
-#lub
-#ewentualnie zamazać dane
-$ipAddress=UniwersalWrapper(Get-CimInstance -Class Win32_NetworkAdapterConfiguration -Filter IPEnabled=TRUE  | Select-Object @{label="IPAddress";expression={$_.ipaddress[0]}},@{label="IPSubnet";expression={$_.IPSubnet[0]}},MACAddress,@{label="DefaultIPGateway";expression={$_.DefaultIPGateway[0]}},DHCPServer,DHCPEnabled,DNSDomain,DNSServerSearchOrder)
-$ipAddress #odpalić na maszynie
+#$networkReport = New-NetworkReport
+#$networkReport
+#odpalić na maszynie
 #endregion DHCP i ip
 
 #endregion rozdzial2
@@ -463,10 +564,11 @@ $ipAddress #odpalić na maszynie
 #region Applocker
 #$applockerReport=New-ApplockerReport -Path $Path
 #$applockerReport
-#endregion ######### Aplikacje wbudowane w Win10#########
+#endregion 
 
 #region monitorowanie aplikacji
-Get-AppLockerFileInformation -EventLog -Statistics | Select @{label="FilePath";expression={$_.FilePath.Path.Substring($_.FilePath.Path.LastIndexOf("\")+1)}}, Counter | sort Counter -Descending | fl *
+#$applockerList=New-ApplockerList
+#$applockerList
 #endregion
 
 #endregion Applocker
@@ -491,50 +593,38 @@ Get-AppLockerFileInformation -EventLog -Statistics | Select @{label="FilePath";e
 
 #region rozdzial4
 
-#region registry
-Get-ItemProperty HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System |fl DisableRegistryTools
-#endregion registry
-
-#region cmd
-Get-ItemProperty HKCU:\Software\Policies\Microsoft\Windows\System |fl DisableCMD
-#endregion cmd
-
-#region managerZadan
-Get-ItemProperty HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System |fl DisableTaskMgr
-#endregion managerZadan
-
 #region uslugi
-Get-Service XblAuthManager,XblGameSave,XboxGipSvc,XboxNetApiSvc,AppIDSvc | Select Name,Status
-Get-Service AppIDSvc | Select Name, StartType
+#$service=New-Service
+#$service
+
 #endregion uslugi
 
-#region PowershellLog
-Get-ItemProperty HKLM:\Software\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging |fl EnableScriptBlockLogging
-#endregion PowershellLog
-
-
-#region polaczeniaZdalne
-Get-ItemProperty HKLM:\Software\Policies\Microsoft\Windows\WinRM\Service |fl AllowUnencryptedTraffic
-
-Get-ItemProperty HKLM:\Software\Policies\Microsoft\Windows\WinRM\Service |fl DisableRunAs
-
-Get-ItemProperty HKLM:\Software\Policies\Microsoft\Windows\WinRM\Service |fl AllowBasic
-#endregion polaczeniaZdalne
-
-#region szyfrowanie pliku stronnicowanie
-Get-ItemProperty HKLM:\System\CurrentControlSet\Policies |fl NtfsEncryptPagingFile
-#endregion szyfrowanie pliku stronnicowanie
-
+#region narzedzia
+#$toolReport=New-ToolReport
+#$toolReport
+#endregion narzedzie
 
 #endregion rozdzial4
 
 #region rozdzial5
 #$panelReport=New-PanelRaport
 #$panelReport
+
+#$locationReport=New-LocationReport
+#$locationReport
+
+#$defenderReport=New-DefenderReport
+#$defenderReport
+
+#$edgeReport=New-EdgeReport
+#$edgeReport
+
 #endregion rozdzial5
 
 #region rozdzial6
 #$screensaverReport=New-ScreenSaverReport
 #$screensaverReport
 #endregion rozdzial6
+
+
 
