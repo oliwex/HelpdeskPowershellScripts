@@ -181,7 +181,7 @@ function New-GroupReport()
 {
 
 $adminsGroup=(Get-LocalGroupMember 'Administratorzy').Name
-$remoteaccessGroup=(Get-LocalGroupMember 'Użytkownicy pulpitu zdalnego').Name
+$remoteaccessGroup=(Get-LocalGroupMember 'Użytkownicy zarządzania zdalnego').Name
 $remoteaccessGroup=(Get-LocalGroupMember 'Administratorzy Domeny').Name
 
 $groupTable=[ordered]@{
@@ -222,17 +222,16 @@ function New-IpsecReport
 
 function New-LogReport
 {
-$applicationLogResult=UniwersalWrapper(Get-WinEvent -ListLog Application | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Application | Select -ExpandProperty Retention}})
+    $applicationLogResult=UniwersalWrapper(Get-WinEvent -ListLog Application | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Application | Select -ExpandProperty Retention}})
+    $setupLogResult=UniwersalWrapper(Get-WinEvent -ListLog Setup | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Setup | Select -ExpandProperty Retention}})
+    $systemLogResult=UniwersalWrapper(Get-WinEvent -ListLog System | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\System | Select -ExpandProperty Retention}})
+    $securityLogResult=UniwersalWrapper(Get-WinEvent -ListLog Security | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security | Select -ExpandProperty Retention}})
 
-$setupLogResult=UniwersalWrapper(Get-WinEvent -ListLog Setup | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Setup | Select -ExpandProperty Retention}})
-$systemLogResult=UniwersalWrapper(Get-WinEvent -ListLog System | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\System | Select -ExpandProperty Retention}})
-$securityLogResult=UniwersalWrapper(Get-WinEvent -ListLog Security | Select LogName,@{label="MaximumSizeInBytes";expression={$_.MaximumSizeInBytes/1024}},LogMode,@{label="Retention";expression={Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security | Select -ExpandProperty Retention}})
-
-$logReport=[ordered]@{
-Application=$domainProfileResult;
-Setup=$privateProfileResult;
-System=$publicProfileResult;
-Security=$securityLogResult
+    $logReport=[ordered]@{
+    Application=$applicationLogResult;
+    Setup=$setupLogResult;
+    System=$systemLogResult;
+    Security=$securityLogResult
 }
 
 return $logReport
@@ -241,24 +240,22 @@ return $logReport
 function New-BitlockerReport
 {
 #OUT:$result-hashtable with result of Bitlocker Report
-$bitlockerReport=[ordered]@{}
+    Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck ActiveDirectoryBackup -HashtableRowName BitlockerActiveDirectoryBackup -HashtableResult $bitlockerReport
+    Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck DefaultRecoveryFolderPath -HashtableRowName BitlockerRecoveryFilepath -HashtableResult $bitlockerReport
+    Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck EncryptionMethodNoDiffuser -HashtableRowName BitlockerEncryptionMethod -HashtableResult $bitlockerReport
+    Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck FDVPassphrase -HashtableRowName BitlockerPasswordOnFixed -HashtableResult $bitlockerReport
+    Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck FDVPassphraseComplexity -HashtableRowName BitlockerPasswordOnFixedComplexity -HashtableResult $bitlockerReport
+    Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck FDVPassphraseLength -HashtableRowName BitlockerPasswordOnFixedLength -HashtableResult $bitlockerReport
+    Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck UseAdvancedStartup -HashtableRowName BitlockerAditionalAuthenticationOnStartup -HashtableResult $bitlockerReport
+    Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck EnableBDEWithNoTP -HashtableRowName BitlockerWithoutTPM -HashtableResult $bitlockerReport
+    Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck UseTPM -HashtableRowName BitlockerWithTPM -HashtableResult $bitlockerReport
+    Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck UseTPMPIN -HashtableRowName BitlockerPINWithTPM -HashtableResult $bitlockerReport
+    Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck UseTPMKey -HashtableRowName BitlockerKeyWithTPM -HashtableResult $bitlockerReport
+    Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck UseTPMKeyPIN -HashtableRowName BitlockerKeyAndPINWithTPM -HashtableResult $bitlockerReport
+    Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck OSEncryptionType -HashtableRowName BitlockerEncryptionMethodOnOperatingSystemDrive -HashtableResult $bitlockerReport
+    Get-RegistryValueWithDisabledValue -Path HKLM:\SYSTEM\CurrentControlSet\Policies\Microsoft\FVE -ValueToCheck FDVDenyWriteAccess -HashtableRowName BitlockerDenyWriteAccessToFixedDataDrivesWithoutBitlocker -HashtableResult $bitlockerReport
 
-Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck ActiveDirectoryBackup -HashtableRowName BitlockerActiveDirectoryBackup -HashtableResult $result
-Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck DefaultRecoveryFolderPath -HashtableRowName BitlockerRecoveryFilepath -HashtableResult $result
-Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck EncryptionMethodNoDiffuser -HashtableRowName BitlockerEncryptionMethod -HashtableResult $result
-Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck FDVPassphrase -HashtableRowName BitlockerPasswordOnFixed -HashtableResult $result
-Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck FDVPassphraseComplexity -HashtableRowName BitlockerPasswordOnFixedComplexity -HashtableResult $result
-Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck FDVPassphraseLength -HashtableRowName BitlockerPasswordOnFixedLength -HashtableResult $result
-Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck UseAdvancedStartup -HashtableRowName BitlockerAditionalAuthenticationOnStartup -HashtableResult $result
-Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck EnableBDEWithNoTP -HashtableRowName BitlockerWithoutTPM -HashtableResult $result
-Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck UseTPM -HashtableRowName BitlockerWithTPM -HashtableResult $result
-Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck UseTPMPIN -HashtableRowName BitlockerPINWithTPM -HashtableResult $result
-Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck UseTPMKey -HashtableRowName BitlockerKeyWithTPM -HashtableResult $result
-Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck UseTPMKeyPIN -HashtableRowName BitlockerKeyAndPINWithTPM -HashtableResult $result
-Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck OSEncryptionType -HashtableRowName BitlockerEncryptionMethod -HashtableResult $result
-Get-RegistryValueWithDisabledValue -Path HKLM:\SYSTEM\CurrentControlSet\Policies\Microsoft\FVE -ValueToCheck FDVDenyWriteAccess -HashtableRowName BitlockerDenyWriteAccessToFixedDataDrivesWithoutBitlocker -HashtableResult $result
-
-return $bitlockerReport
+    return $bitlockerReport
 }
 
 function New-NetworkReport
@@ -537,12 +534,12 @@ function New-ScreenSaverReport
 
 #region podgladzdarzen
 #$logReport=New-LogReport
-#$logReport.Application.LogFilePath #example
+#$logReport.Application
 #endregion podgladzdarzen
 
 #region WindowsUpdate
-#$wsusList=New-WSUSReport
-#$wsusList
+#$wsusReport=New-WSUSReport
+#$wsusReport
 #endregion WindowsUpdate
 
 #region Bitlocker
@@ -578,8 +575,8 @@ function New-ScreenSaverReport
 #$autorunReport=New-AutorunReport
 #$autorunReport
 ##################################
-#$driversReport=New-DriversReport
-#$driversReport
+#$driverReport=New-DriversReport
+#$driverReport
 ######################################
 #$removableStorageAccessReport=New-RemovableStorageAccessReport
 #$removableStorageAccessReport
@@ -625,6 +622,41 @@ function New-ScreenSaverReport
 #$screensaverReport=New-ScreenSaverReport
 #$screensaverReport
 #endregion rozdzial6
+
+
+
+$hashtableFromSystem=[ordered]@{
+RightReport=$rightReport;
+GroupReport=$groupReport;
+FirewallReport=$firewallReport;
+IpSecReport=$ipsecReport;
+LogReport=$logReport;
+WsusReport=$wsusReport;
+BitlockerReport=$bitlockerReport;
+NetworkReport=$networkReport;
+ApplockerReport=$applockerReport;
+ApplockerList=$applockerList;
+AutorunReport=$autorunReport;
+DriverReport=$driverReport;
+RemovableStorageAccessReport=$removableStorageAccessReport;
+USBHistory=$usbList;
+Services=$service;
+ToolReport=$toolReport;
+PanelReport=$panelReport;
+LocationReport=$locationReport;
+DefenderReport=$defenderReport;
+EdgeReport=$edgeReport;
+}
+
+
+
+
+
+
+
+
+
+
 
 
 
