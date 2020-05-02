@@ -561,7 +561,7 @@ $networkReport
 #region rozdzial3
 
 #region Applocker
-if (((Get-WmiObject Win32_OperatingSystem).Caption -like '*Pro*') -XOR ((Get-WmiObject Win32_OperatingSystem).Caption -like '*Pro*'))
+if (((Get-WmiObject Win32_OperatingSystem).Caption -like '*Enterprise*') -XOR ((Get-WmiObject Win32_OperatingSystem).Caption -like '*Education*'))
 {
     $applockerReport=New-ApplockerReport -Path $Path
     $applockerReport
