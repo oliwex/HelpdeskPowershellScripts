@@ -61,11 +61,11 @@ param(
         [String]$SeceditElement
         ,
         [Parameter(Position = 0, Mandatory = $true)]
-        [String]$Hashtable
+        $PolicyTable
         
      )
     $richElement=($SeceditElement).Replace(' ','').Split("=")
-    $policyList.Add($richElement[0],$richElement[1])
+    $PolicyTable.Add($richElement[0],$richElement[1])
 }
 
 
@@ -157,21 +157,21 @@ param(
     $policyTable=[ordered]@{}
     $SeceditContent=Get-SeceditContent -PathToSecedit $PathToSecedit
 
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern SeTakeOwnershipPrivilege) -Hashtable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern SeRemoteInteractiveLogonRight) -Hashtable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern EnableAdminAccount) -Hashtable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern EnableGuestAccount) -Hashtable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern NewGuestName) -Hashtable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern NewAdministratorName) -Hashtable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern DontDisplayLastUserName) -Hashtable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern ForceUnlockLogon) -Hashtable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern CachedLogonsCount) -Hashtable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern PasswordExpiryWarning) -Hashtable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern LegalNoticeCaption) -Hashtable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern LegalNoticeText) -Hashtable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern ConsentPromptBehaviorUser) -Hashtable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern ConsentPromptBehaviorAdmin) -Hashtable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern ClearPageFileAtShutdown) -Hashtable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern SeTakeOwnershipPrivilege) -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern SeRemoteInteractiveLogonRight) -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern EnableAdminAccount) -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern EnableGuestAccount) -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern NewGuestName) -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern NewAdministratorName) -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern DontDisplayLastUserName) -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern ForceUnlockLogon) -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern CachedLogonsCount) -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern PasswordExpiryWarning) -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern LegalNoticeCaption) -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern LegalNoticeText) -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern ConsentPromptBehaviorUser) -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern ConsentPromptBehaviorAdmin) -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern ClearPageFileAtShutdown) -PolicyTable $policyTable
 
     return $policyTable
 }
@@ -240,6 +240,8 @@ return $logReport
 function New-BitlockerReport
 {
 #OUT:$result-hashtable with result of Bitlocker Report
+    $bitlockerReport=[ordered]@{}
+
     Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck ActiveDirectoryBackup -HashtableRowName BitlockerActiveDirectoryBackup -HashtableResult $bitlockerReport
     Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck DefaultRecoveryFolderPath -HashtableRowName BitlockerRecoveryFilepath -HashtableResult $bitlockerReport
     Get-RegistryValueWithDisabledValue -Path HKLM:\SOFTWARE\Policies\Microsoft\FVE -ValueToCheck EncryptionMethodNoDiffuser -HashtableRowName BitlockerEncryptionMethod -HashtableResult $bitlockerReport
@@ -368,7 +370,7 @@ function New-DriversReport
     }
     else
     {
-        $result.Add("AllowUserDeviceClasses","DISABLED")
+        $driversReport.Add("AllowUserDeviceClasses","DISABLED")
     }
     Get-RegistryValueWithDisabledValue -Path 'HKCU:\Software\Policies\Microsoft\Windows\DriverSearching' -ValueToCheck DontSearchFloppies -HashtableRowName DontSearchInFloppiesForDrivers -HashtableResult $driversReport
     Get-RegistryValueWithDisabledValue -Path 'HKCU:\Software\Policies\Microsoft\Windows NT\Driver Signing' -ValueToCheck BehaviorOnFailedVerify -HashtableRowName DigitalSignDrivers -HashtableResult $driversReport
@@ -378,7 +380,7 @@ function New-DriversReport
 function New-RemovableStorageAccessReport
 {
     $removableStorageAccessReport=[ordered]@{}
-    Get-RegistryValueWithDisabledValuSe -Path 'HKLM:\Software\Policies\Microsoft\Windows\RemovableStorageDevices' -ValueToCheck Deny_All -HashtableRowName DenyAccessToRemovableStorageAccess -HashtableResult $removableStorageAccessReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\RemovableStorageDevices' -ValueToCheck Deny_All -HashtableRowName DenyAccessToRemovableStorageAccess -HashtableResult $removableStorageAccessReport
     return $removableStorageAccessReport
 }
 function New-USBHistoryList
@@ -390,7 +392,7 @@ function New-USBHistoryList
 function New-ToolReport
 {
     #region rozdzial4
-
+    $toolReport=[ordered]@{}
     #region registry
     Get-RegistryValueWithDisabledValue -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System -ValueToCheck DisableRegistryTools -HashtableRowName DisableRegistryTools -HashtableResult $toolReport
     #endregion registry
@@ -508,49 +510,47 @@ function New-ScreenSaverReport
 
 
 #code
-
-
-
+Clear-Host
 #region rozdzial1
-#$rightReport=New-RightsReport -PathToSecedit $seceditPath
-#$rightReport
+$rightReport=New-RightsReport -PathToSecedit $seceditPath
+$rightReport
 #grupy wbudowane#
-#$groupReport=New-GroupReport
-#$groupReport
+$groupReport=New-GroupReport
+$groupReport
 #endregion rozdzial1
 
 
 #region rozdzial2
 
 #region firewall
-#$firewallReport=New-FirewallReport
-#$firewallReport.Domain.LogFilePath #example
+$firewallReport=New-FirewallReport
+$firewallReport.Domain.LogFilePath #example
 #ipsec
 
-#$ipsecReport=New-IpsecReport
-#$ipsecReport
+$ipsecReport=New-IpsecReport
+$ipsecReport
 
 #endregion firewall
 
 #region podgladzdarzen
-#$logReport=New-LogReport
-#$logReport.Application
+$logReport=New-LogReport
+$logReport.Application
 #endregion podgladzdarzen
 
 #region WindowsUpdate
-#$wsusReport=New-WSUSReport
-#$wsusReport
+$wsusReport=New-WSUSReport
+$wsusReport
 #endregion WindowsUpdate
 
 #region Bitlocker
-#$bitlockerReport=New-BitlockerReport
-#$bitlockerReport
+$bitlockerReport=New-BitlockerReport
+$bitlockerReport
 #endregion Bitlocker
 
 #region DHCP i ip
-#$networkReport = New-NetworkReport
-#$networkReport
-#odpalić na maszynie
+$networkReport = New-NetworkReport
+$networkReport
+
 #endregion DHCP i ip
 
 #endregion rozdzial2
@@ -559,31 +559,31 @@ function New-ScreenSaverReport
 #region rozdzial3
 
 #region Applocker
-#$applockerReport=New-ApplockerReport -Path $Path
-#$applockerReport
+$applockerReport=New-ApplockerReport -Path $Path
+$applockerReport
 #endregion 
 
 #region monitorowanie aplikacji
-#$applockerList=New-ApplockerList
-#$applockerList
+$applockerList=New-ApplockerList
+$applockerList
 #endregion
 
 #endregion Applocker
 
 #region Autorun
 ##################################
-#$autorunReport=New-AutorunReport
-#$autorunReport
+$autorunReport=New-AutorunReport
+$autorunReport
 ##################################
-#$driverReport=New-DriversReport
-#$driverReport
+$driverReport=New-DriversReport
+$driverReport
 ######################################
-#$removableStorageAccessReport=New-RemovableStorageAccessReport
-#$removableStorageAccessReport
+$removableStorageAccessReport=New-RemovableStorageAccessReport
+$removableStorageAccessReport
 ######################################
 #Lista podlaczonych pendrivow#
-#$usbList=New-USBHistoryList
-#$usbList
+$usbList=New-USBHistoryList
+$usbList
 #endregion magazynWymienny
 
 #endregion rozdzial3
@@ -591,36 +591,36 @@ function New-ScreenSaverReport
 #region rozdzial4
 
 #region uslugi
-#$service=New-Service
-#$service
+$service=New-Service
+$service
 
 #endregion uslugi
 
 #region narzedzia
-#$toolReport=New-ToolReport
-#$toolReport
+$toolReport=New-ToolReport
+$toolReport
 #endregion narzedzie
 
 #endregion rozdzial4
 
 #region rozdzial5
-#$panelReport=New-PanelRaport
-#$panelReport
+$panelReport=New-PanelReport
+$panelReport
 
-#$locationReport=New-LocationReport
-#$locationReport
+$locationReport=New-LocationReport
+$locationReport
 
 #$defenderReport=New-DefenderReport
-#$defenderReport
+$defenderReport
 
-#$edgeReport=New-EdgeReport
-#$edgeReport
+$edgeReport=New-EdgeReport
+$edgeReport
 
 #endregion rozdzial5
 
 #region rozdzial6
-#$screensaverReport=New-ScreenSaverReport
-#$screensaverReport
+$screensaverReport=New-ScreenSaverReport
+$screensaverReport
 #endregion rozdzial6
 
 
@@ -646,6 +646,7 @@ PanelReport=$panelReport;
 LocationReport=$locationReport;
 DefenderReport=$defenderReport;
 EdgeReport=$edgeReport;
+ScreensaverReport=$screensaverReport;
 }
 
 
