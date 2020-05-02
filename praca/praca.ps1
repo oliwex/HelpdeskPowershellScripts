@@ -41,6 +41,23 @@ $seceditPath=$path+"\"+$seceditFile
 #endregion dictionary
 
 #region functions
+Function Preparte-Workplace
+{
+param(
+
+        [Parameter(Position = 0, Mandatory = $true)]
+        [String]$PathToWorkplace
+     )
+
+     if (!($PathToWorkplace))
+     {
+        New-Item -Path $PathToWorkplace -ItemType Directory
+     }
+
+}
+
+
+
 function Get-SeceditContent()
 {
 param(
@@ -217,7 +234,19 @@ return $firewallReport
 function New-IpsecReport
 {
 #OUT:Hashtable with ipsec report
-    $ipsecResult=UniwersalWrapper(((Show-NetIPsecRule -PolicyStore ActiveStore | Select @{label="LocalAddress";expression={$_ | Get-NetFirewallAddressFilter | select -ExpandProperty LocalAddress}},@{label="RemoteAddress";expression={$_ | Get-NetFirewallAddressFilter | select -ExpandProperty RemoteAddress}},@{label="Auth1Level";expression={($_ | Get-NetIPsecPhase1AuthSet).Name}},@{label="Auth2Level";expression={($_ | Get-NetIPsecPhase2AuthSet).Name}})[0]))
+    $ipsecTMP=((Show-NetIPsecRule -PolicyStore ActiveStore | Select @{label="LocalAddress";expression={$_ | Get-NetFirewallAddressFilter | select -ExpandProperty LocalAddress}},@{label="RemoteAddress";expression={$_ | Get-NetFirewallAddressFilter | select -ExpandProperty RemoteAddress}},@{label="Auth1Level";expression={($_ | Get-NetIPsecPhase1AuthSet).Name}},@{label="Auth2Level";expression={($_ | Get-NetIPsecPhase2AuthSet).Name}})[0])
+    
+    if ($ipsecTMP)
+    {
+        $ipsecResult=UniwersalWrapper($ipsecTMP)
+    }
+    else
+    {
+        $ipsecResult=$null
+    }
+
+
+    
     return $ipsecResult
 }
 
