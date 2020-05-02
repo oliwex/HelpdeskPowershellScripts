@@ -84,7 +84,8 @@ function UniwersalWrapper($powershellCommand)  #wrapper
 {
 #IN:$hashtableFromSystem-Get hashtable from system with system settings
 #OUT:Returning hashtable with DISABLED value where null existed
-    $result=New-HashTableWithDisabledValue(ConvertTo-Hashtable($powershellCommand))
+    $tmp=ConvertTo-Hashtable -InputObject $powershellCommand
+    $result=New-HashTableWithDisabledValue($tmp)
     return $result
 }
 #For registry
@@ -305,16 +306,25 @@ function New-ApplockerList
    return $applockerlist
 }
 
+function New-AutorunReport
+{
+    $autorunReport=[ordered]@{}
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -ValueToCheck NoAutorun -HashtableRowName AutorunEnabled -HashtableResult $autorunReport
+    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -ValueToCheck NoDriveTypeAutoRun -HashtableRowName DefaultAutorunAction -HashtableResult $autorunReport
+    return $autorunReport
+}
+
 function New-WSUSReport
 {
 #OUT: Hashtable with wsusReport
-    $wsusList=[ordered]@{}  
+    $wsusReport=[ordered]@{}  
  
-    try
-    {
+    $wsusSettings=Get-WUSettings
 
-        $wsusList=UniwersalWrapper(Get-WUSettings | 
-        Select @{Label='AutoUpdate';Expression={$_.NoAutoUpdate}},
+    if ($wsusSettings)
+    {
+    
+        $wsusSettings | Select @{Label='AutoUpdate';Expression={$_.NoAutoUpdate}},
         @{Label='InstallUpdateType';Expression={$_.AuOptions.Substring(0,1)}},
         @{Label='InstallDay';Expression={$_.ScheduledInstallDay.Substring(0,1)}},
         @{Label='InstallTime';Expression={$_.ScheduledInstallTime}},
@@ -323,37 +333,29 @@ function New-WSUSReport
         @{Label='WSUSStatServer';Expression={$_.WUStatusServer}},
         @{Label='WSUSServer2';Expression={$_.UpdateServiceUrlAlternate}},
         @{Label='WSUSGroupPolicy';Expression={$_.TargetGroupEnabled}},
-        @{Label='WSUSGroup';Expression={$_.TargetGroup}})
+        @{Label='WSUSGroup';Expression={$_.TargetGroup}}
     }
-    catch [System.NullReferenceException]
-    {      
-
-        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -ValueToCheck NoAutoUpdate -HashtableRowName AutoUpdate -HashtableResult $wsusList
-        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -ValueToCheck AuOptions -HashtableRowName InstallUpdateType -HashtableResult $wsusList
-        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -ValueToCheck ScheduledInstallDay -HashtableRowName InstallDay -HashtableResult $wsusList
-        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -ValueToCheck ScheduledInstallTime -HashtableRowName InstallTime -HashtableResult $wsusList
-        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -ValueToCheck UseWUServer -HashtableRowName UseWsus -HashtableResult $wsusList
-        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -ValueToCheck WuServer -HashtableRowName WSUSServer1 -HashtableResult $wsusList
-        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -ValueToCheck WUStatusServer -HashtableRowName WSUSStatServer -HashtableResult $wsusList
-        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -ValueToCheck UpdateServiceUrlAlternate -HashtableRowName WSUSServer2 -HashtableResult $wsusList
-        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -ValueToCheck TargetGroupEnabled -HashtableRowName WSUSGroupPolicy -HashtableResult $wsusList
-        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -ValueToCheck TargetGroup -HashtableRowName WSUSGroup -HashtableResult $wsusList
+    else
+    {
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -ValueToCheck NoAutoUpdate -HashtableRowName AutoUpdate -HashtableResult $wsusReport
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -ValueToCheck AuOptions -HashtableRowName InstallUpdateType -HashtableResult $wsusReport
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -ValueToCheck ScheduledInstallDay -HashtableRowName InstallDay -HashtableResult $wsusReport
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -ValueToCheck ScheduledInstallTime -HashtableRowName InstallTime -HashtableResult $wsusReport
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -ValueToCheck UseWUServer -HashtableRowName UseWsus -HashtableResult $wsusReport
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -ValueToCheck WuServer -HashtableRowName WSUSServer1 -HashtableResult $wsusReport
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -ValueToCheck WUStatusServer -HashtableRowName WSUSStatServer -HashtableResult $wsusReport
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -ValueToCheck UpdateServiceUrlAlternate -HashtableRowName WSUSServer2 -HashtableResult $wsusReport
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -ValueToCheck TargetGroupEnabled -HashtableRowName WSUSGroupPolicy -HashtableResult $wsusReport
+        Get-RegistryValueWithDisabledValue -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -ValueToCheck TargetGroup -HashtableRowName WSUSGroup -HashtableResult $wsusReport
 
     }
-
-   return $wsusList
+return $wsusReport
 }
 
 
 
 
-function New-AutorunReport
-{
-    $autorunReport=[ordered]@{}
-    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -ValueToCheck NoAutorun -HashtableRowName AutorunEnabled -HashtableResult $autorunReport
-    Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -ValueToCheck NoDriveTypeAutoRun -HashtableRowName DefaultAutorunAction -HashtableResult $autorunReport
-    return $autorunReport
-}
+
 
 function New-DriversReport
 {
@@ -559,15 +561,19 @@ $networkReport
 #region rozdzial3
 
 #region Applocker
-$applockerReport=New-ApplockerReport -Path $Path
-$applockerReport
+if (((Get-WmiObject Win32_OperatingSystem).Caption -like '*Pro*') -XOR ((Get-WmiObject Win32_OperatingSystem).Caption -like '*Pro*'))
+{
+    $applockerReport=New-ApplockerReport -Path $Path
+    $applockerReport
+
 #endregion 
 
 #region monitorowanie aplikacji
 $applockerList=New-ApplockerList
 $applockerList
-#endregion
 
+#endregion
+}
 #endregion Applocker
 
 #region Autorun
