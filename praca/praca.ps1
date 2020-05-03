@@ -540,7 +540,17 @@ function New-ScreenSaverReport
     return $screensaverReport
 }
 
+Function Delete-Workplace
+{
+param(
 
+        [Parameter(Position = 0, Mandatory = $true)]
+        [String]$PathToWorkplace
+     )
+
+     Remove-Item -Path $PathToWorkplace -Recurse -Force
+
+}
 
 #endregion functions
 
