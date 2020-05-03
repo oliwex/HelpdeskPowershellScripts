@@ -232,21 +232,22 @@ return $firewallReport
 }
 
 function New-IpsecReport
-{
-#OUT:Hashtable with ipsec report
-    $ipsecTMP=((Show-NetIPsecRule -PolicyStore ActiveStore | Select @{label="LocalAddress";expression={$_ | Get-NetFirewallAddressFilter | select -ExpandProperty LocalAddress}},@{label="RemoteAddress";expression={$_ | Get-NetFirewallAddressFilter | select -ExpandProperty RemoteAddress}},@{label="Auth1Level";expression={($_ | Get-NetIPsecPhase1AuthSet).Name}},@{label="Auth2Level";expression={($_ | Get-NetIPsecPhase2AuthSet).Name}})[0])
+{#OUT:Hashtable with ipsec report
     
-    if ($ipsecTMP)
+    $ipsecResult=[ordered]@{}
+
+    try
     {
+        $ipsecTMP=((Show-NetIPsecRule -PolicyStore ActiveStore | Select @{label="LocalAddress";expression={$_ | Get-NetFirewallAddressFilter | select -ExpandProperty LocalAddress}},@{label="RemoteAddress";expression={$_ | Get-NetFirewallAddressFilter | select -ExpandProperty RemoteAddress}},@{label="Auth1Level";expression={($_ | Get-NetIPsecPhase1AuthSet).Name}},@{label="Auth2Level";expression={($_ | Get-NetIPsecPhase2AuthSet).Name}})[0])
         $ipsecResult=UniwersalWrapper($ipsecTMP)
     }
-    else
+    catch [System.Management.Automation.RuntimeException]
     {
-        $ipsecResult=$null
-    }
-
-
-    
+        $ipsecResult.Add('LocalAddress','DISABLED')
+        $ipsecResult.Add('RemoteAddress','DISABLED')
+        $ipsecResult.Add('Auth1Level','DISABLED')
+        $ipsecResult.Add('Auth2Level','DISABLED')
+    }    
     return $ipsecResult
 }
 
