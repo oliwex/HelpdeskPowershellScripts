@@ -41,20 +41,24 @@ $seceditPath=$path+"\"+$seceditFile
 #endregion dictionary
 
 #region functions
-Function Preparte-Workplace
+Function Prepare-Workplace
 {
 param(
 
         [Parameter(Position = 0, Mandatory = $true)]
         [String]$PathToWorkplace
      )
-
-     if (!($PathToWorkplace))
-     {
-        New-Item -Path $PathToWorkplace -ItemType Directory
-     }
-
+    Clear-Host
+    if (!(Test-Path  $PathToWorkplace))
+    {
+        New-Item -Path $PathToWorkplace -ItemType Directory        
+    }
+    else
+    {
+        Remove-Item -Path $PathToWorkplace -Recurse -Force
+    }
 }
+
 
 
 
@@ -77,7 +81,7 @@ param(
         [Parameter(Position = 0, Mandatory = $true)]
         [String]$SeceditElement
         ,
-        [Parameter(Position = 0, Mandatory = $true)]
+        [Parameter(Position = 1, Mandatory = $true)]
         $PolicyTable
         
      )
@@ -164,7 +168,7 @@ param(
 
     }
 }
-function New-RightsReport()
+function New-RightReport()
 {
 param(
 
@@ -542,10 +546,13 @@ function New-ScreenSaverReport
 
 
 #code
-Clear-Host
+#region startscript
+Prepare-Workplace -PathToWorkplace $path
+#endregion startscript
+
 #region rozdzial1
-$rightReport=New-RightsReport -PathToSecedit $seceditPath
-$rightReport
+$test=New-RightReport -PathToSecedit $seceditPath
+$test
 #grupy wbudowane#
 $groupReport=New-GroupReport
 $groupReport
@@ -659,6 +666,9 @@ $screensaverReport=New-ScreenSaverReport
 $screensaverReport
 #endregion rozdzial6
 
+#region endscript
+Delete-Workplace -PathToWorkplace $path
+#endregion endscript
 
 
 $hashtableFromSystem=[ordered]@{
@@ -689,7 +699,7 @@ ScreensaverReport=$screensaverReport;
 
 
 
-
+$hashtableFromSystem.ToolReport
 
 
 
