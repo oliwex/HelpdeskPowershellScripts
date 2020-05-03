@@ -558,6 +558,22 @@ param(
 
 
 #code
+
+
+
+
+Function Main
+{
+param(
+
+        [Parameter(Position = 0, Mandatory = $true)]
+        [String]$path,
+        [Parameter(Position = 1, Mandatory = $true)]
+        [String]$seceditPath
+     )
+
+
+
 #region startscript
 Prepare-Workplace -PathToWorkplace $path
 #endregion startscript
@@ -612,7 +628,7 @@ $networkReport
 #region Applocker
 if (((Get-WmiObject Win32_OperatingSystem).Caption -like '*Enterprise*') -XOR ((Get-WmiObject Win32_OperatingSystem).Caption -like '*Education*'))
 {
-    $applockerReport=New-ApplockerReport -Path $Path
+    $applockerReport=New-ApplockerReport -Path $path
     $applockerReport
 
 #endregion 
@@ -665,7 +681,7 @@ $panelReport
 $locationReport=New-LocationReport
 $locationReport
 
-#$defenderReport=New-DefenderReport
+$defenderReport=New-DefenderReport
 $defenderReport
 
 $edgeReport=New-EdgeReport
@@ -707,8 +723,14 @@ EdgeReport=$edgeReport;
 ScreensaverReport=$screensaverReport;
 }
 
+return $hashtableFromSystem
+
+}
+$result=Invoke-Command  -scriptblock ${function:Main} -argumentlist $path, $seceditPath
+
+$result
 
 
 
 
-$hashtableFromSystem.ToolReport
+$result.ToolReport
