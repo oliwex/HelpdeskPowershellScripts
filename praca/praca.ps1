@@ -509,7 +509,7 @@ function New-DefenderReport
 
     #Windows Defender
     Get-RegistryValueWithDisabledValue -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -ValueToCheck DisableAntiSpyware -HashtableRowName DisableAntiSpyware -HashtableResult $defenderReport
-    $defenderReport+=UniwersalWrapper(Get-MpPreference | Select PUAProtection,DisableBehaviorMonitoring,DisableRemovableDriveScanning,EnableNetworkProtection | fl)
+    $defenderReport+=UniwersalWrapper(Get-MpPreference | Select PUAProtection,DisableBehaviorMonitoring,DisableRemovableDriveScanning,EnableNetworkProtection)
     
     return $defenderReport
 }
@@ -579,11 +579,11 @@ Prepare-Workplace -PathToWorkplace $path
 #endregion startscript
 
 #region rozdzial1
-$test=New-RightReport -PathToSecedit $seceditPath
-$test
+$rightReport=New-RightReport -PathToSecedit $seceditPath
+
 #grupy wbudowane#
 $groupReport=New-GroupReport
-$groupReport
+
 #endregion rozdzial1
 
 
@@ -591,32 +591,31 @@ $groupReport
 
 #region firewall
 $firewallReport=New-FirewallReport
-$firewallReport.Domain.LogFilePath #example
+
 #ipsec
 
 $ipsecReport=New-IpsecReport
-$ipsecReport
 
 #endregion firewall
 
 #region podgladzdarzen
 $logReport=New-LogReport
-$logReport.Application
+
 #endregion podgladzdarzen
 
 #region WindowsUpdate
 $wsusReport=New-WSUSReport
-$wsusReport
+
 #endregion WindowsUpdate
 
 #region Bitlocker
 $bitlockerReport=New-BitlockerReport
-$bitlockerReport
+
 #endregion Bitlocker
 
 #region DHCP i ip
 $networkReport = New-NetworkReport
-$networkReport
+
 
 #endregion DHCP i ip
 
@@ -629,13 +628,13 @@ $networkReport
 if (((Get-WmiObject Win32_OperatingSystem).Caption -like '*Enterprise*') -XOR ((Get-WmiObject Win32_OperatingSystem).Caption -like '*Education*'))
 {
     $applockerReport=New-ApplockerReport -Path $path
-    $applockerReport
+
 
 #endregion 
 
 #region monitorowanie aplikacji
 $applockerList=New-ApplockerList
-$applockerList
+
 
 #endregion
 }
@@ -644,17 +643,17 @@ $applockerList
 #region Autorun
 ##################################
 $autorunReport=New-AutorunReport
-$autorunReport
+
 ##################################
 $driverReport=New-DriversReport
-$driverReport
+
 ######################################
 $removableStorageAccessReport=New-RemovableStorageAccessReport
-$removableStorageAccessReport
+
 ######################################
 #Lista podlaczonych pendrivow#
 $usbList=New-USBHistoryList
-$usbList
+
 #endregion magazynWymienny
 
 #endregion rozdzial3
@@ -663,35 +662,35 @@ $usbList
 
 #region uslugi
 $service=New-Service
-$service
+
 
 #endregion uslugi
 
 #region narzedzia
 $toolReport=New-ToolReport
-$toolReport
+
 #endregion narzedzie
 
 #endregion rozdzial4
 
 #region rozdzial5
 $panelReport=New-PanelReport
-$panelReport
+
 
 $locationReport=New-LocationReport
-$locationReport
+
 
 $defenderReport=New-DefenderReport
-$defenderReport
+
 
 $edgeReport=New-EdgeReport
-$edgeReport
+
 
 #endregion rozdzial5
 
 #region rozdzial6
 $screensaverReport=New-ScreenSaverReport
-$screensaverReport
+
 #endregion rozdzial6
 
 #region endscript
@@ -729,8 +728,3 @@ return $hashtableFromSystem
 $result=Invoke-Command  -scriptblock ${function:Main} -argumentlist $path, $seceditPath
 
 $result
-
-
-
-
-$result.ToolReport
