@@ -97,7 +97,7 @@ function New-HashTableWithDisabledValue($hashtableFromSystem)
 #IN:$hashtableFromSystem-Get hashtable from system with system settings
 #OUT:Returning hashtable with DISABLED value where null existed
    $hashtableFromSystemTMP=($hashtableFromSystem.GetEnumerator()) | ? {$_.Value -eq $null}
-   $hashtableFromSystemTMP | ForEach-Object {if ($_.Value -eq $null) { $hashtableFromSystem[$_.Name] = 'DISABLED' }}
+   $hashtableFromSystemTMP | ForEach-Object {if ($_.Value -eq $null) { $hashtableFromSystem[$_.Name] = 'FAILED' }}
 
     return $hashtableFromSystem
 }
@@ -170,6 +170,24 @@ param(
 
     }
 }
+
+Function Compare-Hashtables
+{
+param(
+
+        [Parameter(Position = 0, Mandatory = $true)]
+        $hashtableFromSystem
+        ,
+        [Parameter(Position = 1, Mandatory = $true)]
+        $windowsBaseline
+    ) 
+
+
+$hashtableTMP=($hashtableFromSystem.GetEnumerator()) | ? {($_.Value -ne 'FAILED')}
+$hashtableTMP | ForEach-Object { if ($_.Value -ne $windowsBaseline[$_.Name]) { $hashtableFromSystem[$_.Name] = 'FAILED' } else { $hashtableFromSystem[$_.Name] = 'PASS' }}
+return $hashtableFromSystem
+}
+
 function New-RightReport()
 {
 param(
@@ -727,4 +745,14 @@ return $hashtableFromSystem
 }
 $result=Invoke-Command  -scriptblock ${function:Main} -argumentlist $path, $seceditPath
 
-$result
+#$result.LogReport.Application
+
+$applicationlogReport=[ordered]@{
+LogName='Application';
+MaximumSizeInBytes='20480';
+LogMode='Circular';
+Retention='DISABLED'
+}
+
+$element=Compare-Hashtables -hashtableFromSystem $($result.LogReport.Application) -windowsBaseline $applicationlogReport
+$element
