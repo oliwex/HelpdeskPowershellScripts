@@ -9,7 +9,7 @@
 #Requires -Module PSWindowsUpdate
 #requires -Module hashdata
 #requires -Module Carbon
-
+#Requires -RunAsAdministrator
 #endregion required
 
 #region global
@@ -37,9 +37,73 @@ $seceditPath=$path+"\"+$seceditFile
 
 
 #region dictionary
-#TODO:
+#MicrosoftBaselines
+$rightHashtableBaseline=[ordered]@{
+TakeOwnership='*S-1-5-32-544';
+AllowLogRDP='';
+AdminAccountStatus='0';
+GuestAccountStatus='0';
+AdminName="Admin@ABC";
+GuestName='Guest@ABC"';
+DontDisplayLastLogon='4,1';
+DomainControllerRequiredToUnlockWorkstation='4,1';
+NumberOfCachedLogons='1,"0"';
+PasswordExpiryWarningTime='4,5';
+LogonInformationTitle='"Komputer należy do firmy ABC"';
+LogonInformationText='"Wszelkie operacje wykonywane w systemie są logowane"'
+UACUser='4,0';
+UACAdmin='4,1';
+ClearPagefileAtShutdown='4,0';
+}
 
-
+#TEST
+$firewallHashtableBaseline = [oredered]@{
+Domain =[ordered] @{
+    Name  = 'Domain';
+    Enabled='1';
+    LogFilePath = '';
+    LogSize='16384';
+    }
+Private =[ordered] @{
+    Name  = 'Private';
+    Enabled='1';
+    LogFilePath = '';
+    LogSize='16384';
+    }
+Public =[ordered] @{
+    Name  = 'Domain';
+    Enabled='1';
+    LogFilePath = '';
+    LogSize='16384';
+    }
+}
+#TEST
+$logHashtableBaseline = [oredered]@{
+Application =[ordered] @{
+    LogName  = 'Application';
+    MaximumSizeInBytes='32768';
+    LogMode = 'Circular'; 
+    Retention='1';
+    }
+Setup =[ordered] @{
+    LogName  = 'Setup';
+    MaximumSizeInBytes='32768';
+    LogMode = 'Circular'; 
+    Retention='1';
+    }
+System =[ordered] @{
+    LogName  = 'System';
+    MaximumSizeInBytes='32768';
+    LogMode = 'Circular'; 
+    Retention='1';
+    }
+Security =[ordered] @{
+    LogName  = 'Security';
+    MaximumSizeInBytes='196608';
+    LogMode = 'Circular'; 
+    Retention='1';
+    }
+}
 #endregion dictionary
 
 #region functions
@@ -85,10 +149,13 @@ param(
         ,
         [Parameter(Position = 1, Mandatory = $true)]
         $PolicyTable
+        ,
+        [Parameter(Position = 2, Mandatory = $true)]
+        $NewName
         
      )
     $richElement=($SeceditElement).Replace(' ','').Split("=")
-    $PolicyTable.Add($richElement[0],$richElement[1])
+    $PolicyTable.Add($NewName,$richElement[1]) 
 }
 
 
@@ -199,21 +266,21 @@ param(
     $policyTable=[ordered]@{}
     $SeceditContent=Get-SeceditContent -PathToSecedit $PathToSecedit
 
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern SeTakeOwnershipPrivilege) -PolicyTable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern SeRemoteInteractiveLogonRight) -PolicyTable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern EnableAdminAccount) -PolicyTable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern EnableGuestAccount) -PolicyTable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern NewGuestName) -PolicyTable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern NewAdministratorName) -PolicyTable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern DontDisplayLastUserName) -PolicyTable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern ForceUnlockLogon) -PolicyTable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern CachedLogonsCount) -PolicyTable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern PasswordExpiryWarning) -PolicyTable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern LegalNoticeCaption) -PolicyTable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern LegalNoticeText) -PolicyTable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern ConsentPromptBehaviorUser) -PolicyTable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern ConsentPromptBehaviorAdmin) -PolicyTable $policyTable
-    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -Pattern ClearPageFileAtShutdown) -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -SimpleMatch SeTakeOwnershipPrivilege) -NewName 'TakeOwnership' -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -SimpleMatch SeRemoteInteractiveLogonRight) -NewName 'InteractiveLogonRight' -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -SimpleMatch EnableAdminAccount) -NewName 'AdminAccountStatus' -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -SimpleMatch EnableGuestAccount) -NewName 'GuestAccountStatus' -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -SimpleMatch NewGuestName) -NewName 'GuestName' -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -SimpleMatch NewAdministratorName) -NewName 'AdministratorName' -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -SimpleMatch DontDisplayLastUserName) -NewName 'DontDisplayLastLogon' -PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -SimpleMatch ForceUnlockLogon) -NewName 'DomainControllerRequiredToUnlockWorkstation'-PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -SimpleMatch CachedLogonsCount) -NewName 'NumberOfCachedLogons'-PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -SimpleMatch PasswordExpiryWarning) -NewName 'PasswordExpiryWarningTime'-PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -SimpleMatch LegalNoticeCaption) -NewName 'LogonInformationTitle'-PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -SimpleMatch LegalNoticeText) -NewName 'LogonInformationText'-PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -SimpleMatch ConsentPromptBehaviorUser) -NewName 'UACUser'-PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -SimpleMatch ConsentPromptBehaviorAdmin) -NewName 'UACAdministrator'-PolicyTable $policyTable
+    Add-ElementToPolicyList -SeceditElement ($SeceditContent | Select-String -SimpleMatch ClearPageFileAtShutdown) -NewName 'ClearPagefileAtShutdown'-PolicyTable $policyTable
 
     return $policyTable
 }
