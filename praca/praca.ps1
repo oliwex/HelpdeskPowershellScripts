@@ -139,9 +139,16 @@ WSUSServer2='https://SERVER1:8530';
 WSUSGroupPolicy='1';
 WSUSGroup='WSUS_UPDATES';
 }
+$serviceBaseline = New-Object PSObject -Property @{
+        Name='AppIDSvc','XblAuthManager','XblGameSave','XboxGipSvc','XboxNetApiSvc'
+        Status='Stopped','Stopped','Stopped','Stopped','Stopped'
+        StartType='Manual','Manual','Manual','Manual','Manual'
+    }
+
 $removableStorageAccessHashtableBaseline=[ordered]@{
 DenyAccessToRemovableStorageAccess='1'
 }
+
 $toolHashtableBaseline=[ordered]@{
 DisableRegistryTools='0';
 DisableCMD='1';
@@ -641,7 +648,45 @@ function New-ToolReport
 
 function New-Service
 {
-    $serviceReport=Get-Service XblAuthManager,XblGameSave,XboxGipSvc,XboxNetApiSvc,AppIDSvc | Select Name,Status,StartType
+param(
+
+        [Parameter(Position = 0, Mandatory = $true)]
+        $serviceBaseline
+     )
+
+    $serviceReport=Get-Service XblAuthManager,XblGameSave,XboxGipSvc,XboxNetApiSvc,AppIDSvc | Select Name,Status,StartType | Sort-Object -Descending
+    
+    $i=0;
+    foreach($element in $serviceReport)
+    {
+        if ($element.Name -eq $serviceBaseline.Name[$i])
+        {
+            if ($element.Status -eq $serviceBaseline.Status[$i])
+            {
+                $element.Status='PASS'
+            }
+            else
+            {
+                $element.Status='FAILED'
+            }
+
+            if ($element.StartType -eq $serviceBaseline.StartType[$i])
+            {
+                $element.StartType='PASS'
+            }
+            else
+            {
+                $element.StartType='FAILED'
+            }
+
+        }
+        else
+        {
+            $element.Status='FAILED'
+            $element.StartType='FAILED'
+        }
+        $i++
+    }
     return $serviceReport
 }
 
@@ -886,7 +931,7 @@ AutorunReport=$autorunReport;#
 DriverReport=$driverReport;#
 RemovableStorageAccessReport=$removableStorageAccessReport;#
 USBHistory=$usbList;
-Services=$service;
+Services=$service;#
 ToolReport=$toolReport;#
 PanelReport=$panelReport;#
 LocationReport=$locationReport;#
