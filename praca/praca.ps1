@@ -56,7 +56,7 @@ UACAdmin='4,1';
 ClearPagefileAtShutdown='4,0';
 }
 
-#TEST
+#TO TEST
 $firewallHashtableBaseline = [oredered]@{
 Domain =[ordered] @{
     Name  = 'Domain';
@@ -77,7 +77,7 @@ Public =[ordered] @{
     LogSize='16384';
     }
 }
-#TEST
+#TO TEST
 $logHashtableBaseline = [oredered]@{
 Application =[ordered] @{
     LogName  = 'Application';
@@ -104,6 +104,94 @@ Security =[ordered] @{
     Retention='1';
     }
 }
+#TO TEST
+$bitlockerHashtableBaseline=[ordered]@{
+BitlockerActiveDirectoryBackup='1';
+BitlockerRecoveryFilepath='\\SERVER\C\BITLOCKER';
+BitlockerEncryptionMethod='4';
+BitlockerPasswordOnFixed='1';
+BitlockerPasswordOnFixedComplexity='1';
+BitlockerPasswordOnFixedLength='14';
+BitlockerAditionalAuthenticationOnStartup='1';
+BitlockerWithoutTPM='1';
+BitlockerPINWithTPM='1';
+BitlockerKeyWithTPM='1';
+BitlockerKeyAndPINWithTPM='1';
+BitlockerEncryptionMethodOnOperatingSystemDrive='2';
+BitlockerDenyWriteAccessToFixedDataDrivesWithoutBitlocker='1'
+}
+
+#TO TEST
+$autorunHashtableBaseline=[ordered]@{
+AutorunEnabled='0';
+DefaultAutorunAction='255'
+}
+#TO TEST
+$wsusHashtableBaseline=[ordered]@{
+AutoUpdate='1';
+InstallUpdateType='4';
+InstallDay='0';
+InstallTime='12';
+UseWsus='1';
+WSUSServer1='https://SERVER:8530';
+WSUSStatServer='https://SERVER1:8530';
+WSUSServer2='https://SERVER1:8530';
+WSUSGroupPolicy='1';
+WSUSGroup='WSUS_UPDATES';
+}
+$removableStorageAccessHashtableBaseline=[ordered]@{
+DenyAccessToRemovableStorageAccess='1'
+}
+$toolHashtableBaseline=[ordered]@{
+DisableRegistryTools='0';
+DisableCMD='1';
+DisableTaskMgr='1';
+EnableScriptBlockLogging='1';
+AllowUnencryptedTraffic='0';
+DisableRunAs='1';
+AllowBasic='0';
+NtfsEncryptPagingFile='1'
+}
+
+$panelHashtableBaseline=[ordered]@{
+NoLockScreenCamera='1';
+NoLockScreenSlideShow='1';
+#brak wartosci
+#brak wartosci
+EnhancedAntiSpoofing='1';
+AllowCamera='0'
+}
+$locationHashtableBaseline=[ordered]@{
+DisableLocationScripting='1';
+DisableLocation='1';
+DisableSensors='1'
+}
+#TO TEST
+$defenderHashtableBaseline=[ordered]@{
+DisableAntiSpyware='0';
+Puaprotection='1';
+DisableBehaviorMonitoring='0';
+DisableRemovableDriveScanning='0';
+EnableNetworkProtection='1'
+}
+#TO TEST
+$edgeHashtableBaseline=[ordered]@{
+MSCompatibilityMode='1';
+ClearBrowsingHistoryOnExit='1';
+'FormSuggest Passwords'='0';
+EnabledV9='1';
+EnableExtendedBooksTelemetry='0';
+PreventAccessToAboutFlagsInMicrosoftEdge='1';
+PreventLiveTileDataCollection='1'
+}
+
+$screensaverHashtableBaseline=[ordered]@{
+ScreenSaverIsSecure='1';
+NoDispScrSavPage='1';
+ScreenSaveTimeOut='300'
+}
+
+
 #endregion dictionary
 
 #region functions
@@ -233,7 +321,7 @@ param(
     }
     else
     {
-        $HashtableResult.Add($HashtableRowName,"DISABLED")
+        $HashtableResult.Add($HashtableRowName,'FAILED')
 
     }
 }
@@ -334,10 +422,10 @@ function New-IpsecReport
     }
     catch [System.Management.Automation.RuntimeException]
     {
-        $ipsecResult.Add('LocalAddress','DISABLED')
-        $ipsecResult.Add('RemoteAddress','DISABLED')
-        $ipsecResult.Add('Auth1Level','DISABLED')
-        $ipsecResult.Add('Auth2Level','DISABLED')
+        $ipsecResult.Add('LocalAddress','FAILED')
+        $ipsecResult.Add('RemoteAddress','FAILED')
+        $ipsecResult.Add('Auth1Level','FAILED')
+        $ipsecResult.Add('Auth2Level','FAILED')
     }    
     return $ipsecResult
 }
@@ -488,12 +576,12 @@ function New-DriversReport
         if (Test-RegistryValue -Path HKLM:\Software\Policies\Microsoft\Windows\DriverInstall\Restrictions\AllowUserDeviceClasses -Name 1)
         {
             $driversReport.Remove("AllowUserDeviceClasses")
-            $driversReport.Add("AllowUserDeviceClasses", 'DISABLED') #Drivers classess exists 
+            $driversReport.Add("AllowUserDeviceClasses", 'FAILED') #Drivers classess exists 
         }
     }
     else
     {
-        $driversReport.Add("AllowUserDeviceClasses","DISABLED")
+        $driversReport.Add("AllowUserDeviceClasses","FAILED")
     }
     Get-RegistryValueWithDisabledValue -Path 'HKCU:\Software\Policies\Microsoft\Windows\DriverSearching' -ValueToCheck DontSearchFloppies -HashtableRowName DontSearchInFloppiesForDrivers -HashtableResult $driversReport
     Get-RegistryValueWithDisabledValue -Path 'HKCU:\Software\Policies\Microsoft\Windows NT\Driver Signing' -ValueToCheck BehaviorOnFailedVerify -HashtableRowName DigitalSignDrivers -HashtableResult $driversReport
@@ -784,27 +872,27 @@ Delete-Workplace -PathToWorkplace $path
 
 
 $hashtableFromSystem=[ordered]@{
-RightReport=$rightReport;
+RightReport=$rightReport;#
 GroupReport=$groupReport;
-FirewallReport=$firewallReport;
+FirewallReport=$firewallReport;#
 IpSecReport=$ipsecReport;
-LogReport=$logReport;
-WsusReport=$wsusReport;
-BitlockerReport=$bitlockerReport;
+LogReport=$logReport;#
+WsusReport=$wsusReport;#
+BitlockerReport=$bitlockerReport;#
 NetworkReport=$networkReport;
 ApplockerReport=$applockerReport;
 ApplockerList=$applockerList;
-AutorunReport=$autorunReport;
-DriverReport=$driverReport;
-RemovableStorageAccessReport=$removableStorageAccessReport;
+AutorunReport=$autorunReport;#
+DriverReport=$driverReport;#
+RemovableStorageAccessReport=$removableStorageAccessReport;#
 USBHistory=$usbList;
 Services=$service;
-ToolReport=$toolReport;
-PanelReport=$panelReport;
-LocationReport=$locationReport;
-DefenderReport=$defenderReport;
-EdgeReport=$edgeReport;
-ScreensaverReport=$screensaverReport;
+ToolReport=$toolReport;#
+PanelReport=$panelReport;#
+LocationReport=$locationReport;#
+DefenderReport=$defenderReport;#
+EdgeReport=$edgeReport;#
+ScreensaverReport=$screensaverReport; #
 }
 
 return $hashtableFromSystem
