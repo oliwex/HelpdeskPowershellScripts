@@ -1,0 +1,276 @@
+
+1.	Podstawowe parametry sprzętowe
+	a.	Wielkość pamięci RAM wyrażona w GB
+	b.	Nazwa i typ procesora
+	c.	Pojemność dysku wyrażona w GB
+	d.	Karta graficzna wraz z pamięcią
+2.	Konfiguracje kwot dyskowych
+	a.	Przydział 10GB dla użytkownika
+3.	Zainstalowane programy:
+	a.	7zip
+	b.	Adobe Reader
+	c.	Notepad++
+	d.	Przeglądarkę np. Edge lub Chrome
+	e.	Java Update
+4.	Listę udziałów sieciowych dostępnych dla użytkownika
+	a.	Udział sieciowy departamentu do którego należy użytkownik
+	b.	Udział sieciowy użytkownika
+5.	Informacje o połączeniach sieciowych
+	a.	adres serwera DHCP
+	b.	adres serwera DNS
+	c.	Podstawowa adresacja sieciowa(Adres IPv4, Maska podsieci, brama domyślna)
+6.	Listę podłączonych drukarek użytkowników
+	a.	Czy użytkownik posiada podłączoną drukarkę inną niż domyślna Microsoft
+7.	Usługi systemowe – obecny stan, sposób startu
+	a.	Usługę Windows Update
+	b.	Usługę AppIdSvc
+	c.	Usługę Windows Defender
+	d.	Usługę Zapory Windows Defender
+	e.	Usługę Czasu systemu Windows
+8.	Ustawienia Zapory Windows Defender
+	a.	Stan zapory
+	b.	Rozmiar pliku dziennika
+9.	Ustawienia programu Antywirusowego Windows Defender
+	a.	Stan programu
+	b.	Wykrywanie potencjalnie niechcianych aplikacji
+	c.	Skanowanie dysków wymiennych
+	d.	Skanuj wszystkie pobierane pliki i załączniki
+	e.	Liczbę dni, po upływie której analizy zabezpieczeń dotyczące programów szpiegujących będą uznawane za nieaktualne
+	f.	Liczbę dni, po upływie których analiza zabezpieczeń dotycząca wirusów będzie uznawana za nieaktualną
+	g.	Monitorowanie zachowania
+10.	Ustawienia dziennika zdarzeń dla wszystkich zakresów monitorowania
+	a.	Mechanizm tworzenia kopii zapasowych
+	b.	Zachowanie dziennika po osiągnięciu maksymalnego rozmiaru
+	c.	Maksymalny rozmiar pliku dziennika
+
+
+Get-CimInstance Win32_LogicalDisk | where-Object { $_.DriveType -eq 3 } | Select @{Name = "VolumeName"; Expression = { $_.VolumeName } },
+@{Name = "Size"; Expression = { [Math]::Round( ($_.Size / 1073741824),2) } }, @{Name = "FreeSpace"; Expression = { [Math]::Round(  ($_.FreeSpace / 1073741824),2) }}
+
+
+#######################TECHNICZNE#######################################
+
+Function Test-RegistryValue {
+    param(
+
+        [Parameter(Position = 0, Mandatory = $true, ValueFromPipeline)]
+        [String]$Path
+        ,
+        [Parameter(Position = 1, Mandatory = $true)]
+        [String]$Name
+        ,
+        [Switch]$PassThru
+    ) 
+
+    process {
+        if (Test-Path $Path) {
+            $Key = Get-Item -LiteralPath $Path
+            if ($Key.GetValue($Name, $null) -ne $null) {
+                if ($PassThru) {
+                    Get-ItemProperty $Path $Name
+                }
+                else {
+                    $true
+                }
+            }
+            else {
+                $false
+            }
+        }
+        else {
+            $false
+        }
+    }
+}
+
+function ConvertTo-Hashtable($object)
+{
+    $hashtable = [ordered]@{}
+    $object.psobject.properties | Foreach { $hashtable[$_.Name] = $_.Value }
+    $hashtable
+}
+
+
+#######################ROZDZIAŁ 1#######################################
+HARDWARE
+
+(Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property capacity -Sum).sum / 1gb #pamiec
+Get-CimInstance Win32_Processor | Select-Object Name,MaxClockSpeed | Format-List #procesor
+Get-CimInstance Win32_DiskDrive | Select-Object @{Name = "Size"; Expression = { $_.Size / 1GB } } #dysk
+Get-CimInstance Win32_VideoController | Select-Object Name, @{Name="RAM";Expression={$_.AdapterRam / 1GB}} | Format-List #karta
+
+
+function Get-ComputerHardware
+{
+    Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum | Select-Object @{Name = "TotalRAM"; E = { [math]::Round(($_.Sum / 1GB), 2), "GB" -join " " } } | Format-List #pamiec
+    Get-CimInstance Win32_Processor | Select-Object Name,@{Name = "MaxClockSpeed"; Expression = { ($_.MaxClockSpeed / 1000), "GHz" -join " " } } | Format-List #procesor
+    Get-CimInstance Win32_DiskDrive | Select-Object @{Name = "Size"; Expression = { [Math]::Round(($_.Size / 1GB), 2), "GB" -join " " } } | Format-List #dysk
+    Get-CimInstance Win32_VideoController | Select-Object Name, @{Name = "RAM"; Expression = { ($_.AdapterRam / 1GB), "GB" -join " " } } | Format-List #karta
+}
+
+Get-ItemProperty "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" | Select ProcessorNameString,~MHz
+
+
+Get-ComputerHardware
+
+#######################ROZDZIAŁ 2#######################################
+QUOTA
+$quotaProperty='Enable','Enforce','Limit','LimitUnits','Threshold','ThresholdUnits' #pozwolenie,wymuszenie,limit,jednostkaLimit,alarm,jednostkaAlarm
+
+
+
+
+Get-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DiskQuota' | Select-Object $quotaProperty[0], $quotaProperty[1], $quotaProperty[2], $quotaProperty[3], $quotaProperty[4], $quotaProperty[5]
+
+################################################ROZDZIAŁ 3######################
+Function Get-SoftwareInformation 
+{
+
+    $programsList = [ordered]@{
+        "7-zip"             = "7-zip" #brak
+        "Foxit Reader"      = "Foxit Reader" #brak
+        "Notepad++"         = "Notepad++" #Jest
+        "Microsoft Edge"    = "Microsoft Corporation" #2
+        "Java 8 Update 251" = "Oracle Corporation" #2
+    }
+
+    
+    $path = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall"
+
+
+    foreach($key in $programsList.Keys)
+    {
+        $w64TMP = Get-ChildItem $path[0] | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*$key*") -and ($_.Publisher -like "*$($programsList["Foxit Reader"])*") }
+        $w32TMP = Get-ChildItem $path[1] | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*$key*") -and ($_.Publisher -like "*$($programsList["Foxit Reader"])*") }
+    }
+
+    $programs=$w62TMP+$w32TMP
+
+    $programs
+    
+
+
+}
+#Publisher,DisplayNAme
+Get-SoftwareInformation
+
+
+
+$programsList = [ordered]@{
+    "7-zip"             = "7-zip" #brak
+    "Foxit Reader"      = "Foxit Reader" #brak
+    "Notepad++"         = "Notepad++" #Jest
+    "Microsoft Edge"    = "Microsoft Corporation" #2
+    "Java 8 Update 251" = "Oracle Corporation" #2
+}
+
+
+Function Get-Software ($programsList)
+{
+    $programInfo = Get-SoftwareInformation -programName "Foxit Reader" -programPublisher $programsList["Foxit Reader"]
+
+    $Object = [ordered]@{
+        DisplayName     = $programInfo.DisplayName
+        Version         = $programInfo.Version
+        InstallDate     = $programInfo.InstallDate
+        Publisher       = $programInfo.Publisher
+        InstallLocation = $programInfo.InstallLocation
+        EstimatedSizeMB = [decimal]([math]::Round(($programInfo.EstimatedSizeMB * 1024) / 1MB, 2))
+        }
+
+    return $Object
+}
+
+Get-Software -programsList $programsList
+
+
+
+Get-Software -programList $programsList
+
+$w = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Where-Object {$_.DisplayName -like "*7*"} | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB
+Get-ChildItem HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { $_.DisplayName -like "*7-zip*" }
+
+Get-ChildItem "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB
+
+
+Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object {($_.DisplayName -like "*Java*") -and ($_.Publisher -like "*Oracle*") }
+Get-ChildItem "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*Edge*") -and ($_.Publisher -like "*Microsoft*") }
+
+
+#############################ROZDZIAŁ 5############################################
+
+function Get-NetworkConfiguration
+{
+    $networkConfiguration=Get-CimInstance -Class Win32_NetworkAdapterConfiguration -Filter "DNSDomain='gif.gov.pl'"   | Select-Object @{label="IPAddress";expression={$_.ipaddress[0]}},@{label="IPSubnet";expression={$_.IPSubnet[0]}},MACAddress,@{label="DefaultIPGateway";expression={$_.DefaultIPGateway[0]}},DHCPServer,DHCPEnabled,DNSDomain,DNSServerSearchOrder
+    $lama=ConvertTo-Hashtable -object  $networkConfiguration
+    $lama
+
+}
+
+Get-NetworkConfiguration
+
+#############################ROZDZIAŁ 6#########################################DONE!
+#Sprawdzic w pracy
+function Get-PrintReport
+{
+    $printer=Get-Printer | Where-Object {(($_.PortName -like "*USB*") -or ($_.PortName -like "192.168.*.*")) -and ($_.DeviceType -eq "Print")} | Select Name,Type,DriverName,PortName,Shared,Published
+    $printReport = [ordered]@{}
+    foreach ($print in $printer)
+    {
+        $printReport.Add($print.Name,$print)
+    }
+    return $printReport
+}
+############################ROZDZIAŁ 7##########################################DONE!
+function Get-ServiceReport
+{
+    $services=Get-Service wuauserv,AppIDSvc,WinDefend,mpssvc,W32Time | Select Name,Status,StartType | Sort-Object -Descending
+    $servicesReport = [ordered]@{}
+    foreach ($service in $services)
+    {
+        $servicesReport.Add($service.Name,$service)
+    }
+    return $servicesReport
+}
+
+###############################ROZDZIAŁ 9########################################
+function Get-WindowsDefender
+{
+    Get-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' #a
+    Get-MpPreference | Select-Object PUAProtection,DisableRemovableDriveScanning,DisableIOAVProtection #b,c,d
+
+    #e * 2, bo czy włączona i ilosc dni
+    Get-Item 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Signature Updates' | Select-Object AVSignatureDue
+    Get-Item 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Signature Updates' | Select-Object AVSignatureDue
+
+    #f * 2, bo czy włączona i ilosc dni
+    Get-Item 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Signature Updates' | Select-Object ASSignatureDue
+    Get-Item 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Signature Updates' | Select-Object ASSignatureDue
+}
+
+
+Get-WindowsDefender
+
+##########################################ROZDZIAŁ 10######################DONE!
+
+function New-LogReport 
+{
+    $applicationLogResult = Get-WinEvent -ListLog Application | Select-Object LogName, @{label = "MaximumSizeInBytes"; expression = { $_.MaximumSizeInBytes / 1024 } }, LogMode, @{label = "Retention"; expression = { Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Application | Select -ExpandProperty Retention } }
+    $setupLogResult = Get-WinEvent -ListLog Setup | Select-Object LogName, @{label = "MaximumSizeInBytes"; expression = { $_.MaximumSizeInBytes / 1024 } }, LogMode, @{label = "Retention"; expression = { Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Setup | Select -ExpandProperty Retention } }
+    $systemLogResult = Get-WinEvent -ListLog System | Select-Object LogName, @{label = "MaximumSizeInBytes"; expression = { $_.MaximumSizeInBytes / 1024 } }, LogMode, @{label = "Retention"; expression = { Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\System | Select -ExpandProperty Retention } }
+    $securityLogResult = Get-WinEvent -ListLog Security | Select-Object LogName, @{label = "MaximumSizeInBytes"; expression = { $_.MaximumSizeInBytes / 1024 } }, LogMode, @{label = "Retention"; expression = { Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security | Select -ExpandProperty Retention } }
+
+    $logReport = [ordered]@{
+        Application = $applicationLogResult;
+        Setup       = $setupLogResult;
+        System      = $systemLogResult;
+        Security    = $securityLogResult
+    }
+
+    return $logReport
+}
+
+(New-LogReport).Setup
+
+
+###########################################
