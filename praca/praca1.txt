@@ -50,39 +50,54 @@ Get-CimInstance Win32_LogicalDisk | where-Object { $_.DriveType -eq 3 } | Select
 
 #######################TECHNICZNE#######################################
 
-Function Test-RegistryValue {
+function Test-RegistryKeyValue
+{
+    <#
+    .SYNOPSIS
+    Tests if a registry value exists.
+    
+    .DESCRIPTION
+    The usual ways for checking if a registry value exists don't handle when a value simply has an empty or null value.  This function actually checks if a key has a value with a given name.
+    
+    .EXAMPLE
+    Test-CRegistryKeyValue -Path 'hklm:\Software\Carbon\Test' -Name 'Title'
+    
+    Returns `True` if `hklm:\Software\Carbon\Test` contains a value named 'Title'.  `False` otherwise.
+    #>
+    [CmdletBinding()]
     param(
+        [Parameter(Mandatory=$true)]
+        [string]
+        # The path to the registry key where the value should be set.  Will be created if it doesn't exist.
+        $Path,
+        
+        [Parameter(Mandatory=$true)]
+        [string]
+        # The name of the value being set.
+        $Name
+    )
 
-        [Parameter(Position = 0, Mandatory = $true, ValueFromPipeline)]
-        [String]$Path
-        ,
-        [Parameter(Position = 1, Mandatory = $true)]
-        [String]$Name
-        ,
-        [Switch]$PassThru
-    ) 
-
-    process {
-        if (Test-Path $Path) {
-            $Key = Get-Item -LiteralPath $Path
-            if ($Key.GetValue($Name, $null) -ne $null) {
-                if ($PassThru) {
-                    Get-ItemProperty $Path $Name
-                }
-                else {
-                    $true
-                }
-            }
-            else {
-                $false
-            }
-        }
-        else {
-            $false
-        }
+    if( -not (Test-Path -Path $Path) )
+    {
+        return $false
+    }
+    
+    $properties = Get-ItemProperty -Path $Path 
+    if( -not $properties )
+    {
+        return $false
+    }
+    
+    $member = Get-Member -InputObject $properties -Name $Name
+    if( $member )
+    {
+        return $true
+    }
+    else
+    {
+        return $false
     }
 }
-
 function ConvertTo-Hashtable($object)
 {
     $hashtable = [ordered]@{}
@@ -197,17 +212,36 @@ Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" | Get-
 Get-ChildItem "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*Edge*") -and ($_.Publisher -like "*Microsoft*") }
 
 
-#############################ROZDZIAŁ 5############################################
+#############################ROZDZIAŁ 5#######################################TEST W PRACY!
 
-function Get-NetworkConfiguration
+function Get-NetworkInformation
 {
-    $networkConfiguration=Get-CimInstance -Class Win32_NetworkAdapterConfiguration -Filter "DNSDomain='gif.gov.pl'"   | Select-Object @{label="IPAddress";expression={$_.ipaddress[0]}},@{label="IPSubnet";expression={$_.IPSubnet[0]}},MACAddress,@{label="DefaultIPGateway";expression={$_.DefaultIPGateway[0]}},DHCPServer,DHCPEnabled,DNSDomain,DNSServerSearchOrder
-    $lama=ConvertTo-Hashtable -object  $networkConfiguration
-    $lama
 
+    $deviceId=Get-NetAdapter -Physical | Where-Object {$_.Status -eq "Up"} | Select -ExpandProperty DeviceId
+    $DHCPStatus=Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$id" | Select-Object -ExpandProperty EnableDHCP
+
+    if ($DHCPStatus -eq 1)
+    {
+        #Przypisane DHCP
+        $networkInfo=Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$deviceId" | Select-Object @{Name="IPAddress";Expression={$_.DhcpIpAddress}},@{Name="SubnetMask";Expression={$_.DHCPSubnetMask}},@{Name="DefaultGateway";Expression={$_.DHCPDefaultGateway}},@{Name="NameServer";Expression={$_.DHCPNameServer}},@{Name="DHCPServer";Expression={$_.DHCPServer}}
+    }
+    else
+    {
+        #Przypisane Manualnie
+        $networkInfo=Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$deviceId" | Select-Object  @{Name="IPAddress";Expression={$_.IPAddress}},@{Name="SubnetMask";Expression={$_.SubnetMask}},@{Name="DefaultGateway";Expression={$_.DefaultGateway}},@{Name="NameServer";Expression={$_.NameServer}},@{Name="DHCPServer";Expression={"None"}}
+    }
+
+    $network = [ordered]@{
+            IPAddress        = $networkInfo.IPAddress
+            SubnetMask       = $networkInfo.SubnetMask
+            DefaultGateway   = $networkInfo.DefaultGateway
+            NameServer       = $networkInfo.NameServer
+            DHCPServer       = $networkInfo.DHCPServer
+            }
+
+    return $network
 }
-
-Get-NetworkConfiguration
+Get-NetworkInformation
 
 #############################ROZDZIAŁ 6#########################################DONE!
 #Sprawdzic w pracy
@@ -233,23 +267,83 @@ function Get-ServiceReport
     return $servicesReport
 }
 
-###############################ROZDZIAŁ 9########################################
-function Get-WindowsDefender
+###############################ROZDZIAŁ 9######################################TEST!
+function Get-DefenderReport
 {
-    Get-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' #a
-    Get-MpPreference | Select-Object PUAProtection,DisableRemovableDriveScanning,DisableIOAVProtection #b,c,d
 
-    #e * 2, bo czy włączona i ilosc dni
-    Get-Item 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Signature Updates' | Select-Object AVSignatureDue
-    Get-Item 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Signature Updates' | Select-Object AVSignatureDue
+    $paths="HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Signature Updates","HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender"
 
-    #f * 2, bo czy włączona i ilosc dni
-    Get-Item 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Signature Updates' | Select-Object ASSignatureDue
-    Get-Item 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Signature Updates' | Select-Object ASSignatureDue
+    $defenderReport = [ordered]@{
+        "Windows Defender Status"           = $null
+        "Potentially Unwanted Apps"         = $null
+        "Removable Drives Scanning"         = $null
+        "Scan All Files and Attachments"    = $null
+        "Security Update days"              = $null
+        "Spyware Update Days"               = $null
+    }
+    
+    $status=Get-ItemProperty -Path $paths[1] | Select @{Name="Windows Defender";Expression={$_.DisableAntiSpyware}}
+    if (-not ($status -eq 1))
+    {
+        $defenderReport["Windows Defender Status"]="SET"
+    }
+    else
+    {
+        $defenderReport["Windows Defender Status"]="UNSET"
+    }
+
+    $status=Get-MpPreference | Select-Object PUAProtection,DisableRemovableDriveScanning,DisableIOAVProtection  #b,c,d 
+    if ($status.PUAProtection -eq 0)
+    {
+        $defenderReport["Potentially Unwanted Apps"]="UNSET"
+    }
+    elseif ($status.PUAProtection -eq 1)
+    {
+        $defenderReport["Potentially Unwanted Apps"]="BLOCK"
+    }
+    elseif ($status.PUAProtection -eq 2)
+    {
+        $defenderReport["Potentially Unwanted Apps"]="AUDIT"
+    }
+
+    if (-not ($status.DisableRemovableDriveScanning -eq "True"))
+    {
+        $defenderReport["Removable Drives Scanning"]="SET"
+    }
+    else
+    {
+        $defenderReport["Removable Drives Scanning"]="UNSET"
+    }
+
+    if (-not ($status.DisableIOAVProtection -eq "True"))
+    {
+        $defenderReport["Scan All Files and Attachments"]="SET"
+    }
+    else
+    {
+        $defenderReport["Scan All Files and Attachments"]="UNSET"
+    }
+
+
+    $test=Test-RegistryKeyValue -Path $paths[0] -Name "AVSignatureDue"
+    if ($test)
+    {
+        $defenderElement=Get-ItemProperty -Path $paths[0] | Select-Object @{Name="Security updates days";expression={$_.AVSignatureDue}},@{Name="Spyware update days";expression={$_.ASSignatureDue}}
+        $defenderReport["Security Update days"]=$defenderElement."Security updates days"
+        $defenderReport["Spyware Update Days"]=$defenderElement."Spyware Update Days"
+    }
+    else
+    {
+        $defenderReport["Security Update days"]="UNSET"
+        $defenderReport["Spyware Update Days"]="UNSET"
+    }
+
+    return $defenderReport
 }
 
 
-Get-WindowsDefender
+
+Get-DefenderReport
 
 ##########################################ROZDZIAŁ 10######################DONE!
 
