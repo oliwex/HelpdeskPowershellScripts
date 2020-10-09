@@ -1,4 +1,4 @@
-
+﻿
 1.	Podstawowe parametry sprzętowe
 	a.	Wielkość pamięci RAM wyrażona w GB
 	b.	Nazwa i typ procesora
@@ -130,13 +130,37 @@ Get-ComputerHardware
 
 #######################ROZDZIAŁ 2#######################################
 QUOTA
-$quotaProperty='Enable','Enforce','Limit','LimitUnits','Threshold','ThresholdUnits' #pozwolenie,wymuszenie,limit,jednostkaLimit,alarm,jednostkaAlarm
+function Get-QuotaReport
+{
+    $list="MB","GB","TB","PB","EB"
+    $quotaReport = [ordered]@{}
+    $quotaList= "Enable", "Enforce", "Limit","LimitUnits","Threshold","ThresholdUnits"
+    $path="HKLM:\Software\Policies\Microsoft\Windows NT\DiskQuota"
 
+    foreach ($quotaElement in $quotaList)
+    {
+        $testQuotaElement=Test-RegistryKeyValue -Path $path  -Name $quotaElement
+        if ($testQuotaElement)
+        {
+            $quotaValue=Get-ItemProperty -Path $path | Select -ExpandProperty $quotaElement
+            if ($quotaElement -like "*Units*")
+            {
+               $quotaReport.Add($quotaElement,$list[$quotaValue-1]) 
+            }
+            else
+            {
+               $quotaReport.Add($quotaElement,$quotaValue)  
+            }
+        }
+        else
+        {
+            $quotaReport.Add($quotaElement,"UNSET")
+        }
+    }
+    return $quotaReport
+}
 
-
-
-Get-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DiskQuota' | Select-Object $quotaProperty[0], $quotaProperty[1], $quotaProperty[2], $quotaProperty[3], $quotaProperty[4], $quotaProperty[5]
-
+Get-QuotaReport
 ################################################ROZDZIAŁ 3######################
 Function Get-SoftwareInformation 
 {
