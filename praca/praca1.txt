@@ -128,40 +128,40 @@ Get-ItemProperty "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" | Select
 
 Get-ComputerHardware
 
-#######################ROZDZIAŁ 2#######################################
-QUOTA
-function Get-QuotaReport
+#######################ROZDZIAŁ 2#######################################TEST!
+function Get-QuotaReport 
 {
-    $list="MB","GB","TB","PB","EB"
-    $quotaReport = [ordered]@{}
-    $quotaList= "Enable", "Enforce", "Limit","LimitUnits","Threshold","ThresholdUnits"
-    $path="HKLM:\Software\Policies\Microsoft\Windows NT\DiskQuota"
+$unitList ="KB", "MB", "GB", "TB", "PB", "EB"
+$path="HKLM:\Software\Policies\Microsoft\Windows NT\DiskQuota"
+$pathExist=Test-Path -Path $path -PathType Container
 
-    foreach ($quotaElement in $quotaList)
-    {
-        $testQuotaElement=Test-RegistryKeyValue -Path $path  -Name $quotaElement
-        if ($testQuotaElement)
-        {
-            $quotaValue=Get-ItemProperty -Path $path | Select -ExpandProperty $quotaElement
-            if ($quotaElement -like "*Units*")
-            {
-               $quotaReport.Add($quotaElement,$list[$quotaValue-1]) 
-            }
-            else
-            {
-               $quotaReport.Add($quotaElement,$quotaValue)  
-            }
-        }
-        else
-        {
-            $quotaReport.Add($quotaElement,"UNSET")
-        }
+if ($pathExist)
+{
+    $quotaReport = Get-ItemProperty -Path $path | Select-Object Enable, Enforce, Limit, LimitUnits, Threshold, ThresholdUnits
+    $quotaReport = [ordered]@{
+        "enable"         = $quotaReport.Enable
+        "enforce"        = $quotaReport.Enforce 
+        "limit"          = $quotaReport.Limit 
+        "LimitUnits"     = $unitList[$quotaReport.LimitUnits - 1] 
+        "Threshold"      = $quotaReport.Threshold
+        "ThresholdUnits" = $unitList[$quotaReport.ThresholdUnits - 1] 
     }
-    return $quotaReport
 }
-
+else 
+{
+    $quotaReport = [ordered]@{
+        "enable"         ="UNSET" 
+        "enforce"        ="UNSET" 
+        "limit"          ="UNSET" 
+        "LimitUnits"     ="UNSET" 
+        "Threshold"      ="UNSET"
+        "ThresholdUnits" = "UNSET"
+    }
+}
+return $quotaReport
+}
 Get-QuotaReport
-################################################ROZDZIAŁ 3######################
+################################################ROZDZIAŁ 3####################TEST!
 function GetSoftwareReport
 {
     $paths = "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall", "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
