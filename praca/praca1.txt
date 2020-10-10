@@ -229,11 +229,19 @@ Get-Software -programList $programsList
 $w = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Where-Object {$_.DisplayName -like "*7*"} | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB
 Get-ChildItem HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { $_.DisplayName -like "*7-zip*" }
 
-Get-ChildItem "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB
+Get-ChildItem "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*Foxit Reader*") -and ($_.Publisher -like "*Foxit Software*") }
 
 
-Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object {($_.DisplayName -like "*Java*") -and ($_.Publisher -like "*Oracle*") }
+Get-ChildItem "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object {($_.DisplayName -like "*Java*") -and ($_.Publisher -like "*Oracle*") }
+
+#edge
 Get-ChildItem "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*Edge*") -and ($_.Publisher -like "*Microsoft*") }
+#foxit
+Get-ChildItem "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB| Where-Object { ($_.DisplayName -like "*Foxit Reader*") -and ($_.Publisher -like "*Foxit Software*") }
+#7-zip-blad
+Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*7-zip*") -and ($_.Publisher -like "*Igor Pavlov*") }
+
+Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*Notepad++*")}
 
 
 #############################ROZDZIAŁ 5#######################################TEST W PRACY!
