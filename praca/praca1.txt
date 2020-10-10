@@ -189,6 +189,51 @@ return $programsList
 }
 
 Get-SoftwareInformation
+##############################ROZDZIAŁ 4######################################TEST!
+$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+
+
+$stopwatch.Stop()
+$stopwatch.Elapsed
+
+
+Name      ScopeName AccountName      AccessControlType AccessRight
+----      -------- - ---------- - ---------------- - ---------- -
+DP        *         DOMENA\jkowalski Allow             Read       
+jkowalski *         DOMENA\jkowalski Allow             Change    
+
+
+$userName="jkowalski"
+
+$shareTest = Get-SmbShare | Get-SMBShareAccess | Where-Object { $_.AccountName -like "*DOMENA\$userName*"}
+
+if (-not([String]::IsNullOrEmpty($shareTest)) 
+{
+    if ($shareReport[0].Name -like $userName))
+    {
+    $shareReport = [ordered]@{
+            "Department"         = $shareReport[1]
+            "Own"        = $shareReport[0]
+        }
+    }
+    else 
+    {
+        $shareReport = [ordered]@{
+            "Department" = $shareReport[0]
+            "Own"        = $shareReport[1]
+        }    
+    }
+    
+}
+else 
+{
+    $shareReport = [ordered]@{
+            "Department" = "UNSET"
+            "Own"        = "UNSET"
+        } 
+}
+$stopwatch.Stop()
+$stopwatch.Elapsed
 
 #############################ROZDZIAŁ 5#######################################TEST W PRACY!
 
