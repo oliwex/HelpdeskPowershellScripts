@@ -162,87 +162,33 @@ function Get-QuotaReport
 
 Get-QuotaReport
 ################################################ROZDZIAŁ 3######################
-Function Get-SoftwareInformation 
+function GetSoftwareReport
 {
+    $paths = "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall", "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
 
-    $programsList = [ordered]@{
-        "7-zip"             = "7-zip" #brak
-        "Foxit Reader"      = "Foxit Reader" #brak
-        "Notepad++"         = "Notepad++" #Jest
-        "Microsoft Edge"    = "Microsoft Corporation" #2
-        "Java 8 Update 251" = "Oracle Corporation" #2
-    }
-
-    
-    $path = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall"
-
-
-    foreach($key in $programsList.Keys)
-    {
-        $w64TMP = Get-ChildItem $path[0] | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*$key*") -and ($_.Publisher -like "*$($programsList["Foxit Reader"])*") }
-        $w32TMP = Get-ChildItem $path[1] | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*$key*") -and ($_.Publisher -like "*$($programsList["Foxit Reader"])*") }
-    }
-
-    $programs=$w62TMP+$w32TMP
-
-    $programs
-    
-
-
-}
-#Publisher,DisplayNAme
-Get-SoftwareInformation
-
-
-
-$programsList = [ordered]@{
-    "7-zip"             = "7-zip" #brak
-    "Foxit Reader"      = "Foxit Reader" #brak
-    "Notepad++"         = "Notepad++" #Jest
-    "Microsoft Edge"    = "Microsoft Corporation" #2
-    "Java 8 Update 251" = "Oracle Corporation" #2
-}
-
-
-Function Get-Software ($programsList)
-{
-    $programInfo = Get-SoftwareInformation -programName "Foxit Reader" -programPublisher $programsList["Foxit Reader"]
-
-    $Object = [ordered]@{
-        DisplayName     = $programInfo.DisplayName
-        Version         = $programInfo.Version
-        InstallDate     = $programInfo.InstallDate
-        Publisher       = $programInfo.Publisher
-        InstallLocation = $programInfo.InstallLocation
-        EstimatedSizeMB = [decimal]([math]::Round(($programInfo.EstimatedSizeMB * 1024) / 1MB, 2))
-        }
-
-    return $Object
-}
-
-Get-Software -programsList $programsList
-
-
-
-Get-Software -programList $programsList
-
-$w = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Where-Object {$_.DisplayName -like "*7*"} | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB
-Get-ChildItem HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { $_.DisplayName -like "*7-zip*" }
-
-Get-ChildItem "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*Foxit Reader*") -and ($_.Publisher -like "*Foxit Software*") }
-
-
-Get-ChildItem "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object {($_.DisplayName -like "*Java*") -and ($_.Publisher -like "*Oracle*") }
 
 #edge
-Get-ChildItem "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*Edge*") -and ($_.Publisher -like "*Microsoft*") }
-#foxit
-Get-ChildItem "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB| Where-Object { ($_.DisplayName -like "*Foxit Reader*") -and ($_.Publisher -like "*Foxit Software*") }
+$edge=Get-ChildItem $paths[0] | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*Edge*") -and ($_.Publisher -like "*Microsoft*") }
+#adobe
+$adobe = Get-ChildItem $paths[0] | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*Adobe Acrobat Reader*") -and ($_.Publisher -like "*Adobe*") }
 #7-zip-blad
-Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*7-zip*") -and ($_.Publisher -like "*Igor Pavlov*") }
+$zip = Get-ChildItem $paths[1] | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*7-zip*") -and ($_.Publisher -like "*Igor Pavlov*") }
+#Java 8
+$java = Get-ChildItem $paths[0] | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*Java 8*") -and ($_.Publisher -like "*Oracle*") }
+#Notepad++
+$notepad = Get-ChildItem $paths[0] | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*Notepad++*") -and ($_.Publisher -like "*Notepad++ Team*") }
 
-Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*Notepad++*")}
+$programsList = [ordered]@{
+    "7-zip"             = $zip 
+    "Foxit Reader"      = $adobe 
+    "Notepad++"         = $notepad 
+    "Microsoft Edge"    = $edge 
+    "Java 8 Update 251" = $java 
+}
+return $programsList  
+}
 
+Get-SoftwareInformation
 
 #############################ROZDZIAŁ 5#######################################TEST W PRACY!
 
@@ -288,16 +234,31 @@ function Get-PrintReport
     return $printReport
 }
 ############################ROZDZIAŁ 7##########################################DONE!
-function Get-ServiceReport
-{
-    $services=Get-Service wuauserv,AppIDSvc,WinDefend,mpssvc,W32Time | Select Name,Status,StartType | Sort-Object -Descending
-    $servicesReport = [ordered]@{}
-    foreach ($service in $services)
-    {
-        $servicesReport.Add($service.Name,$service)
+function Get-ServiceReport {
+    $services = Get-Service wuauserv, AppIDSvc, WinDefend, mpssvc, W32Time | Select-Object Name, Status, StartType 
+    $serviceReport = [ordered]@{
+        "AppIDSvc"  = $services[0]
+        "mpssvc"    = $services[1] 
+        "W32Time"   = $services[2]
+        "WinDefend" = $services[3]
+        "wuauserv"  = $services[4]  
     }
-    return $servicesReport
+    $serviceReport
 }
+###############################ROZDZIAŁ 8#####################################DONE!
+function Get-FirewallReport 
+{
+    $firewallReportArray=(Get-NetFirewallProfile -PolicyStore ActiveStore | Select-Object Name, Enabled, @{label = "LogFilePath"; expression = { $_.LogFileName } }, @{label = "LogSize"; expression = { $_.LogMaxSizeKilobytes } })
+    $firewallReport = [ordered]@{
+        Domain  = $firewallReportArray[0]
+        Private = $firewallReportArray[1]
+        Public  = $firewallReportArray[2]
+    }
+    return $firewallReport
+}
+
+
+Get-FirewallReport
 
 ###############################ROZDZIAŁ 9######################################TEST!
 function Get-DefenderReport
