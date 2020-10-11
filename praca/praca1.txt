@@ -49,7 +49,13 @@ Get-CimInstance Win32_LogicalDisk | where-Object { $_.DriveType -eq 3 } | Select
 
 
 #######################TECHNICZNE#######################################
+#REQIURES
+CARBON-Test-RegistryValue
+AD-Get-ADPrincipalGroupMembership
+SysInfo-Get-VideoControler
 
+
+#######################
 function Test-RegistryKeyValue
 {
     <#
@@ -109,24 +115,17 @@ function ConvertTo-Hashtable($object)
 #######################ROZDZIAŁ 1#######################################
 HARDWARE
 
-(Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property capacity -Sum).sum / 1gb #pamiec
-Get-CimInstance Win32_Processor | Select-Object Name,MaxClockSpeed | Format-List #procesor
-Get-CimInstance Win32_DiskDrive | Select-Object @{Name = "Size"; Expression = { $_.Size / 1GB } } #dysk
-Get-CimInstance Win32_VideoController | Select-Object Name, @{Name="RAM";Expression={$_.AdapterRam / 1GB}} | Format-List #karta
-
-
-function Get-ComputerHardware
+function Get-ComputerReport 
 {
-    Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum | Select-Object @{Name = "TotalRAM"; E = { [math]::Round(($_.Sum / 1GB), 2), "GB" -join " " } } | Format-List #pamiec
-    Get-CimInstance Win32_Processor | Select-Object Name,@{Name = "MaxClockSpeed"; Expression = { ($_.MaxClockSpeed / 1000), "GHz" -join " " } } | Format-List #procesor
-    Get-CimInstance Win32_DiskDrive | Select-Object @{Name = "Size"; Expression = { [Math]::Round(($_.Size / 1GB), 2), "GB" -join " " } } | Format-List #dysk
-    Get-CimInstance Win32_VideoController | Select-Object Name, @{Name = "RAM"; Expression = { ($_.AdapterRam / 1GB), "GB" -join " " } } | Format-List #karta
+    $computerReport = [ordered]@{
+        "Disk"            = Get-DiskDrive | Select-Object Caption, @{Name = "Size"; Expression = { [Math]::Round(($_.Size / 1GB), 2), "GB" -join " " } }
+        "Processor"       = Get-Processor | Select-Object Name, @{Name = "TDP"; Expression = { $_.MaxClockSpeed } }
+        "Memory"          = Get-PhysicalMemoryArray | Select-Object @{Name = "RAM"; Expression = { ($_.MaxCapacity / 1MB), "GB" -join " " } }
+        "VideoController" = Get-VideoController | Where-Object { $_.DeviceId -eq "VideoController1" } | Select-Object Name, @{Name = "RAM"; Expression = { ($_.AdapterRam / 1GB), "GB" -join " " } }
+    }
+
+    return $computerReport
 }
-
-Get-ItemProperty "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" | Select ProcessorNameString,~MHz
-
-
-Get-ComputerHardware
 
 #######################ROZDZIAŁ 2#######################################TEST!
 function Get-QuotaReport 
