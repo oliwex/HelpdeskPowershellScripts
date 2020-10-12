@@ -1,0 +1,29 @@
+function Get-NetworkInformation
+{
+
+    $deviceId=Get-NetAdapter -Physical | Where-Object {$_.Status -eq "Up"} | Select -ExpandProperty DeviceId
+    $networkTMP=Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$deviceId"
+    $DHCPStatus=$networkTMP | Select-Object -ExpandProperty EnableDHCP
+    $DHCPStatus
+    if ($DHCPStatus -eq 1)
+    {
+        #Przypisane DHCP
+        $networkInfo=($networkTMP | Select-Object @{Name="IPAddress";Expression={$_.DhcpIpAddress}},@{Name="SubnetMask";Expression={$_.DHCPSubnetMask}},@{Name="DefaultGateway";Expression={$_.DHCPDefaultGateway}},@{Name="NameServer";Expression={$_.DHCPNameServer}},@{Name="DHCPServer";Expression={$_.DHCPServer}})
+    }
+    else
+    {
+        #Przypisane Manualnie
+        $networkInfo=($networkTMP | Select-Object  @{Name="IPAddress";Expression={$_.IPAddress}},@{Name="SubnetMask";Expression={$_.SubnetMask}},@{Name="DefaultGateway";Expression={$_.DefaultGateway}},@{Name="NameServer";Expression={$_.NameServer}},@{Name="DHCPServer";Expression={"None"}})
+    }
+
+    $networkReport = [ordered]@{
+            IPAddress        = $networkInfo.IPAddress
+            SubnetMask       = $networkInfo.SubnetMask
+            DefaultGateway   = $networkInfo.DefaultGateway
+            NameServer       = $networkInfo.NameServer
+            DHCPServer       = $networkInfo.DHCPServer
+            }
+
+    return $networkReport
+}
+Get-NetworkInformation
