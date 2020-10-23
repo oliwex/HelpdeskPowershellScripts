@@ -259,6 +259,7 @@ $stopwatch.Elapsed
 
 #############################ROZDZIAŁ 5#######################################TEST W PRACY!
 
+
 function Get-NetworkInformation
 {
 
@@ -273,7 +274,7 @@ function Get-NetworkInformation
     else
     {
         #Przypisane Manualnie
-        $networkInfo=Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$deviceId" | Select-Object  @{Name="IPAddress";Expression={$_.IPAddress}},@{Name="SubnetMask";Expression={$_.SubnetMask}},@{Name="DefaultGateway";Expression={$_.DefaultGateway}},@{Name="NameServer";Expression={$_.NameServer}},@{Name="DHCPServer";Expression={"None"}}
+        $networkInfo=Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$deviceId" | Select-Object  @{Name="IPAddress";Expression={$_.IPAddress}},@{Name="SubnetMask";Expression={$_.SubnetMask}},@{Name="DefaultGateway";Expression={$_.DefaultGateway}},@{Name="NameServer";Expression={$_.NameServer}},@{Name="DHCPServer";Expression={"UNSET"}}
     }
 
     $network = [ordered]@{
@@ -301,7 +302,8 @@ function Get-PrintReport
     return $printReport
 }
 ############################ROZDZIAŁ 7##########################################DONE!
-function Get-ServiceReport {
+function Get-ServiceReport 
+{
     $services = Get-Service wuauserv, AppIDSvc, WinDefend, mpssvc, W32Time | Select-Object Name, Status, StartType 
     $serviceReport = [ordered]@{
         "AppIDSvc"  = $services[0]
@@ -310,8 +312,10 @@ function Get-ServiceReport {
         "WinDefend" = $services[3]
         "wuauserv"  = $services[4]  
     }
-    $serviceReport
+    return $serviceReport
 }
+
+Get-ServiceReport
 ###############################ROZDZIAŁ 8#####################################DONE!
 function Get-FirewallReport 
 {
@@ -326,7 +330,6 @@ function Get-FirewallReport
 
 
 Get-FirewallReport
-
 ###############################ROZDZIAŁ 9######################################TEST!
 function Get-DefenderReport
 {
