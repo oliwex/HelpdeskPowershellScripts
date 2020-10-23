@@ -194,43 +194,66 @@ $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
 $stopwatch.Stop()
 $stopwatch.Elapsed
-
-
-Name      ScopeName AccountName      AccessControlType AccessRight
-----      -------- - ---------- - ---------------- - ---------- -
-DP        *         DOMENA\jkowalski Allow             Read       
-jkowalski *         DOMENA\jkowalski Allow             Change    
-
-
-$userName="jkowalski"
-
-$shareTest = Get-SmbShare | Get-SMBShareAccess | Where-Object { $_.AccountName -like "*DOMENA\$userName*"}
-
-if (-not([String]::IsNullOrEmpty($shareTest)) 
+function Get-FilesReport
 {
-    if ($shareReport[0].Name -like $userName))
-    {
-    $shareReport = [ordered]@{
-            "Department"         = $shareReport[1]
-            "Own"        = $shareReport[0]
-        }
-    }
-    else 
-    {
-        $shareReport = [ordered]@{
-            "Department" = $shareReport[0]
-            "Own"        = $shareReport[1]
-        }    
-    }
+[CmdletBinding()]
+Param(
+    [Parameter(Mandatory=$true,HelpMessage="UserName.",Position=0)]
+    [String]$userName,
+    [Parameter(Mandatory=$true,HelpMessage="GroupName",Position=1)]
+    [String]$groupName,
+    [Parameter(Mandatory=$true,HelpMessage="Department",Position=2)]
+    [String]$departmentName
+)
+
+$filesReport = [ordered]@{
+}
+
+if (Test-Path -Path $departmentPath -PathType Container)
+{
+    $userAccessDepartmentFolder=Get-Item -Path $departmentPath | Get-NTFSEffectiveAccess -Account $userName | select Account, AccessRights, FullName
+    $filesReport.Add("DepartmentFolderUserAccess", $userAccessDepartmentFolder)
+
+
+    $groupAccessDepartmentFolder=Get-Item -Path $departmentPath | Get-NTFSEffectiveAccess -Account $groupName |select Account, AccessRights, FullName
+    $filesReport.Add("DepartmentFolderGroupAccess",$groupAccessDepartmentFolder)
     
+    $userPath=Join-Path -Path $departmentPath -ChildPath $userName.Substring($userName.IndexOf("\")+1)
+    if (Test-Path -Path $userPath -PathType Container)
+    {
+        $userAccessUserFolder=Get-Item -Path $userPath | Get-NTFSEffectiveAccess -Account $userName | select Account, AccessRights, FullName
+        $filesReport.Add("UserFolderUserAccess",$userAccessUserFolder)
+
+        $groupAccessUserfolder=Get-Item -Path $userPath | Get-NTFSEffectiveAccess -Account $groupName |select Account, AccessRights, FullName
+        $filesReport.Add("UserFolderGroupAccess",$groupAccessUserfolder)
+    }
+    else
+    {
+        $filesReport.Add("UserFolderUserAccess","UNSET")
+        $filesReport.Add("UserFolderGroupAccess","UNSET")
+    }
 }
-else 
+else
 {
-    $shareReport = [ordered]@{
-            "Department" = "UNSET"
-            "Own"        = "UNSET"
-        } 
+    $filesReport.Add("DepartmentFolderUserAccess", "UNSET")
+    $filesReport.Add("DepartmentFolderGroupAccess","UNSET")
+    $filesReport.Add("UserFolderUserAccess","UNSET")
+    $filesReport.Add("UserFolderGroupAccess","UNSET")
 }
+
+
+
+return $filesReport
+
+}
+
+$user="DOMENA\jnowak"
+$groupName="DOMENA\Pracownicy_DP"
+$departmentPath="\\SERVER\DP"
+
+
+
+Get-FilesReport -UserName $user -GroupName $groupName -DepartmentName $departmentPath
 $stopwatch.Stop()
 $stopwatch.Elapsed
 
