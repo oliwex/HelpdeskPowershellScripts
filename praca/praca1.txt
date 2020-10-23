@@ -127,12 +127,16 @@ function Get-ComputerReport
     return $computerReport
 }
 
+Get-ComputerReport
 #######################ROZDZIAŁ 2#######################################TEST!
 function Get-QuotaReport 
 {
 $unitList ="KB", "MB", "GB", "TB", "PB", "EB"
-$path="HKLM:\Software\Policies\Microsoft\Windows NT\DiskQuota"
-$pathExist=Test-Path -Path $path -PathType Container
+$path="HKLM:\Software\Policies\Microsoft\Windows NT"
+
+$pathExist=Test-RegistryKeyValue -Path $path -Name "DiskQuota"
+
+$path=Join-Path -Path $path -ChildPath "DiskQuota"
 
 if ($pathExist)
 {
@@ -160,34 +164,60 @@ else
 return $quotaReport
 }
 Get-QuotaReport
-################################################ROZDZIAŁ 3####################TEST!
-function GetSoftwareReport
+################################################ROZDZIAŁ 3####################
+$softwareList = [ordered]@{
+    "7-Zip"             = "*Igor Pavlov*" 
+    "Adobe"             = "*Adobe*" 
+    "Notepad++"         = "*Notepad++ Team*" 
+    "Microsoft Edge"    = "*Microsoft*" 
+    "Java 8"            = "*Oracle*" 
+}
+
+function Get-SoftwareReport
 {
-    $paths = "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall", "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
+    [CmdletBinding()]
+    Param(
+    [Parameter(Mandatory=$true,HelpMessage="SoftwareList",Position=0)]
+    $softwareList
+    )
 
 
-#edge
-$edge=Get-ChildItem $paths[0] | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*Edge*") -and ($_.Publisher -like "*Microsoft*") }
-#adobe
-$adobe = Get-ChildItem $paths[0] | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*Adobe Acrobat Reader*") -and ($_.Publisher -like "*Adobe*") }
-#7-zip-blad
-$zip = Get-ChildItem $paths[1] | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*7-zip*") -and ($_.Publisher -like "*Igor Pavlov*") }
-#Java 8
-$java = Get-ChildItem $paths[0] | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*Java 8*") -and ($_.Publisher -like "*Oracle*") }
-#Notepad++
-$notepad = Get-ChildItem $paths[0] | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*Notepad++*") -and ($_.Publisher -like "*Notepad++ Team*") }
+    $programList = [ordered]@{}
 
-$programsList = [ordered]@{
-    "7-zip"             = $zip 
-    "Foxit Reader"      = $adobe 
-    "Notepad++"         = $notepad 
-    "Microsoft Edge"    = $edge 
-    "Java 8 Update 251" = $java 
+    $32bitPath = "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall" 
+    $64bitPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
+
+    foreach ($programName in $softwareList.Keys)
+    {
+        $32bitPathProgram=Join-Path -Path $32bitPath -ChildPath $programName
+        $64bitPathProgram=Join-Path -Path $64bitPath -ChildPath $programName
+
+        $32bitTest=Test-RegistryKeyValue -Path $32bitPathProgram -Name DisplayName
+        $64bitTest=Test-RegistryKeyValue -Path $64bitPathProgram -Name DisplayName
+    
+
+        if ($64bitTest) #Test 64bit
+        {
+            $programInfo=Get-ChildItem $64bitPath | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*$programName*") -and ($_.Publisher -like "*$($softwareList[$programName])*") }
+            $programList.Add($programName,$programInfo)
+        }
+        elseif ($32bitTest) #Test 32bit
+        {
+            $programInfo=Get-ChildItem $32bitPath | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation | Where-Object { ($_.DisplayName -like "*$programName*") -and ($_.Publisher -like "*$($softwareList[$programName])*") }
+            $programList.Add($programName,$programInfo)
+        }
+        else
+        {
+            $programList.Add($programName,"UNSET")
+        }
+    }
+
+    return $programList
+
+
 }
-return $programsList  
-}
 
-Get-SoftwareInformation
+Get-SoftwareReport -SoftwareList $softwareList
 ##############################ROZDZIAŁ 4######################################TEST!
 $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
