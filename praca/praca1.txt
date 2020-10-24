@@ -389,3 +389,48 @@ Param(
 }
 
 Prepare-Workplace -path "HKLM:\System" -folder TEST
+
+
+function Save-ToRegistry2Level
+{
+[CmdletBinding()]
+Param(
+    [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
+    [String]$pathToRegistry,
+    [Parameter(Mandatory=$true,HelpMessage="DataToSave",Position=1)]
+    [System.Collections.Specialized.OrderedDictionary]$hashtableData
+)
+
+
+foreach ($dataElement in $hashtableData.Keys) 
+{
+    $dataName = $hashtableData[$serviceElement]
+    $keyPath = Join-Path $pathToRegistry -ChildPath $dataElement
+    New-Item -Path $pathToRegistry -Name $dataElement -ItemType RegistryKey
+    
+    foreach ($property in $dataName.PSObject.Properties) 
+    {
+        New-ItemProperty -Path $keyPath -Name $property.Name -Value $property.Value -Force
+    }
+}
+}
+
+
+
+function Save-ToRegistry1Level
+{
+[CmdletBinding()]
+Param(
+    [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
+    [String]$pathToRegistry,
+    [Parameter(Mandatory=$true,HelpMessage="DataToSave",Position=1)]
+    [System.Collections.Specialized.OrderedDictionary]$hashtableData
+)
+
+    foreach ($element in $lama.Keys)
+    {
+        New-ItemProperty -Path "HKLM:\SYSTEM\TEST\NETWORK" -Name $element -Value $lama[$element] -Force
+    }
+}
+
+
