@@ -1,109 +1,13 @@
 ﻿
-1.	Podstawowe parametry sprzętowe
-	a.	Wielkość pamięci RAM wyrażona w GB
-	b.	Nazwa i typ procesora
-	c.	Pojemność dysku wyrażona w GB
-	d.	Karta graficzna wraz z pamięcią
-2.	Konfiguracje kwot dyskowych
-	a.	Przydział 10GB dla użytkownika
-3.	Zainstalowane programy:
-	a.	7zip
-	b.	Adobe Reader
-	c.	Notepad++
-	d.	Przeglądarkę np. Edge lub Chrome
-	e.	Java Update
-4.	Listę udziałów sieciowych dostępnych dla użytkownika
-	a.	Udział sieciowy departamentu do którego należy użytkownik
-	b.	Udział sieciowy użytkownika
-5.	Informacje o połączeniach sieciowych
-	a.	adres serwera DHCP
-	b.	adres serwera DNS
-	c.	Podstawowa adresacja sieciowa(Adres IPv4, Maska podsieci, brama domyślna)
-6.	Listę podłączonych drukarek użytkowników
-	a.	Czy użytkownik posiada podłączoną drukarkę inną niż domyślna Microsoft
-7.	Usługi systemowe – obecny stan, sposób startu
-	a.	Usługę Windows Update
-	b.	Usługę AppIdSvc
-	c.	Usługę Windows Defender
-	d.	Usługę Zapory Windows Defender
-	e.	Usługę Czasu systemu Windows
-8.	Ustawienia Zapory Windows Defender
-	a.	Stan zapory
-	b.	Rozmiar pliku dziennika
-9.	Ustawienia programu Antywirusowego Windows Defender
-	a.	Stan programu
-	b.	Wykrywanie potencjalnie niechcianych aplikacji
-	c.	Skanowanie dysków wymiennych
-	d.	Skanuj wszystkie pobierane pliki i załączniki
-	e.	Liczbę dni, po upływie której analizy zabezpieczeń dotyczące programów szpiegujących będą uznawane za nieaktualne
-	f.	Liczbę dni, po upływie których analiza zabezpieczeń dotycząca wirusów będzie uznawana za nieaktualną
-	g.	Monitorowanie zachowania
-10.	Ustawienia dziennika zdarzeń dla wszystkich zakresów monitorowania
-	a.	Mechanizm tworzenia kopii zapasowych
-	b.	Zachowanie dziennika po osiągnięciu maksymalnego rozmiaru
-	c.	Maksymalny rozmiar pliku dziennika
-
-
-Get-CimInstance Win32_LogicalDisk | where-Object { $_.DriveType -eq 3 } | Select @{Name = "VolumeName"; Expression = { $_.VolumeName } },
-@{Name = "Size"; Expression = { [Math]::Round( ($_.Size / 1073741824),2) } }, @{Name = "FreeSpace"; Expression = { [Math]::Round(  ($_.FreeSpace / 1073741824),2) }}
-
-
-#######################TECHNICZNE#######################################
+#######################TECHNICAL#######################################
 #REQIURES
-CARBON-Test-RegistryValue
-AD-Get-ADPrincipalGroupMembership
-SysInfo-Get-VideoControler
+#CARBON-Test-RegistryValue
+#AD-Get-ADPrincipalGroupMembership
+#SysInfo-Get-VideoControler
 
 
-#######################
-function Test-RegistryKeyValue
-{
-    <#
-    .SYNOPSIS
-    Tests if a registry value exists.
-    
-    .DESCRIPTION
-    The usual ways for checking if a registry value exists don't handle when a value simply has an empty or null value.  This function actually checks if a key has a value with a given name.
-    
-    .EXAMPLE
-    Test-CRegistryKeyValue -Path 'hklm:\Software\Carbon\Test' -Name 'Title'
-    
-    Returns `True` if `hklm:\Software\Carbon\Test` contains a value named 'Title'.  `False` otherwise.
-    #>
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory=$true)]
-        [string]
-        # The path to the registry key where the value should be set.  Will be created if it doesn't exist.
-        $Path,
-        
-        [Parameter(Mandatory=$true)]
-        [string]
-        # The name of the value being set.
-        $Name
-    )
+##########################FUNCTIONS###################################################
 
-    if( -not (Test-Path -Path $Path) )
-    {
-        return $false
-    }
-    
-    $properties = Get-ItemProperty -Path $Path 
-    if( -not $properties )
-    {
-        return $false
-    }
-    
-    $member = Get-Member -InputObject $properties -Name $Name
-    if( $member )
-    {
-        return $true
-    }
-    else
-    {
-        return $false
-    }
-}
 function ConvertTo-Hashtable($object)
 {
     $hashtable = [ordered]@{}
@@ -111,12 +15,12 @@ function ConvertTo-Hashtable($object)
     $hashtable
 }
 
+############################################################################
 
-#######################ROZDZIAŁ 1#######################################
-HARDWARE
 
 function Get-ComputerReport 
 {
+##requires SysInfo
     $computerReport = [ordered]@{
         "Disk"            = Get-DiskDrive | Select-Object Caption, @{Name = "Size"; Expression = { [Math]::Round(($_.Size / 1GB), 2), "GB" -join " " } }
         "Processor"       = Get-Processor | Select-Object Name, @{Name = "TDP"; Expression = { $_.MaxClockSpeed } }
@@ -127,10 +31,9 @@ function Get-ComputerReport
     return $computerReport
 }
 
-Get-ComputerReport
-#######################ROZDZIAŁ 2#######################################TEST!
 function Get-QuotaReport 
 {
+##requires Carbon
 $unitList ="KB", "MB", "GB", "TB", "PB", "EB"
 $path="HKLM:\Software\Policies\Microsoft\Windows NT"
 
@@ -163,8 +66,7 @@ else
 }
 return $quotaReport
 }
-Get-QuotaReport
-################################################ROZDZIAŁ 3####################
+
 $softwareList = [ordered]@{
     "7-Zip"             = "*Igor Pavlov*" 
     "Adobe"             = "*Adobe*" 
@@ -181,7 +83,7 @@ function Get-SoftwareReport
     $softwareList
     )
 
-
+##requires Carbon
     $programList = [ordered]@{}
 
     $32bitPath = "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall" 
@@ -217,13 +119,7 @@ function Get-SoftwareReport
 
 }
 
-Get-SoftwareReport -SoftwareList $softwareList
-##############################ROZDZIAŁ 4######################################TEST!
-$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
-
-$stopwatch.Stop()
-$stopwatch.Elapsed
 function Get-FilesReport
 {
 [CmdletBinding()]
@@ -235,6 +131,8 @@ Param(
     [Parameter(Mandatory=$true,HelpMessage="Department",Position=2)]
     [String]$departmentName
 )
+
+##requires NTFSSecurity
 
 $filesReport = [ordered]@{
 }
@@ -277,17 +175,6 @@ return $filesReport
 
 }
 
-$user="DOMENA\jnowak"
-$groupName="DOMENA\Pracownicy_DP"
-$departmentPath="\\SERVER\DP"
-
-
-
-Get-FilesReport -UserName $user -GroupName $groupName -DepartmentName $departmentPath
-$stopwatch.Stop()
-$stopwatch.Elapsed
-
-#############################ROZDZIAŁ 5#######################################TEST W PRACY!
 
 
 function Get-NetworkInformation
@@ -317,10 +204,6 @@ function Get-NetworkInformation
 
     return $network
 }
-Get-NetworkInformation
-
-#############################ROZDZIAŁ 6#########################################DONE!
-#Sprawdzic w pracy
 function Get-PrintReport
 {
     $printer=Get-Printer | Where-Object {(($_.PortName -like "*USB*") -or ($_.PortName -like "192.168.*.*")) -and ($_.DeviceType -eq "Print")} | Select Name,Type,DriverName,PortName,Shared,Published
@@ -331,7 +214,8 @@ function Get-PrintReport
     }
     return $printReport
 }
-############################ROZDZIAŁ 7##########################################DONE!
+
+
 function Get-ServiceReport 
 {
     $services = Get-Service wuauserv, AppIDSvc, WinDefend, mpssvc, W32Time | Select-Object Name, Status, StartType 
@@ -345,8 +229,6 @@ function Get-ServiceReport
     return $serviceReport
 }
 
-Get-ServiceReport
-###############################ROZDZIAŁ 8#####################################DONE!
 function Get-FirewallReport 
 {
     $firewallReportArray=(Get-NetFirewallProfile -PolicyStore ActiveStore | Select-Object Name, Enabled, @{label = "LogFilePath"; expression = { $_.LogFileName } }, @{label = "LogSize"; expression = { $_.LogMaxSizeKilobytes } })
@@ -359,8 +241,6 @@ function Get-FirewallReport
 }
 
 
-Get-FirewallReport
-###############################ROZDZIAŁ 9######################################TEST!
 function Get-DefenderReport
 {
 
@@ -436,10 +316,6 @@ function Get-DefenderReport
 
 
 
-Get-DefenderReport
-
-##########################################ROZDZIAŁ 10######################DONE!
-
 function New-LogReport 
 {
     $applicationLogResult = Get-WinEvent -ListLog Application | Select-Object LogName, @{label = "MaximumSizeInBytes"; expression = { $_.MaximumSizeInBytes / 1024 } }, LogMode, @{label = "Retention"; expression = { Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Application | Select -ExpandProperty Retention } }
@@ -457,7 +333,41 @@ function New-LogReport
     return $logReport
 }
 
-(New-LogReport).Setup
+########################################################################
+########################################################################
+##                                                                    ##
+##                          Examples                                  ## 
+##                                                                    ##
+########################################################################
+########################################################################
 
 
-###########################################
+#Get-ComputerReport
+#Get-QuotaReport
+
+<#
+$softwareList = [ordered]@{
+    "7-Zip"             = "*Igor Pavlov*" 
+    "Adobe"             = "*Adobe*" 
+    "Notepad++"         = "*Notepad++ Team*" 
+    "Microsoft Edge"    = "*Microsoft*" 
+    "Java 8"            = "*Oracle*" 
+}
+#>
+#Get-SoftwareReport -softwareList $softwareList
+<#
+$user="DOMENA\jnowak"
+$groupName="DOMENA\Pracownicy_DP"
+$departmentPath="\\SERVER\DP"
+Get-FilesReport -userName $user -groupName $groupName -departmentName $departmentPath
+#>
+
+#Get-NetworkInformation
+
+#Get-PrintReport
+
+#Get-ServiceReport
+
+#Get-FirewallReport
+#New-LogReport
+########################################################################
