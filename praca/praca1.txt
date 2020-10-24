@@ -471,5 +471,24 @@ $softwareList = [ordered]@{
 #$lama=New-LogReport
 #Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\LOG" -hashtableData $lama
 
+###########################
+"HKLM:\SYSTEM\TEST\NETWORK"
+function Get-RegistryLevel1Data
+{
+[CmdletBinding()]
+Param(
+    [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
+    [String]$pathToRegistry
+)
 
+$networkReportRegistry=[ordered]@{}
+
+$registryData=Get-ItemProperty -Path $pathToRegistry
+$registryData.PSObject.Properties | Where-Object {$_.Name -NotLike "PS*"} | ForEach-Object { $networkReportRegistry.Add($_.Name,$_.Value)}
+
+return $networkReportRegistry
+
+}
+
+Get-RegistryLevel1Data -pathToRegistry "HKLM:\SYSTEM\TEST\NETWORK"
 
