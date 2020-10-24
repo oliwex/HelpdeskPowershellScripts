@@ -370,7 +370,7 @@ Param(
     }
 }
 
-Prepare-Workplace -path "HKLM:\System" -folder TEST
+#Prepare-Workplace -path "HKLM:\System" -folder TEST
 
 
 function Save-ToRegistry2Level
@@ -380,13 +380,13 @@ Param(
     [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
     [String]$pathToRegistry,
     [Parameter(Mandatory=$true,HelpMessage="DataToSave",Position=1)]
-    [System.Collections.Specialized.OrderedDictionary]$hashtableData
+    $hashtableData
 )
 
 
 foreach ($dataElement in $hashtableData.Keys) 
 {
-    $dataName = $hashtableData[$serviceElement]
+    $dataName = $hashtableData[$dataElement]
     $keyPath = Join-Path $pathToRegistry -ChildPath $dataElement
     New-Item -Path $pathToRegistry -Name $dataElement -ItemType RegistryKey
     
@@ -406,27 +406,27 @@ Param(
     [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
     [String]$pathToRegistry,
     [Parameter(Mandatory=$true,HelpMessage="DataToSave",Position=1)]
-    [System.Collections.Specialized.OrderedDictionary]$hashtableData
+    $hashtableData
 )
 
     foreach ($element in $lama.Keys)
     {
-        New-ItemProperty -Path "HKLM:\SYSTEM\TEST\NETWORK" -Name $element -Value $lama[$element] -Force
+        New-ItemProperty -Path $pathToRegistry -Name $element -Value $lama[$element] -Force
     }
 }
 ##############################MAIN#######################
-Prepare-Workplace -path "HKLM:\System" -folder TEST
+
+#Prepare-Workplace -path "HKLM:\System" -folder TEST
 
 
 
-$lama=Get-ComputerReport
-Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\HARDWARE" -hashtableData $lama
+#$lama=Get-ComputerReport
+#Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\HARDWARE" -hashtableData $lama
 
 
-$lama=Get-QuotaReport
-Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\HARDWARE" -hashtableData $lama
+#$lama=Get-QuotaReport
+#Save-ToRegistry1Level -pathToRegistry "HKLM:\SYSTEM\TEST\QUOTA" -hashtableData $lama
 
-#Get-QuotaReport
 
 <#
 $softwareList = [ordered]@{
@@ -436,23 +436,40 @@ $softwareList = [ordered]@{
     "Microsoft Edge"    = "*Microsoft*" 
     "Java 8"            = "*Oracle*" 
 }
-#>
-#Get-SoftwareReport -softwareList $softwareList
-<#
-$user="DOMENA\jnowak"
-$groupName="DOMENA\Pracownicy_DP"
-$departmentPath="\\SERVER\DP"
-Get-FilesReport -userName $user -groupName $groupName -departmentName $departmentPath
+
+#$lama=Get-SoftwareReport -softwareList $softwareList
+#Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\SOFTWARE" -hashtableData $lama
 #>
 
-#Get-NetworkInformation
 
-#Get-PrintReport
 
-#Get-ServiceReport
+#$user="DOMENA\jnowak"
+#$groupName="DOMENA\Pracownicy_DP"
+#$departmentPath="\\SERVER\DP"
 
-#Get-FirewallReport
-#New-LogReport
+#$lama=Get-FilesReport -userName $user -groupName $groupName -departmentName $departmentPath
+#Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\FILESHARE" -hashtableData $lama
+
+
+
+#$lama=Get-NetworkInformation
+#Save-ToRegistry1Level -pathToRegistry "HKLM:\SYSTEM\TEST\NETWORK" -hashtableData $lama
+
+
+#$lama=Get-PrintReport
+#Save-ToRegistry1Level -pathToRegistry "HKLM:\SYSTEM\TEST\PRINTER" -hashtableData $lama
+
+
+#$lama=Get-ServiceReport
+#Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\SERVICE" -hashtableData $lama
+
+
+#$lama=Get-FirewallReport
+#Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\FIREWALL" -hashtableData $lama
+
+
+#$lama=New-LogReport
+#Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\LOG" -hashtableData $lama
 
 
 
