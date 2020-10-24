@@ -17,7 +17,6 @@ function ConvertTo-Hashtable($object)
 
 ############################################################################
 
-
 function Get-ComputerReport 
 {
 ##requires SysInfo
@@ -100,7 +99,7 @@ function Get-SoftwareReport
 
         if ($64bitTest) #Test 64bit
         {
-            $programInfo=Get-ChildItem $64bitPath | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation, EstimatedSizeMB | Where-Object { ($_.DisplayName -like "*$programName*") -and ($_.Publisher -like "*$($softwareList[$programName])*") }
+            $programInfo=Get-ChildItem $64bitPath | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation| Where-Object { ($_.DisplayName -like "*$programName*") -and ($_.Publisher -like "*$($softwareList[$programName])*") }
             $programList.Add($programName,$programInfo)
         }
         elseif ($32bitTest) #Test 32bit
