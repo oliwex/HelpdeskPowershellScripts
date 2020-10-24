@@ -370,3 +370,22 @@ Get-FilesReport -userName $user -groupName $groupName -departmentName $departmen
 #Get-FirewallReport
 #New-LogReport
 ########################################################################
+
+function Prepare-Workplace
+{
+[CmdletBinding()]
+Param(
+    [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
+    [String]$path,
+    [Parameter(Mandatory=$true,HelpMessage="GroupName",Position=1)]
+    [String]$folder
+)
+
+    New-Item –Path $path –Name $folder -ItemType RegistryKey
+
+    "HARDWARE","QUOTA","SOFTWARE","FILESHARE","NETWORK","PRINTER","SERVICE","FIREWALL","LOG" | foreach-Object {
+    New-Item –Path "HKLM:\System\TEST" –Name $_ -ItemType RegistryKey
+    }
+}
+
+Prepare-Workplace -path "HKLM:\System" -folder TEST
