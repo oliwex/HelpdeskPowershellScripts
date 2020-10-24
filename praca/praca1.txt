@@ -1,22 +1,4 @@
 ﻿
-#######################TECHNICAL#######################################
-#REQIURES
-#CARBON-Test-RegistryValue
-#AD-Get-ADPrincipalGroupMembership
-#SysInfo-Get-VideoControler
-
-
-##########################FUNCTIONS###################################################
-
-function ConvertTo-Hashtable($object)
-{
-    $hashtable = [ordered]@{}
-    $object.psobject.properties | Foreach { $hashtable[$_.Name] = $_.Value }
-    $hashtable
-}
-
-############################################################################
-
 function Get-ComputerReport 
 {
 ##requires SysInfo
@@ -432,5 +414,45 @@ Param(
         New-ItemProperty -Path "HKLM:\SYSTEM\TEST\NETWORK" -Name $element -Value $lama[$element] -Force
     }
 }
+##############################MAIN#######################
+Prepare-Workplace -path "HKLM:\System" -folder TEST
+
+
+
+$lama=Get-ComputerReport
+Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\HARDWARE" -hashtableData $lama
+
+
+$lama=Get-QuotaReport
+Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\HARDWARE" -hashtableData $lama
+
+#Get-QuotaReport
+
+<#
+$softwareList = [ordered]@{
+    "7-Zip"             = "*Igor Pavlov*" 
+    "Adobe"             = "*Adobe*" 
+    "Notepad++"         = "*Notepad++ Team*" 
+    "Microsoft Edge"    = "*Microsoft*" 
+    "Java 8"            = "*Oracle*" 
+}
+#>
+#Get-SoftwareReport -softwareList $softwareList
+<#
+$user="DOMENA\jnowak"
+$groupName="DOMENA\Pracownicy_DP"
+$departmentPath="\\SERVER\DP"
+Get-FilesReport -userName $user -groupName $groupName -departmentName $departmentPath
+#>
+
+#Get-NetworkInformation
+
+#Get-PrintReport
+
+#Get-ServiceReport
+
+#Get-FirewallReport
+#New-LogReport
+
 
 
