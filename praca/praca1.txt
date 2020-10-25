@@ -516,3 +516,56 @@ Param(
 }
 
 Get-RegistryLevel2Data -pathToRegistry "HKLM:\SYSTEM\TEST\FILESHARE"
+
+
+
+
+
+#Define Objects
+$filewatcherObject = New-Object System.IO.FileSystemWatcher
+$filewatcherObject.Path = "A:\TEST"
+$filewatcherObject.Filter = "*.*"
+$filewatcherObject.IncludeSubdirectories = $true
+$filewatcherObject.EnableRaisingEvents = $true  
+ 
+# Define Actions
+$created = { 
+
+                $date=$(Get-Date -UFormat "%d.%m.%Y %T")
+                $logline = "[$date] -> Utworzono"
+                $filePath ="A:\report.txt"
+                Add-Content -Value $logline -Path $filePath
+              }
+$changed = { 
+
+                $date=$(Get-Date -UFormat "%d.%m.%Y %T")
+                $logline = "[$date] -> Zmieniono"
+                $filePath ="A:\report.txt"
+                Add-Content -Value $logline -Path $filePath
+              }
+$deleted = { 
+
+                $date=$(Get-Date -UFormat "%d.%m.%Y %T")
+                $logline = "[$date] -> Skasowano"
+                $filePath ="A:\report.txt"
+                Add-Content -Value $logline -Path $filePath
+              }
+$renamed = { 
+
+                $date=$(Get-Date -UFormat "%d.%m.%Y %T")
+                $logline = "[$date] -> Zmiana nazwy"
+                $filePath ="A:\report.txt"
+                Add-Content -Value $logline -Path $filePath
+              }    
+
+ 
+#Register Events
+Register-ObjectEvent $filewatcherObject "Created" -Action $created
+Register-ObjectEvent $filewatcherObject "Changed" -Action $changed
+Register-ObjectEvent $filewatcherObject "Deleted" -Action $deleted
+Register-ObjectEvent $filewatcherObject "Renamed" -Action $renamed
+while ($true) {sleep 5}
+
+
+# To stop the monitoring, run the following commands: 
+# Unregister-Event -SourceIdentifier *
