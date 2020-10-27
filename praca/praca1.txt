@@ -1,4 +1,61 @@
-﻿
+﻿###########################VARIABLES###################################
+$monitoredOU="KOMPUTERY"
+
+
+
+########################################################################
+
+#Current State
+$gpoLast=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object DisplayName,Id,CreationTime,ModificationTime
+
+while($true)
+{
+    Read-Host "Change GPO: "
+    
+    #Get data after change
+    $gpoCurrent=Get-ADOrganizationalUnit -Filter {name -eq "KOMPUTERY"} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object DisplayName,Id,CreationTime,ModificationTime
+    
+    #Testing variables
+    $testLast=[string]::IsNullOrEmpty($gpoLast)
+    $testCurrent=[string]::IsNullOrEmpty($gpoCurrent)
+
+    if ((-not($testLast)) -and (-not($testCurrent))) # 11
+    {
+        $time=Compare-Object -ReferenceObject $gpoLast.ModificationTime -DifferenceObject $gpoCurrent.ModificationTime
+        $testTime=[string]::IsNullOrEmpty($time)
+        
+        if (-not($testTime))
+        {
+            "Oba są pełne ale się różnią datą modyfikacji-invoke"
+        }
+        else
+        {
+            "Oba się pełne i są takie same"
+        }
+
+    }
+    if ((-not($testLast)) -and $testCurrent) # 10
+    {
+        "zmienila sie licznosc -invoke"
+    }
+    if ($testLast -and (-not($testCurrent))) # 01
+    {
+        "zmieniła się licznosc - invoke"
+    }
+    if ($testLast -and $testCurrent) # 00
+    {
+        "Obie są puste - bez zmian"
+    }
+
+    $gpoLast=$gpoCurrent 
+    Start-Sleep -Seconds 5
+}
+
+
+
+
+
+###########################################################################3
 function Get-ComputerReport 
 {
 ##requires SysInfo
