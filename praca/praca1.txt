@@ -1,61 +1,5 @@
-﻿###########################VARIABLES###################################
-$monitoredOU="KOMPUTERY"
+﻿############################FUNCTIONS####################################
 
-
-
-########################################################################
-
-#Current State
-$gpoLast=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object DisplayName,Id,CreationTime,ModificationTime
-
-while($true)
-{
-    Read-Host "Change GPO: "
-    
-    #Get data after change
-    $gpoCurrent=Get-ADOrganizationalUnit -Filter {name -eq "KOMPUTERY"} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object DisplayName,Id,CreationTime,ModificationTime
-    
-    #Testing variables
-    $testLast=[string]::IsNullOrEmpty($gpoLast)
-    $testCurrent=[string]::IsNullOrEmpty($gpoCurrent)
-
-    if ((-not($testLast)) -and (-not($testCurrent))) # 11
-    {
-        $time=Compare-Object -ReferenceObject $gpoLast.ModificationTime -DifferenceObject $gpoCurrent.ModificationTime
-        $testTime=[string]::IsNullOrEmpty($time)
-        
-        if (-not($testTime))
-        {
-            "Oba są pełne ale się różnią datą modyfikacji-invoke"
-        }
-        else
-        {
-            "Oba się pełne i są takie same"
-        }
-
-    }
-    if ((-not($testLast)) -and $testCurrent) # 10
-    {
-        "zmienila sie licznosc -invoke"
-    }
-    if ($testLast -and (-not($testCurrent))) # 01
-    {
-        "zmieniła się licznosc - invoke"
-    }
-    if ($testLast -and $testCurrent) # 00
-    {
-        "Obie są puste - bez zmian"
-    }
-
-    $gpoLast=$gpoCurrent 
-    Start-Sleep -Seconds 5
-}
-
-
-
-
-
-###########################################################################3
 function Get-ComputerReport 
 {
 ##requires SysInfo
@@ -68,50 +12,45 @@ function Get-ComputerReport
 
     return $computerReport
 }
+#Get-ComputerReport
+
 
 function Get-QuotaReport 
 {
-##requires Carbon
-$unitList ="KB", "MB", "GB", "TB", "PB", "EB"
-$path="HKLM:\Software\Policies\Microsoft\Windows NT"
+    ##requires Carbon
+    $unitList ="KB", "MB", "GB", "TB", "PB", "EB"
+    $path="HKLM:\Software\Policies\Microsoft\Windows NT"
 
-$pathExist=Test-RegistryKeyValue -Path $path -Name "DiskQuota"
+    $pathExist=Test-RegistryKeyValue -Path $path -Name "DiskQuota"
 
-$path=Join-Path -Path $path -ChildPath "DiskQuota"
+    $path=Join-Path -Path $path -ChildPath "DiskQuota"
 
-if ($pathExist)
-{
-    $quotaReport = Get-ItemProperty -Path $path | Select-Object Enable, Enforce, Limit, LimitUnits, Threshold, ThresholdUnits
-    $quotaReport = [ordered]@{
-        "enable"         = $quotaReport.Enable
-        "enforce"        = $quotaReport.Enforce 
-        "limit"          = $quotaReport.Limit 
-        "LimitUnits"     = $unitList[$quotaReport.LimitUnits - 1] 
-        "Threshold"      = $quotaReport.Threshold
-        "ThresholdUnits" = $unitList[$quotaReport.ThresholdUnits - 1] 
+    if ($pathExist)
+    {
+        $quotaReport = Get-ItemProperty -Path $path | Select-Object Enable, Enforce, Limit, LimitUnits, Threshold, ThresholdUnits
+        $quotaReport = [ordered]@{
+            "enable"         = $quotaReport.Enable
+            "enforce"        = $quotaReport.Enforce 
+            "limit"          = $quotaReport.Limit 
+            "LimitUnits"     = $unitList[$quotaReport.LimitUnits - 1] 
+            "Threshold"      = $quotaReport.Threshold
+            "ThresholdUnits" = $unitList[$quotaReport.ThresholdUnits - 1] 
+        }
     }
-}
-else 
-{
-    $quotaReport = [ordered]@{
-        "enable"         ="UNSET" 
-        "enforce"        ="UNSET" 
-        "limit"          ="UNSET" 
-        "LimitUnits"     ="UNSET" 
-        "Threshold"      ="UNSET"
-        "ThresholdUnits" = "UNSET"
+    else 
+    {
+        $quotaReport = [ordered]@{
+            "enable"         ="UNSET" 
+            "enforce"        ="UNSET" 
+            "limit"          ="UNSET" 
+            "LimitUnits"     ="UNSET" 
+            "Threshold"      ="UNSET"
+            "ThresholdUnits" = "UNSET"
+        }
     }
+    return $quotaReport
 }
-return $quotaReport
-}
-
-$softwareList = [ordered]@{
-    "7-Zip"             = "*Igor Pavlov*" 
-    "Adobe"             = "*Adobe*" 
-    "Notepad++"         = "*Notepad++ Team*" 
-    "Microsoft Edge"    = "*Microsoft*" 
-    "Java 8"            = "*Oracle*" 
-}
+#Get-QuotaReport
 
 function Get-SoftwareReport
 {
@@ -121,7 +60,7 @@ function Get-SoftwareReport
     $softwareList
     )
 
-##requires Carbon
+    ##requires Carbon
     $programList = [ordered]@{}
 
     $32bitPath = "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall" 
@@ -153,66 +92,60 @@ function Get-SoftwareReport
     }
 
     return $programList
-
-
 }
-
+#Get-SoftwareReport -softwareList $softwareList
 
 function Get-FilesReport
 {
-[CmdletBinding()]
-Param(
-    [Parameter(Mandatory=$true,HelpMessage="UserName.",Position=0)]
-    [String]$userName,
-    [Parameter(Mandatory=$true,HelpMessage="GroupName",Position=1)]
-    [String]$groupName,
-    [Parameter(Mandatory=$true,HelpMessage="Department",Position=2)]
-    [String]$departmentName
-)
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,HelpMessage="UserName.",Position=0)]
+        [String]$userName,
+        [Parameter(Mandatory=$true,HelpMessage="GroupName",Position=1)]
+        [String]$groupName,
+        [Parameter(Mandatory=$true,HelpMessage="Department",Position=2)]
+        [String]$departmentName
+    )
 
-##requires NTFSSecurity
+    ##requires NTFSSecurity
 
-$filesReport = [ordered]@{
-}
+    $filesReport = [ordered]@{}
 
-if (Test-Path -Path $departmentPath -PathType Container)
-{
-    $userAccessDepartmentFolder=Get-Item -Path $departmentPath | Get-NTFSEffectiveAccess -Account $userName | select Account, AccessRights, FullName
-    $filesReport.Add("DepartmentFolderUserAccess", $userAccessDepartmentFolder)
-
-
-    $groupAccessDepartmentFolder=Get-Item -Path $departmentPath | Get-NTFSEffectiveAccess -Account $groupName |select Account, AccessRights, FullName
-    $filesReport.Add("DepartmentFolderGroupAccess",$groupAccessDepartmentFolder)
-    
-    $userPath=Join-Path -Path $departmentPath -ChildPath $userName.Substring($userName.IndexOf("\")+1)
-    if (Test-Path -Path $userPath -PathType Container)
+    if (Test-Path -Path $departmentPath -PathType Container)
     {
-        $userAccessUserFolder=Get-Item -Path $userPath | Get-NTFSEffectiveAccess -Account $userName | select Account, AccessRights, FullName
-        $filesReport.Add("UserFolderUserAccess",$userAccessUserFolder)
+        $userAccessDepartmentFolder=Get-Item -Path $departmentPath | Get-NTFSEffectiveAccess -Account $userName | select Account, AccessRights, FullName
+        $filesReport.Add("DepartmentFolderUserAccess", $userAccessDepartmentFolder)
 
-        $groupAccessUserfolder=Get-Item -Path $userPath | Get-NTFSEffectiveAccess -Account $groupName |select Account, AccessRights, FullName
-        $filesReport.Add("UserFolderGroupAccess",$groupAccessUserfolder)
+
+        $groupAccessDepartmentFolder=Get-Item -Path $departmentPath | Get-NTFSEffectiveAccess -Account $groupName |select Account, AccessRights, FullName
+        $filesReport.Add("DepartmentFolderGroupAccess",$groupAccessDepartmentFolder)
+    
+        $userPath=Join-Path -Path $departmentPath -ChildPath $userName.Substring($userName.IndexOf("\")+1)
+        if (Test-Path -Path $userPath -PathType Container)
+        {
+            $userAccessUserFolder=Get-Item -Path $userPath | Get-NTFSEffectiveAccess -Account $userName | select Account, AccessRights, FullName
+            $filesReport.Add("UserFolderUserAccess",$userAccessUserFolder)
+
+            $groupAccessUserfolder=Get-Item -Path $userPath | Get-NTFSEffectiveAccess -Account $groupName |select Account, AccessRights, FullName
+            $filesReport.Add("UserFolderGroupAccess",$groupAccessUserfolder)
+        }
+        else
+        {
+            $filesReport.Add("UserFolderUserAccess","UNSET")
+            $filesReport.Add("UserFolderGroupAccess","UNSET")
+        }
     }
     else
     {
+        $filesReport.Add("DepartmentFolderUserAccess", "UNSET")
+        $filesReport.Add("DepartmentFolderGroupAccess","UNSET")
         $filesReport.Add("UserFolderUserAccess","UNSET")
         $filesReport.Add("UserFolderGroupAccess","UNSET")
     }
+
+    return $filesReport
 }
-else
-{
-    $filesReport.Add("DepartmentFolderUserAccess", "UNSET")
-    $filesReport.Add("DepartmentFolderGroupAccess","UNSET")
-    $filesReport.Add("UserFolderUserAccess","UNSET")
-    $filesReport.Add("UserFolderGroupAccess","UNSET")
-}
-
-
-
-return $filesReport
-
-}
-
+#Get-FilesReport -userName $user -groupName $groupName -departmentName $departmentPath
 
 
 function Get-NetworkInformation
@@ -242,6 +175,8 @@ function Get-NetworkInformation
 
     return $network
 }
+#Get-NetworkInformation
+
 function Get-PrintReport
 {
     $printer=Get-Printer | Where-Object {(($_.PortName -like "*USB*") -or ($_.PortName -like "192.168.*.*")) -and ($_.DeviceType -eq "Print")} | Select Name,Type,DriverName,PortName,Shared,Published
@@ -252,7 +187,7 @@ function Get-PrintReport
     }
     return $printReport
 }
-
+#Get-PrintReport
 
 function Get-ServiceReport 
 {
@@ -266,6 +201,7 @@ function Get-ServiceReport
     }
     return $serviceReport
 }
+#Get-ServiceReport
 
 function Get-FirewallReport 
 {
@@ -277,11 +213,10 @@ function Get-FirewallReport
     }
     return $firewallReport
 }
-
+#Get-FirewallReport
 
 function Get-DefenderReport
 {
-
     $paths="HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Signature Updates","HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender"
 
     $defenderReport = [ordered]@{
@@ -352,9 +287,9 @@ function Get-DefenderReport
     return $defenderReport
 }
 
+#Get-DefenderReport
 
-
-function New-LogReport 
+function Get-LogReport 
 {
     $applicationLogResult = Get-WinEvent -ListLog Application | Select-Object LogName, @{label = "MaximumSizeInBytes"; expression = { $_.MaximumSizeInBytes / 1024 } }, LogMode, @{label = "Retention"; expression = { Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Application | Select -ExpandProperty Retention } }
     $setupLogResult = Get-WinEvent -ListLog Setup | Select-Object LogName, @{label = "MaximumSizeInBytes"; expression = { $_.MaximumSizeInBytes / 1024 } }, LogMode, @{label = "Retention"; expression = { Get-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Setup | Select -ExpandProperty Retention } }
@@ -370,45 +305,34 @@ function New-LogReport
 
     return $logReport
 }
+#Get-LogReport
+###########################TOOL FUNCTIONS##############################
+function Check-ModulesExistence
+{
 
-########################################################################
-########################################################################
-##                                                                    ##
-##                          Examples                                  ## 
-##                                                                    ##
-########################################################################
-########################################################################
+    $moduleList=Get-Module -Name Carbon,NTFSSecurity,SysInfo | Select -ExpandProperty Name
 
+    $isCarbonExist=$moduleList.Contains("Carbon")
+    $isNTFSSecExist=$moduleList.Contains("NTFSSecurity")
+    $isSysInfoExist=$moduleList.Contains("SysInfo")
 
-#Get-ComputerReport
-#Get-QuotaReport
+    if (-not($isCarbonExist -and $isNTFSSecExist -AND $isSysInfoExist))
+    {
+        Install-Module -Name Carbon,NTFSSecurity,SysInfo -AllowClobber -Force
+    }
 
-<#
-$softwareList = [ordered]@{
-    "7-Zip"             = "*Igor Pavlov*" 
-    "Adobe"             = "*Adobe*" 
-    "Notepad++"         = "*Notepad++ Team*" 
-    "Microsoft Edge"    = "*Microsoft*" 
-    "Java 8"            = "*Oracle*" 
+    $moduleList=Get-InstalledModule -Name Carbon,NTFSSecurity,SysInfo | Select -ExpandProperty Name
+
+    $isCarbonExist=$moduleList.Contains("Carbon")
+    $isNTFSSecExist=$moduleList.Contains("NTFSSecurity")
+    $isSysInfoExist=$moduleList.Contains("SysInfo")
+
+    if (-not($isCarbonExist -and $isNTFSSecExist -AND $isSysInfoExist))
+    {
+        Import-Module -Name Carbon,NTFSSecurity,SysInfo
+    }
 }
-#>
-#Get-SoftwareReport -softwareList $softwareList
-<#
-$user="DOMENA\jnowak"
-$groupName="DOMENA\Pracownicy_DP"
-$departmentPath="\\SERVER\DP"
-Get-FilesReport -userName $user -groupName $groupName -departmentName $departmentPath
-#>
 
-#Get-NetworkInformation
-
-#Get-PrintReport
-
-#Get-ServiceReport
-
-#Get-FirewallReport
-#New-LogReport
-########################################################################
 
 function Prepare-Workplace
 {
@@ -432,28 +356,28 @@ Param(
 
 function Save-ToRegistry2Level
 {
-[CmdletBinding()]
-Param(
-    [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
-    [String]$pathToRegistry,
-    [Parameter(Mandatory=$true,HelpMessage="DataToSave",Position=1)]
-    $hashtableData
-)
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
+        [String]$pathToRegistry,
+        [Parameter(Mandatory=$true,HelpMessage="DataToSave",Position=1)]
+        $hashtableData
+    )
 
-
-foreach ($dataElement in $hashtableData.Keys) 
-{
-    $dataName = $hashtableData[$dataElement]
-    $keyPath = Join-Path $pathToRegistry -ChildPath $dataElement
-    New-Item -Path $pathToRegistry -Name $dataElement -ItemType RegistryKey
-    
-    foreach ($property in $dataName.PSObject.Properties) 
+    foreach ($dataElement in $hashtableData.Keys) 
     {
-        New-ItemProperty -Path $keyPath -Name $property.Name -Value $property.Value -Force
-    }
+        $dataName = $hashtableData[$dataElement]
+        $keyPath = Join-Path $pathToRegistry -ChildPath $dataElement
+        New-Item -Path $pathToRegistry -Name $dataElement -ItemType RegistryKey
+    
+        foreach ($property in $dataName.PSObject.Properties) 
+        {
+            New-ItemProperty -Path $keyPath -Name $property.Name -Value $property.Value -Force
+        }
+    }
 }
-}
-
+#$lama=Get-ComputerReport
+#Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\HARDWARE" -hashtableData $lama
 
 
 function Save-ToRegistry1Level
@@ -471,7 +395,85 @@ Param(
         New-ItemProperty -Path $pathToRegistry -Name $element -Value $lama[$element] -Force
     }
 }
-##############################MAIN#######################
+#$lama=Get-QuotaReport
+#Save-ToRegistry1Level -pathToRegistry "HKLM:\SYSTEM\TEST\QUOTA" -hashtableData $lama
+
+
+###########################VARIABLES###################################
+$monitoredOU="KOMPUTERY"
+$computerList=(Get-ADComputer -Filter * -SearchBase 'OU=KOMPUTERY, DC=domena, DC=local').Name
+$isConnected=Test-Connection -ComputerName $computerList -Quiet -Count 10
+
+###########################FOR FUNCTIONS###############################
+$softwareList = [ordered]@{
+    "7-Zip"             = "*Igor Pavlov*" 
+    "Adobe"             = "*Adobe*" 
+    "Notepad++"         = "*Notepad++ Team*" 
+    "Microsoft Edge"    = "*Microsoft*" 
+    "Java 8"            = "*Oracle*" 
+}
+
+$user="DOMENA\jnowak"
+$groupName="DOMENA\Pracownicy_DP"
+$departmentPath="\\SERVER\DP"
+
+########################################################################
+########################################################################
+##                                                                    ##
+##                             MAIN                                   ##
+##                                                                    ##
+########################################################################
+########################################################################
+
+#Current State
+$gpoLast=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
+
+while($true)
+{
+    Read-Host "Change GPO: "
+    
+    #Get data after change
+    $gpoCurrent=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
+    
+    #Testing variables
+    $isLastExist=[string]::IsNullOrEmpty($gpoLast)
+    $isCurrentExist=[string]::IsNullOrEmpty($gpoCurrent)
+
+    if ((-not($isLastExist)) -and (-not($isCurrentExist))) # 11
+    {
+        $isTimeDifference=Compare-Object -ReferenceObject $gpoLast.ModificationTime -DifferenceObject $gpoCurrent.ModificationTime
+        $isTimeExist=[string]::IsNullOrEmpty($isTimeDifference)
+        
+        if (-not($isTimeExist))
+        {
+            "Oba są pełne ale się różnią datą modyfikacji-invoke"
+        }
+        else
+        {
+            "Oba się pełne i są takie same"
+        }
+
+    }
+    if ((-not($isLastExist)) -and $isCurrentExist) # 10
+    {
+        "zmienila sie licznosc -invoke"
+    }
+    if ($isLastExist -and (-not($isCurrentExist))) # 01
+    {
+        "zmieniła się licznosc - invoke"
+    }
+    if ($isLastExist -and $isCurrentExist) # 00
+    {
+        "Obie są puste - bez zmian"
+    }
+
+    $gpoLast=$gpoCurrent 
+    Start-Sleep -Seconds 5
+}
+
+#############################################################
+
+###VERSION ALPHA
 
 #Prepare-Workplace -path "HKLM:\System" -folder TEST
 
@@ -573,56 +575,3 @@ Param(
 }
 
 Get-RegistryLevel2Data -pathToRegistry "HKLM:\SYSTEM\TEST\FILESHARE"
-
-
-
-
-
-#Define Objects
-$filewatcherObject = New-Object System.IO.FileSystemWatcher
-$filewatcherObject.Path = "A:\TEST"
-$filewatcherObject.Filter = "*.*"
-$filewatcherObject.IncludeSubdirectories = $true
-$filewatcherObject.EnableRaisingEvents = $true  
- 
-# Define Actions
-$created = { 
-
-                $date=$(Get-Date -UFormat "%d.%m.%Y %T")
-                $logline = "[$date] -> Utworzono"
-                $filePath ="A:\report.txt"
-                Add-Content -Value $logline -Path $filePath
-              }
-$changed = { 
-
-                $date=$(Get-Date -UFormat "%d.%m.%Y %T")
-                $logline = "[$date] -> Zmieniono"
-                $filePath ="A:\report.txt"
-                Add-Content -Value $logline -Path $filePath
-              }
-$deleted = { 
-
-                $date=$(Get-Date -UFormat "%d.%m.%Y %T")
-                $logline = "[$date] -> Skasowano"
-                $filePath ="A:\report.txt"
-                Add-Content -Value $logline -Path $filePath
-              }
-$renamed = { 
-
-                $date=$(Get-Date -UFormat "%d.%m.%Y %T")
-                $logline = "[$date] -> Zmiana nazwy"
-                $filePath ="A:\report.txt"
-                Add-Content -Value $logline -Path $filePath
-              }    
-
- 
-#Register Events
-Register-ObjectEvent $filewatcherObject "Created" -Action $created
-Register-ObjectEvent $filewatcherObject "Changed" -Action $changed
-Register-ObjectEvent $filewatcherObject "Deleted" -Action $deleted
-Register-ObjectEvent $filewatcherObject "Renamed" -Action $renamed
-while ($true) {sleep 5}
-
-
-# To stop the monitoring, run the following commands: 
-# Unregister-Event -SourceIdentifier *
