@@ -93,23 +93,7 @@ Param(
 #Save-ToRegistry1Level -pathToRegistry "HKLM:\SYSTEM\TEST\QUOTA" -hashtableData $lama
 
 
-###########################VARIABLES###################################
-$monitoredOU="KOMPUTERY"
-$computerList=(Get-ADComputer -Filter * -SearchBase 'OU=KOMPUTERY, DC=domena, DC=local').Name
-$isConnected=Test-Connection -ComputerName $computerList -Quiet -Count 10
 
-###########################FOR FUNCTIONS###############################
-$softwareList = [ordered]@{
-    "7-Zip"             = "*Igor Pavlov*" 
-    "Adobe"             = "*Adobe*" 
-    "Notepad++"         = "*Notepad++ Team*" 
-    "Microsoft Edge"    = "*Microsoft*" 
-    "Java 8"            = "*Oracle*" 
-}
-
-$user="DOMENA\jnowak"
-$groupName="DOMENA\Pracownicy_DP"
-$departmentPath="\\SERVER\DP"
 
 ########################################################################
 ########################################################################
@@ -119,51 +103,6 @@ $departmentPath="\\SERVER\DP"
 ########################################################################
 ########################################################################
 
-#Current State
-$gpoLast=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
-
-while($true)
-{
-    Read-Host "Change GPO: "
-    
-    #Get data after change
-    $gpoCurrent=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
-    
-    #Testing variables
-    $isLastExist=[string]::IsNullOrEmpty($gpoLast)
-    $isCurrentExist=[string]::IsNullOrEmpty($gpoCurrent)
-
-    if ((-not($isLastExist)) -and (-not($isCurrentExist))) # 11
-    {
-        $isTimeDifference=Compare-Object -ReferenceObject $gpoLast.ModificationTime -DifferenceObject $gpoCurrent.ModificationTime
-        $isTimeExist=[string]::IsNullOrEmpty($isTimeDifference)
-        
-        if (-not($isTimeExist))
-        {
-            "Oba są pełne ale się różnią datą modyfikacji-invoke"
-        }
-        else
-        {
-            "Oba się pełne i są takie same"
-        }
-
-    }
-    if ((-not($isLastExist)) -and $isCurrentExist) # 10
-    {
-        "zmienila sie licznosc -invoke"
-    }
-    if ($isLastExist -and (-not($isCurrentExist))) # 01
-    {
-        "zmieniła się licznosc - invoke"
-    }
-    if ($isLastExist -and $isCurrentExist) # 00
-    {
-        "Obie są puste - bez zmian"
-    }
-
-    $gpoLast=$gpoCurrent 
-    Start-Sleep -Seconds 5
-}
 
 #############################################################
 
