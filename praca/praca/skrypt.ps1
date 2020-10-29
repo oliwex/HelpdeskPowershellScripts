@@ -1,7 +1,32 @@
 ﻿###################BEFORE FUNCTIONS#####################
 Set-ExecutionPolicy -ExecutionPolicy Bypass
-Install-Module Carbon,NTFSSecurity,SysInfo -AllowClobber
-Import-Module Carbon,NTFSSecurity,SysInfo
+
+function Prepare-Modules
+{
+
+    $moduleList=Get-Module -Name Carbon,NTFSSecurity,SysInfo | Select -ExpandProperty Name
+
+    $isCarbonExist=$moduleList.Contains("Carbon")
+    $isNTFSSecExist=$moduleList.Contains("NTFSSecurity")
+    $isSysInfoExist=$moduleList.Contains("SysInfo")
+
+    if (-not($isCarbonExist -and $isNTFSSecExist -AND $isSysInfoExist))
+    {
+        Install-Module -Name Carbon,NTFSSecurity,SysInfo -AllowClobber -Force
+    }
+
+    $moduleList=Get-InstalledModule -Name Carbon,NTFSSecurity,SysInfo | Select -ExpandProperty Name
+
+    $isCarbonExist=$moduleList.Contains("Carbon")
+    $isNTFSSecExist=$moduleList.Contains("NTFSSecurity")
+    $isSysInfoExist=$moduleList.Contains("SysInfo")
+
+    if (-not($isCarbonExist -and $isNTFSSecExist -AND $isSysInfoExist))
+    {
+        Import-Module -Name Carbon,NTFSSecurity,SysInfo
+    }
+}
+Prepare-Modules
 
 ######################FUNCTIONS#########################
 
