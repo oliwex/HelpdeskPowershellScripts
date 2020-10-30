@@ -378,6 +378,48 @@ function Get-Registry2LevelData
 
 #Get-Registry2LevelData -pathToRegistry HKLM:\SYSTEM\TEST\FIREWALL
 
+Function Compare-Hashtables
+{
+param(
+
+        [Parameter(Position = 0, Mandatory = $true)]
+        $hashtableFromSystem
+        ,
+        [Parameter(Position = 1, Mandatory = $true)]
+        $hashtableFromRegistry
+    ) 
+
+    $resultObject = @()
+
+    $hashtableTMP=($hashtableFromSystem.GetEnumerator())
+
+    $hashtableTMP | ForEach-Object { if ($_.Value -ne $hashtableFromRegistry[$_.Name]) 
+    { 
+        $object = [PSCustomObject]@{
+        ELEMENT       = $_.Name
+        CHANGED       = "CHANGED"
+        CURRENT_STATE = $_.Value
+        }
+        $resultObject += $object
+    } 
+    else 
+    { 
+        $object = [PSCustomObject]@{
+        ELEMENT       = $_.Name
+        CHANGED       = "NOTCHANGED"
+        CURRENT_STATE = $_.Value
+        }
+        $resultObject += $object
+    }
+    }
+
+return $resultObject
+}
+
+#Compare-Hashtables -hashtableFromSystem $fromSystem -hashtableFromRegistry $fromRegistry
+
+
+
 ######################MAIN###########################
 $computerReport=Get-ComputerReport
 $quotaReport=Get-QuotaReport
