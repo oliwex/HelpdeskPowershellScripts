@@ -343,21 +343,6 @@ Param(
     }
 }
 
-function Get-Registry2LevelData
-{
-[CmdletBinding()]
-Param(
-    [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
-    [String]$pathToRegistry
-)
-    $networkReportRegistry=[ordered]@{}
-    $registryData=Get-ItemProperty -Path $pathToRegistry
-    $registryData.PSObject.Properties | Where-Object {$_.Name -NotLike "PS*"} | ForEach-Object { $networkReportRegistry.Add($_.Name,$_.Value)}
-    return $networkReportRegistry
-}
-
-#Get-Registry2LevelData -pathToRegistry HKLM:\SYSTEM\TEST\NETWORK
-
 function Get-Registry1LevelData
 {
 [CmdletBinding()]
@@ -365,21 +350,33 @@ Param(
     [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
     [String]$pathToRegistry
 )
-
-$level=[ordered]@{}
-$subkeys=Get-ChildItem HKLM:\SYSTEM\TEST\FIREWALL | Select-Object -ExpandProperty Name | ForEach-Object { $_.Substring($_.LastIndexOf("\")+1)}
-
-
-foreach($subkey in $subkeys)
-{
-    $hashtableElement=Get-RegistryLevel1Data -pathToRegistry "HKLM:\SYSTEM\TEST\FIREWALL\$subkey"
-    $level.Add($subkey,$hashtableElement)
-}
+$registryLevel1Data=[ordered]@{}
+$reg=Get-ItemProperty -Path $pathToRegistry
+$reg.PSObject.Properties  | Where-Object {$_.Name -NotLike "PS*"} | ForEach-Object { $registryLevel1Data.Add($_.Name,$_.Value)}
 return $level
-
 }
-#Get-Registry1LevelData -pathToRegistry HKLM:\SYSTEM\TEST\FIREWALL
+#Get-Registry1LevelData -pathToRegistry HKLM:\SYSTEM\TEST\NETWORK
 
+function Get-Registry2LevelData
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
+        [String]$pathToRegistry
+    )
+    $registryLevel2Data=[ordered]@{}
+    $elements=Get-ChildItem -Path $pathToRegistry | Select-Object -ExpandProperty Name | ForEach-Object { $_.Substring($_.LastIndexOf("\")+1)}
+    foreach($element in $elements)
+    {
+        $fullPath=Join-Path -Path $path -ChildPath $element
+        $data=Get-Registry1LevelData -pathToRegistry $fullPath
+        $registryLevel2Data.Add($element,$data)
+    }
+    return $registryLevel2Data
+}
+
+
+#Get-Registry2LevelData -pathToRegistry HKLM:\SYSTEM\TEST\FIREWALL
 
 ######################MAIN###########################
 $computerReport=Get-ComputerReport
