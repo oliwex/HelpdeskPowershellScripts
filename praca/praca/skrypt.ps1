@@ -343,6 +343,44 @@ Param(
     }
 }
 
+function Get-RegistryLevel1Data
+{
+[CmdletBinding()]
+Param(
+    [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
+    [String]$pathToRegistry
+)
+    $networkReportRegistry=[ordered]@{}
+    $registryData=Get-ItemProperty -Path $pathToRegistry
+    $registryData.PSObject.Properties | Where-Object {$_.Name -NotLike "PS*"} | ForEach-Object { $networkReportRegistry.Add($_.Name,$_.Value)}
+    return $networkReportRegistry
+}
+
+#Get-RegistryLevel1Data -pathToRegistry HKLM:\SYSTEM\TEST\NETWORK
+
+function Get-RegistryLevel2Data
+{
+[CmdletBinding()]
+Param(
+    [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
+    [String]$pathToRegistry
+)
+
+$level=[ordered]@{}
+$subkeys=Get-ChildItem HKLM:\SYSTEM\TEST\FIREWALL | Select-Object -ExpandProperty Name | ForEach-Object { $_.Substring($_.LastIndexOf("\")+1)}
+
+
+foreach($subkey in $subkeys)
+{
+    $hashtableElement=Get-RegistryLevel1Data -pathToRegistry "HKLM:\SYSTEM\TEST\FIREWALL\$subkey"
+    $level.Add($subkey,$hashtableElement)
+}
+return $level
+
+}
+Get-RegistryLevel2Data -pathToRegistry HKLM:\SYSTEM\TEST\NETWORK
+
+
 ######################MAIN###########################
 $computerReport=Get-ComputerReport
 $quotaReport=Get-QuotaReport
