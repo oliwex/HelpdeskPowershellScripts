@@ -343,7 +343,7 @@ Param(
     }
 }
 
-function Get-RegistryLevel1Data
+function Get-Registry2LevelData
 {
 [CmdletBinding()]
 Param(
@@ -356,9 +356,9 @@ Param(
     return $networkReportRegistry
 }
 
-#Get-RegistryLevel1Data -pathToRegistry HKLM:\SYSTEM\TEST\NETWORK
+#Get-Registry2LevelData -pathToRegistry HKLM:\SYSTEM\TEST\NETWORK
 
-function Get-RegistryLevel2Data
+function Get-Registry1LevelData
 {
 [CmdletBinding()]
 Param(
@@ -378,7 +378,7 @@ foreach($subkey in $subkeys)
 return $level
 
 }
-Get-RegistryLevel2Data -pathToRegistry HKLM:\SYSTEM\TEST\NETWORK
+#Get-Registry1LevelData -pathToRegistry HKLM:\SYSTEM\TEST\FIREWALL
 
 
 ######################MAIN###########################
@@ -412,6 +412,16 @@ if ($testRegistry)
 #odczyt danych z rejestru
 #porównanie danych z odczytem z systemu
 #zapis zmian do systemu
+Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\HARDWARE"
+Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\QUOTA"
+Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SOFTWARE"
+Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\FILESHARE"
+Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\NETWORK"
+Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\PRINTER"
+Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SERVICE"
+Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SERVICE"
+Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\FIREWALL"
+Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\LOG"
 }
 else
 {
