@@ -1,5 +1,8 @@
 ﻿###################BEFORE FUNCTIONS#####################
 Set-ExecutionPolicy -ExecutionPolicy Bypass
+<#
+Install-Module -Name Carbon,NTFSSecurity -AllowClobber -Force
+Import-Module -Name Carbon,NTFSSecurity
 
 function Prepare-Modules
 {
@@ -27,21 +30,22 @@ function Prepare-Modules
     }
 }
 Prepare-Modules
-
+#>
 ######################FUNCTIONS#########################
 
 function Get-ComputerReport 
 {
 ##requires SysInfo
     $computerReport = [ordered]@{
-        "Disk"            = Get-DiskDrive | Select-Object Caption, @{Name = "Size"; Expression = { [Math]::Round(($_.Size / 1GB), 2), "GB" -join " " } }
-        "Processor"       = Get-Processor | Select-Object Name, @{Name = "TDP"; Expression = { $_.MaxClockSpeed } }
-        "Memory"          = Get-PhysicalMemoryArray | Select-Object @{Name = "RAM"; Expression = { ($_.MaxCapacity / 1MB), "GB" -join " " } }
-        "VideoController" = Get-VideoController | Where-Object { $_.DeviceId -eq "VideoController1" } | Select-Object Name, @{Name = "RAM"; Expression = { ($_.AdapterRam / 1GB), "GB" -join " " } }
+        "Disk"            = Get-Disk | Where-Object {$_.Number -eq 0 } | Select-Object FriendlyName, @{Name = "Size"; Expression = { (($_.Size)/1GB), "GB" -join " "} }
+        "Processor"       = Get-CimInstance -Class Win32_Processor | Select-Object Name, @{Name = "TDP"; Expression = { $_.MaxClockSpeed } }
+        "Memory"          = Get-CimInstance Win32_ComputerSystem | Select-Object @{Name="RAM";Expression={ [MATH]::Round(($_.TotalPhysicalMemory / 1GB),2), "GB" -join " "}}
+        "VideoController" = Get-CimInstance Win32_VideoController | Where-Object { $_.DeviceId -eq "VideoController1" } | Select-Object Name, @{Name = "RAM"; Expression = { ($_.AdapterRam / 1GB), "GB" -join " " } }
     }
 
     return $computerReport
 }
+Get-ComputerReport
 
 function Get-QuotaReport 
 {
@@ -49,7 +53,7 @@ function Get-QuotaReport
     $unitList ="KB", "MB", "GB", "TB", "PB", "EB"
     $path="HKLM:\Software\Policies\Microsoft\Windows NT"
 
-    $pathExist=Test-RegistryKeyValue -Path $path -Name "DiskQuota"
+    $pathExist=Test-CRegistryKeyValue -Path $path -Name "DiskQuota"
 
     $path=Join-Path -Path $path -ChildPath "DiskQuota"
 
@@ -98,8 +102,8 @@ function Get-SoftwareReport
         $32bitPathProgram=Join-Path -Path $32bitPath -ChildPath $programName
         $64bitPathProgram=Join-Path -Path $64bitPath -ChildPath $programName
 
-        $32bitTest=Test-RegistryKeyValue -Path $32bitPathProgram -Name DisplayName
-        $64bitTest=Test-RegistryKeyValue -Path $64bitPathProgram -Name DisplayName
+        $32bitTest=Test-CRegistryKeyValue -Path $32bitPathProgram -Name DisplayName
+        $64bitTest=Test-CRegistryKeyValue -Path $64bitPathProgram -Name DisplayName
     
 
         if ($64bitTest) #Test 64bit
@@ -150,7 +154,7 @@ function Get-NetworkReport
     return $network
 }
 
-function Get-PrintReport
+function Get-PrinterReport
 {
     $printer=Get-Printer | Where-Object {(($_.PortName -like "*USB*") -or ($_.PortName -like "192.168.*.*")) -and ($_.DeviceType -eq "Print")} | Select Name,Type,DriverName,PortName,Shared,Published
     $printReport = [ordered]@{}
@@ -241,7 +245,7 @@ function Get-DefenderReport
     }
 
 
-    $test=Test-RegistryKeyValue -Path $paths[0] -Name "AVSignatureDue"
+    $test=Test-CRegistryKeyValue -Path $paths[0] -Name "AVSignatureDue"
     if ($test)
     {
         $defenderElement=Get-ItemProperty -Path $paths[0] | Select-Object @{Name="Security updates days";expression={$_.AVSignatureDue}},@{Name="Spyware update days";expression={$_.ASSignatureDue}}
@@ -263,7 +267,7 @@ function Get-LogReport
     $logReport = [ordered]@{}
 
     $logs | ForEach-Object {
-        $testRetention=Test-RegistryKeyValue -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\$_ -Name "Retention"
+        $testRetention=Test-CRegistryKeyValue -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\$_ -Name "Retention"
         
         if ($testRetention)
         {
@@ -279,26 +283,113 @@ function Get-LogReport
 
     return $logReport
 }
+####################TOOL FUNCTION####################
+function Prepare-Workplace
+{
+[CmdletBinding()]
+Param(
+    [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
+    [String]$path,
+    [Parameter(Mandatory=$true,HelpMessage="GroupName",Position=1)]
+    [String]$folder
+)
+
+    New-Item –Path $path –Name $folder -ItemType RegistryKey
+    $finalPath=Join-Path -Path $path -ChildPath $folder
+
+    "HARDWARE","QUOTA","SOFTWARE","FILESHARE","NETWORK","PRINTER","SERVICE","FIREWALL","LOG" | foreach-Object {
+    New-Item –Path $finalPath –Name $_ -ItemType RegistryKey
+    }
+}
+#Prepare-Workplace -path HKLM:\SYSTEM -folder TEST
 
 
+function Save-ToRegistry2Level
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
+        [String]$pathToRegistry,
+        [Parameter(Mandatory=$true,HelpMessage="DataToSave",Position=1)]
+        $hashtableData
+    )
+
+    foreach ($dataElement in $hashtableData.Keys) 
+    {
+        $dataName = $hashtableData[$dataElement]
+        $keyPath = Join-Path $pathToRegistry -ChildPath $dataElement
+        New-Item -Path $pathToRegistry -Name $dataElement -ItemType RegistryKey
+    
+        foreach ($property in $dataName.PSObject.Properties) 
+        {
+            New-ItemProperty -Path $keyPath -Name $property.Name -Value $property.Value -Force
+        }
+    }
+}
+
+function Save-ToRegistry1Level
+{
+[CmdletBinding()]
+Param(
+    [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
+    [String]$pathToRegistry,
+    [Parameter(Mandatory=$true,HelpMessage="DataToSave",Position=1)]
+    $hashtableData
+)
+
+    foreach ($element in $hashtableData.Keys)
+    {
+        New-ItemProperty -Path $pathToRegistry -Name $element -Value $hashtableData[$element] -Force
+    }
+}
 
 ######################MAIN###########################
+$computerReport=Get-ComputerReport
+$quotaReport=Get-QuotaReport
+$softwareReport=Get-SoftwareReport -softwareList $args[0]
+$filesReport=$args[1]
+$networkReport=Get-NetworkReport
+$printerReport=Get-PrinterReport
+$serviceReport=Get-ServiceReport
+$firewallReport=Get-FirewallReport
+$defenderReport=Get-DefenderReport
+$logReport=Get-LogReport
+
 Get-ComputerReport
-"-----------------"
 Get-QuotaReport
-"-----------------"
 Get-SoftwareReport -softwareList $args[0]
-"-----------------"
 $args[1]
-"-----------------"
 Get-NetworkReport
-"-----------------"
-Get-PrintReport
-"-----------------"
+Get-PrinterReport
 Get-ServiceReport
-"-----------------"
 Get-FirewallReport
-"-----------------"
 Get-DefenderReport
-"-----------------"
 Get-LogReport
+
+
+$testRegistry=Test-Path -Path HKLM:\SYSTEM\TEST
+if ($testRegistry)
+{
+#element istnieje trzeba zrobić porównanie zmian
+#odczyt danych z rejestru
+#porównanie danych z odczytem z systemu
+#zapis zmian do systemu
+}
+else
+{
+
+#element nie istnieje, trzeba zrobićzapis danych do rejestru i zapisaćdane jako konfiguracja startowa
+Prepare-Workplace -path HKLM:\SYSTEM -folder TEST
+Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\HARDWARE" -hashtableData $computerReport
+Save-ToRegistry1Level -pathToRegistry "HKLM:\SYSTEM\TEST\QUOTA" -hashtableData $quotaReport
+Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\SOFTWARE" -hashtableData $softwareReport
+Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\FILESHARE" -hashtableData $filesReport
+Save-ToRegistry1Level -pathToRegistry "HKLM:\SYSTEM\TEST\NETWORK" -hashtableData $networkReport
+Save-ToRegistry1Level -pathToRegistry "HKLM:\SYSTEM\TEST\PRINTER" -hashtableData $printerReport
+Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\SERVICE" -hashtableData $serviceReport
+Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\FIREWALL" -hashtableData $firewallReport
+Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\LOG" -hashtableData $logReport
+
+#Odczyt danych z rejestru
+#wyświetlenie danych w wordzie
+}

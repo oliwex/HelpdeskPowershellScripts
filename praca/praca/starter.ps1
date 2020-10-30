@@ -1,4 +1,10 @@
-﻿##########################FUNCTIONS####################################
+﻿#TODO
+#Skrypt dławi się przed wejściem do pętli
+#Sprawdzenie, czy komputer jest połączony
+#Sprawdzenie, czy skrypt jest umieczony w folderze
+#Ilość pamięci nie działa odpowiednio
+
+##########################FUNCTIONS####################################
 function Get-FilesReport
 {
     [CmdletBinding()]
@@ -54,16 +60,16 @@ function Get-FilesReport
 ###########################VARIABLES###################################
 $monitoredOU="KOMPUTERY"
 $computerList=(Get-ADComputer -Filter * -SearchBase "OU=$monitoredOU, DC=domena, DC=local").Name
-$isConnected=Test-Connection -ComputerName $computerList -Quiet -Count 10
+#$isConnected=Test-Connection -ComputerName $computerList -Quiet -Count 10
 
 $userName="$env:USERDOMAIN\jnowak"
 $groupName="$env:USERDOMAIN\Pracownicy_DP"
 $departmentPath="\\$env:COMPUTERNAME\DP"
 
 $pathToScript="C:\TEST\skrypt.ps1"
-$isScriptExist=Test-Path -Path "C:\TEST\skrypt.ps1" -PathType Leaf
-
-#######FO DATA AQUISITION##########
+$isScriptExist=Test-Path -Path $pathToScript -PathType Leaf
+$isScriptExist
+#######FOR DATA AQUISITION##########
 $softwareList = [ordered]@{
     "7-Zip"             = "*Igor Pavlov*" 
     "Adobe"             = "*Adobe*" 
@@ -86,13 +92,15 @@ $filesReport=Get-FilesReport -userName $userName -groupName $groupName -departme
 #Current State
 $gpoLast=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
 
+
+
 while($true)
 {
     Read-Host "Change GPO: "
     
     #Get data after change
     $gpoCurrent=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
-    
+   
     #Testing variables
     $isLastExist=[string]::IsNullOrEmpty($gpoLast)
     $isCurrentExist=[string]::IsNullOrEmpty($gpoCurrent)
@@ -102,9 +110,10 @@ while($true)
         $isTimeDifference=Compare-Object -ReferenceObject $gpoLast.ModificationTime -DifferenceObject $gpoCurrent.ModificationTime
         $isTimeExist=[string]::IsNullOrEmpty($isTimeDifference)
         
-        if (-not($isTimeExist) -and $isConnected -and $isScriptExist)
+        if (-not($isTimeExist))
         {
-            Invoke-Command -ComputerName $computerList -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+        "asdsa" 
+            Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
         }
         else
         {
@@ -112,15 +121,17 @@ while($true)
         }
 
     }
-    if ((-not($isLastExist)) -and $isCurrentExist -and $isConnected) # 10
+    if ((-not($isLastExist)) -and $isCurrentExist) # 10
     {
-        Invoke-Command -ComputerName $computerList -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+"asdsa" 
+        Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
     }
-    if ($isLastExist -and (-not($isCurrentExist)) -and $isConnected -and $isScriptExist) # 01
-    {
-        Invoke-Command -ComputerName $computerList -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+    if ($isLastExist -and (-not($isCurrentExist)) -and $isConnected) # 01
+    {"asdsa" 
+
+        Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
     }
-    if ($isLastExist -and $isCurrentExist -and $isScriptExist) # 00
+    if ($isLastExist -and $isCurrentExist) # 00
     {
         "Obie są puste - bez zmian"
     }
