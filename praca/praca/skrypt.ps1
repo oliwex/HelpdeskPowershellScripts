@@ -380,38 +380,33 @@ Function Compare-Hashtables
 param(
 
         [Parameter(Position = 0, Mandatory = $true)]
-        $hashtableFromSystem
+        $fromSystem
         ,
         [Parameter(Position = 1, Mandatory = $true)]
-        $hashtableFromRegistry
-    ) 
-
+        $fromRegistry
+    )
+     
     $resultObject = [System.Collections.Generic.List[PSCustomObject]]::new()
-
-    $hashtableTMP=($hashtableFromSystem.GetEnumerator())
-
-    $hashtableTMP | ForEach-Object { if ($_.Value -ne $hashtableFromRegistry[$_.Name]) 
-    { 
-        $object = [PSCustomObject]@{
-        ELEMENT       = $_.Name
-        CHANGED       = "CHANGED"
-        CURRENT_STATE = $_.Value
+    foreach ($element in $fromRegistry.Keys)
+    {
+        if($fromRegistry[$element] -eq $fromSystem[$element])
+        {
+            $state="NOTCHANGED"
         }
-    } 
-    else 
-    { 
-        $object = [PSCustomObject]@{
-        ELEMENT       = $_.Name
-        CHANGED       = "NOTCHANGED"
-        CURRENT_STATE = $_.Value
+        else
+        {
+            $state="CHANGED"
         }
-    }
-    $resultObject.Add($object)
+        $object = [PSCustomObject]@{
+        ELEMENT       = $element
+        CHANGED       = $state
+        CURRENT_STATE = $fromSystem[$element]
+        }
+        $resultObject.Add($object)
     }
 
 return $resultObject
 }
-
 
 function ConvertTo-Hashtable
 {
