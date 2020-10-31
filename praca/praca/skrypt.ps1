@@ -1,9 +1,9 @@
 ﻿###################BEFORE FUNCTIONS#####################
 Set-ExecutionPolicy -ExecutionPolicy Bypass
-<#
+
 Install-Module -Name Carbon,NTFSSecurity -AllowClobber -Force
 Import-Module -Name Carbon,NTFSSecurity
-
+<#
 function Prepare-Modules
 {
 
@@ -35,7 +35,6 @@ Prepare-Modules
 
 function Get-ComputerReport 
 {
-##requires SysInfo
     $computerReport = [ordered]@{
         "Disk"            = Get-Disk | Where-Object {$_.Number -eq 0 } | Select-Object FriendlyName, @{Name = "Size"; Expression = { (($_.Size)/1GB), "GB" -join " "} }
         "Processor"       = Get-CimInstance -Class Win32_Processor | Select-Object Name, @{Name = "TDP"; Expression = { $_.MaxClockSpeed } }
@@ -45,7 +44,6 @@ function Get-ComputerReport
 
     return $computerReport
 }
-Get-ComputerReport
 
 function Get-QuotaReport 
 {
@@ -124,7 +122,6 @@ function Get-SoftwareReport
 
     return $programList
 }
-
 
 function Get-NetworkReport
 {
@@ -297,7 +294,7 @@ Param(
     New-Item –Path $path –Name $folder -ItemType RegistryKey
     $finalPath=Join-Path -Path $path -ChildPath $folder
 
-    "HARDWARE","QUOTA","SOFTWARE","FILESHARE","NETWORK","PRINTER","SERVICE","FIREWALL","LOG" | foreach-Object {
+    "HARDWARE","QUOTA","SOFTWARE","FILESHARE","NETWORK","PRINTER","SERVICE","FIREWALL","LOG","DEFENDER" | foreach-Object {
     New-Item –Path $finalPath –Name $_ -ItemType RegistryKey
     }
 }
@@ -353,7 +350,7 @@ Param(
 $registryLevel1Data=[ordered]@{}
 $reg=Get-ItemProperty -Path $pathToRegistry
 $reg.PSObject.Properties  | Where-Object {$_.Name -NotLike "PS*"} | ForEach-Object { $registryLevel1Data.Add($_.Name,$_.Value)}
-return $level
+return $registryLevel1Data
 }
 #Get-Registry1LevelData -pathToRegistry HKLM:\SYSTEM\TEST\NETWORK
 
@@ -368,7 +365,7 @@ function Get-Registry2LevelData
     $elements=Get-ChildItem -Path $pathToRegistry | Select-Object -ExpandProperty Name | ForEach-Object { $_.Substring($_.LastIndexOf("\")+1)}
     foreach($element in $elements)
     {
-        $fullPath=Join-Path -Path $path -ChildPath $element
+        $fullPath=Join-Path -Path $pathToRegistry -ChildPath $element
         $data=Get-Registry1LevelData -pathToRegistry $fullPath
         $registryLevel2Data.Add($element,$data)
     }
@@ -389,7 +386,7 @@ param(
         $hashtableFromRegistry
     ) 
 
-    $resultObject = @()
+    $resultObject = [System.Collections.Generic.List[PSCustomObject]]::new()
 
     $hashtableTMP=($hashtableFromSystem.GetEnumerator())
 
@@ -400,7 +397,6 @@ param(
         CHANGED       = "CHANGED"
         CURRENT_STATE = $_.Value
         }
-        $resultObject += $object
     } 
     else 
     { 
@@ -409,14 +405,12 @@ param(
         CHANGED       = "NOTCHANGED"
         CURRENT_STATE = $_.Value
         }
-        $resultObject += $object
     }
+    $resultObject.Add($object)
     }
 
 return $resultObject
 }
-
-#Compare-Hashtables -hashtableFromSystem $fromSystem -hashtableFromRegistry $fromRegistry
 
 
 
@@ -432,22 +426,9 @@ $firewallReport=Get-FirewallReport
 $defenderReport=Get-DefenderReport
 $logReport=Get-LogReport
 
-Get-ComputerReport
-Get-QuotaReport
-Get-SoftwareReport -softwareList $args[0]
-$args[1]
-Get-NetworkReport
-Get-PrinterReport
-Get-ServiceReport
-Get-FirewallReport
-Get-DefenderReport
-Get-LogReport
-
-
 $testRegistry=Test-Path -Path HKLM:\SYSTEM\TEST
 if ($testRegistry)
 {
-#element istnieje trzeba zrobić porównanie zmian
 #odczyt danych z rejestru
 #porównanie danych z odczytem z systemu
 #zapis zmian do systemu
@@ -461,6 +442,7 @@ Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SERVICE"
 Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SERVICE"
 Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\FIREWALL"
 Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\LOG"
+Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\DEFENDER"
 }
 else
 {
@@ -476,7 +458,7 @@ Save-ToRegistry1Level -pathToRegistry "HKLM:\SYSTEM\TEST\PRINTER" -hashtableData
 Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\SERVICE" -hashtableData $serviceReport
 Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\FIREWALL" -hashtableData $firewallReport
 Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\LOG" -hashtableData $logReport
-
+Save-ToRegistry1Level -pathToRegistry "HKLM:\SYSTEM\TEST\DEFENDER" -hashtableData $defenderReport
 #Odczyt danych z rejestru
 #wyświetlenie danych w wordzie
 }
