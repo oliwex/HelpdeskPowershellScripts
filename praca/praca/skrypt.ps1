@@ -413,7 +413,18 @@ return $resultObject
 }
 
 
+function ConvertTo-Hashtable
+{
+  param(
+        [Parameter(Position = 0, Mandatory = $true)]
+        $object
+        )
 
+$applicationHashtable=[ordered]@{}
+$object.psobject.properties | Foreach { $applicationHashtable[$_.Name] = $_.Value }
+
+return $applicationHashtable 
+}
 ######################MAIN###########################
 $computerReport=Get-ComputerReport
 $quotaReport=Get-QuotaReport
