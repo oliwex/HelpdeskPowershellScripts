@@ -468,3 +468,71 @@ Save-ToRegistry1Level -pathToRegistry "HKLM:\SYSTEM\TEST\DEFENDER" -hashtableDat
 #Odczyt danych z rejestru
 #wyświetlenie danych w wordzie
 }
+#########BULLSHIT############
+$networkSystem=Get-NetworkReport #z systemu
+$networkRegistry=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\NETWORK"
+$lama=Compare-Hashtables -fromSystem $networkSystem -fromRegistry $networkRegistry
+$lama
+###
+$printSystem=Get-PrinterReport #z systemu
+$printRegistry=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\PRINTER"
+$lama=Compare-Hashtables -fromSystem $printSystem -fromRegistry $printRegistry
+$lama
+###
+$defenderSystem=Get-DefenderReport #z systemu
+$defenderRegistry=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\DEFENDER"
+$lama=Compare-Hashtables -fromSystem $defenderSystem -fromRegistry $defenderRegistry
+$lama
+###
+$quotaSystem=Get-QuotaReport #z systemu
+$quotaRegistry=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\QUOTA"
+$lama=Compare-Hashtables -fromSystem $quotaSystem -fromRegistry $quotaRegistry
+$lama
+###
+$firewallSystem=Get-FirewallReport
+$firewallRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\FIREWALL"
+
+$resultHashtable=[ordered]@{}
+foreach ($element in $firewallSystem.Keys)
+{
+    $tmp1=$($firewallSystem.$element) 
+    $tmp2=$($firewallRegistry.$element)
+    $tmp1=ConvertTo-Hashtable -object $tmp1
+    $result=Compare-Hashtables -fromSystem $tmp1 -fromRegistry $tmp2
+    $resultHashtable.Add($element,$result)
+}
+
+$resultHashtable
+###
+$serviceSystem=Get-ServiceReport
+$serviceRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SERVICE"
+
+$resultHashtable=[ordered]@{}
+
+foreach ($element in $serviceSystem.Keys)
+{
+    $tmp1=$($serviceSystem.$element) 
+    $tmp2=$($serviceRegistry.$element)
+    $tmp1=ConvertTo-Hashtable -object $tmp1
+    $result=Compare-Hashtables -fromSystem $tmp1 -fromRegistry $tmp2
+    $resultHashtable.Add($element,$result)
+}
+
+$resultHashtable
+####
+$hardwareSystem=Get-ComputerReport
+$hardwareRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\HARDWARE"
+
+$resultHashtable=[ordered]@{}
+
+foreach ($element in $hardwareSystem.Keys)
+{
+    $tmp1=$($hardwareSystem.$element) 
+    $tmp2=$($hardwareRegistry.$element)
+    $tmp1=ConvertTo-Hashtable -object $tmp1
+    $result=Compare-Hashtables -fromSystem $tmp1 -fromRegistry $tmp2
+    $resultHashtable.Add($element,$result)
+}
+
+$resultHashtable
+###
