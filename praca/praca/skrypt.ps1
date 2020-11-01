@@ -467,7 +467,7 @@ if ($testRegistry)
     $hardwareResult=Compare-Hashtables2Level -fromSystem $hardwareSystem -fromRegistry $hardwareRegistry
 
     $quotaRegistry=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\QUOTA"
-    $quotaResult=Compare-Hashtables -fromSystem $quotaSystem -fromRegistry $quotaRegistry
+    $quotaResult=Compare-Hashtables1Level -fromSystem $quotaSystem -fromRegistry $quotaRegistry
 
     $softwareRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SOFTWARE"
     $softwareResult=Compare-Hashtables2Level -fromSystem $softwareSystem -fromRegistry $softwareRegistry
@@ -476,10 +476,10 @@ if ($testRegistry)
     $filesResult=Compare-Hashtables2Level -fromSystem $filesSystem -fromRegistry $filesRegistry
 
     $networkRegistry=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\NETWORK"
-    $networkResult=Compare-Hashtables -fromSystem $networkSystem -fromRegistry $networkRegistry
+    $networkResult=Compare-Hashtables1Level -fromSystem $networkSystem -fromRegistry $networkRegistry
 
     $printerRegistry=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\PRINTER"
-    $printerReport=Compare-Hashtables -fromSystem $printerSystem -fromRegistry $printerRegistry
+    $printerReport=Compare-Hashtables1Level -fromSystem $printerSystem -fromRegistry $printerRegistry
 
     $serviceRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SERVICE"
     $serviceReport=Compare-Hashtables2Level -fromSystem $serviceSystem -fromRegistry $serviceRegistry
@@ -489,7 +489,7 @@ if ($testRegistry)
 
 
     $defenderRegistry=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\DEFENDER"
-    $defenderReport=Compare-Hashtables -fromSystem $defenderSystem -fromRegistry $defenderRegistry
+    $defenderReport=Compare-Hashtables1Level -fromSystem $defenderSystem -fromRegistry $defenderRegistry
 
     $logRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\LOG"
     $logReport=Compare-Hashtables2Level -fromSystem $logSystem -fromRegistry $logRegistry
