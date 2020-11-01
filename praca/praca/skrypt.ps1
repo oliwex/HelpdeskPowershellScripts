@@ -3,7 +3,7 @@ Set-ExecutionPolicy -ExecutionPolicy Bypass
 
 Install-Module -Name Carbon,NTFSSecurity -AllowClobber -Force
 Import-Module -Name Carbon,NTFSSecurity
-<#
+
 function Prepare-Modules
 {
 
@@ -30,7 +30,7 @@ function Prepare-Modules
     }
 }
 Prepare-Modules
-#>
+
 ######################FUNCTIONS#########################
 
 function Get-ComputerReport 
@@ -442,6 +442,8 @@ $object.psobject.properties | Foreach { $applicationHashtable[$_.Name] = $_.Valu
 return $applicationHashtable 
 }
 ######################MAIN###########################
+Prepare-Modules
+
 $hardwareSystem=Get-ComputerReport
 $quotaSystem=Get-QuotaReport
 $softwareSystem=Get-SoftwareReport -softwareList $args[0]
