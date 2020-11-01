@@ -4,7 +4,10 @@
 #Sprawdzenie, czy skrypt jest umieczony w folderze
 #Ilość pamięci nie działa odpowiednio
 #Sprawdzenie, czy są odpowiednie warunki zmian
+#sprawdzenie czy są odpowiednie moduły
 ##########################FUNCTIONS####################################
+
+
 function Get-FilesReport
 {
     [CmdletBinding()]
@@ -60,7 +63,7 @@ function Get-FilesReport
 ###########################VARIABLES###################################
 $monitoredOU="KOMPUTERY"
 $computerList=(Get-ADComputer -Filter * -SearchBase "OU=$monitoredOU, DC=domena, DC=local").Name
-#$isConnected=Test-Connection -ComputerName $computerList -Quiet -Count 10
+
 
 $userName="$env:USERDOMAIN\jnowak"
 $groupName="$env:USERDOMAIN\Pracownicy_DP"
@@ -91,7 +94,7 @@ $filesReport=Get-FilesReport -userName $userName -groupName $groupName -departme
 #Current State
 $gpoLast=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
 
-"fsdfdfsd"
+
 
 while($true)
 {
@@ -100,21 +103,24 @@ while($true)
     #Get data after change
     $gpoCurrent=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
     "Pobranie polityk różnicowych"
+    
     #Testing variables
     $isLastExist=[string]::IsNullOrEmpty($gpoLast)
     $isCurrentExist=[string]::IsNullOrEmpty($gpoCurrent)
+    
     "Sprawdzenie, czy są polityki i ich statusu"
     if ((-not($isLastExist)) -and (-not($isCurrentExist))) # 11
-    {"Obie polityki istnieją"
+    {
+        "Obie polityki istnieją"
         $isTimeDifference=Compare-Object -ReferenceObject $gpoLast.ModificationTime -DifferenceObject $gpoCurrent.ModificationTime
         $isTimeExist=[string]::IsNullOrEmpty($isTimeDifference)
         
         if (-not($isTimeExist))
         {
-        "Istnieja różnice w politykach-wykonanie invoke" 
+            "Istnieja różnice w politykach-wykonanie invoke" 
             $lama=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
             "#######################################"
-            $lama.HARDWARE
+            $lama.FIRST
         }
         else
         {
@@ -127,14 +133,14 @@ while($true)
         "usunieto wszystkie polityki"
         $lama=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
         "#######################################"
-        $lama.HARDWARE
+        $lama.FIRST
     }
     if ($isLastExist -and (-not($isCurrentExist)) -and $isConnected) # 01
     {
         "Dodano polityki"
         $lama=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
         "#######################################"
-        $lama.HARDWARE
+        $lama.FIRST
     }
     if ($isLastExist -and $isCurrentExist) # 00
     {

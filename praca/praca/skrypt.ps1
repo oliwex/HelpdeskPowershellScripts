@@ -1,35 +1,7 @@
 ﻿###################BEFORE FUNCTIONS#####################
 Set-ExecutionPolicy -ExecutionPolicy Bypass
 
-Install-Module -Name Carbon,NTFSSecurity -AllowClobber -Force
-Import-Module -Name Carbon,NTFSSecurity
-
-function Prepare-Modules
-{
-
-    $moduleList=Get-Module -Name Carbon,NTFSSecurity,SysInfo | Select -ExpandProperty Name
-
-    $isCarbonExist=$moduleList.Contains("Carbon")
-    $isNTFSSecExist=$moduleList.Contains("NTFSSecurity")
-    $isSysInfoExist=$moduleList.Contains("SysInfo")
-
-    if (-not($isCarbonExist -and $isNTFSSecExist -AND $isSysInfoExist))
-    {
-        Install-Module -Name Carbon,NTFSSecurity,SysInfo -AllowClobber -Force
-    }
-
-    $moduleList=Get-InstalledModule -Name Carbon,NTFSSecurity,SysInfo | Select -ExpandProperty Name
-
-    $isCarbonExist=$moduleList.Contains("Carbon")
-    $isNTFSSecExist=$moduleList.Contains("NTFSSecurity")
-    $isSysInfoExist=$moduleList.Contains("SysInfo")
-
-    if (-not($isCarbonExist -and $isNTFSSecExist -AND $isSysInfoExist))
-    {
-        Import-Module -Name Carbon,NTFSSecurity,SysInfo
-    }
-}
-Prepare-Modules
+Import-Module -Name Carbon
 
 ######################FUNCTIONS#########################
 
@@ -280,6 +252,7 @@ function Get-LogReport
 
     return $logReport
 }
+
 ####################TOOL FUNCTION####################
 function Prepare-Workplace
 {
@@ -298,8 +271,6 @@ Param(
     New-Item –Path $finalPath –Name $_ -ItemType RegistryKey
     }
 }
-#Prepare-Workplace -path HKLM:\SYSTEM -folder TEST
-
 
 function Save-ToRegistry2Level
 {
@@ -342,17 +313,16 @@ Param(
 
 function Get-Registry1LevelData
 {
-[CmdletBinding()]
-Param(
-    [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
-    [String]$pathToRegistry
-)
-$registryLevel1Data=[ordered]@{}
-$reg=Get-ItemProperty -Path $pathToRegistry
-$reg.PSObject.Properties  | Where-Object {$_.Name -NotLike "PS*"} | ForEach-Object { $registryLevel1Data.Add($_.Name,$_.Value)}
-return $registryLevel1Data
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
+        [String]$pathToRegistry
+    )
+    $registryLevel1Data=[ordered]@{}
+    $reg=Get-ItemProperty -Path $pathToRegistry
+    $reg.PSObject.Properties  | Where-Object {$_.Name -NotLike "PS*"} | ForEach-Object { $registryLevel1Data.Add($_.Name,$_.Value)}
+    return $registryLevel1Data
 }
-#Get-Registry1LevelData -pathToRegistry HKLM:\SYSTEM\TEST\NETWORK
 
 function Get-Registry2LevelData
 {
@@ -371,9 +341,6 @@ function Get-Registry2LevelData
     }
     return $registryLevel2Data
 }
-
-
-#Get-Registry2LevelData -pathToRegistry HKLM:\SYSTEM\TEST\FIREWALL
 
 Function Compare-Hashtables1Level
 {
@@ -407,6 +374,7 @@ param(
 
 return $resultObject
 }
+
 Function Compare-Hashtables2Level
 {
 param(
@@ -429,6 +397,7 @@ param(
     }
 return $resultHashtable
 }
+
 function ConvertTo-Hashtable
 {
   param(
@@ -442,7 +411,6 @@ $object.psobject.properties | Foreach { $applicationHashtable[$_.Name] = $_.Valu
 return $applicationHashtable 
 }
 ######################MAIN###########################
-Prepare-Modules
 
 $hardwareSystem=Get-ComputerReport
 $quotaSystem=Get-QuotaReport
@@ -489,7 +457,6 @@ if ($testRegistry)
     $firewallRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\FIREWALL"
     $firewallReport=Compare-Hashtables2Level -fromSystem $firewallSystem -fromRegistry $firewallRegistry
 
-
     $defenderRegistry=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\DEFENDER"
     $defenderReport=Compare-Hashtables1Level -fromSystem $defenderSystem -fromRegistry $defenderRegistry
 
@@ -508,7 +475,7 @@ if ($testRegistry)
     FIREWALL=$firewallReport;
     DEFENDER=$defenderReport;
     LOG=$logReport;
-    FIRST=$true
+    FIRST=$false
     }
 
 }
