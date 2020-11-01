@@ -375,7 +375,7 @@ function Get-Registry2LevelData
 
 #Get-Registry2LevelData -pathToRegistry HKLM:\SYSTEM\TEST\FIREWALL
 
-Function Compare-Hashtables
+Function Compare-Hashtables1Level
 {
 param(
 
@@ -407,7 +407,28 @@ param(
 
 return $resultObject
 }
+Function Compare-Hashtables2Level
+{
+param(
 
+        [Parameter(Position = 0, Mandatory = $true)]
+        $fromSystem
+        ,
+        [Parameter(Position = 1, Mandatory = $true)]
+        $fromRegistry
+    )
+    $resultHashtable=[ordered]@{}
+
+    foreach ($element in $fromSystem.Keys)
+    {
+        $tmp1=$($fromSystem.$element) 
+        $tmp2=$($fromRegistry.$element)
+        $tmp1=ConvertTo-Hashtable -object $tmp1
+        $result=Compare-Hashtables1Level -fromSystem $tmp1 -fromRegistry $tmp2
+        $resultHashtable.Add($element,$result)
+    }
+return $resultHashtable
+}
 function ConvertTo-Hashtable
 {
   param(
@@ -491,94 +512,30 @@ $lama
 ###
 $firewallSystem=Get-FirewallReport
 $firewallRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\FIREWALL"
-
-$resultHashtable=[ordered]@{}
-foreach ($element in $firewallSystem.Keys)
-{
-    $tmp1=$($firewallSystem.$element) 
-    $tmp2=$($firewallRegistry.$element)
-    $tmp1=ConvertTo-Hashtable -object $tmp1
-    $result=Compare-Hashtables -fromSystem $tmp1 -fromRegistry $tmp2
-    $resultHashtable.Add($element,$result)
-}
-
-$resultHashtable
+$lama=Compare-Hashtables2Level -fromSystem $firewallSystem -fromRegistry $firewallRegistry
+$lama
 ###
 $serviceSystem=Get-ServiceReport
 $serviceRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SERVICE"
-
-$resultHashtable=[ordered]@{}
-
-foreach ($element in $serviceSystem.Keys)
-{
-    $tmp1=$($serviceSystem.$element) 
-    $tmp2=$($serviceRegistry.$element)
-    $tmp1=ConvertTo-Hashtable -object $tmp1
-    $result=Compare-Hashtables -fromSystem $tmp1 -fromRegistry $tmp2
-    $resultHashtable.Add($element,$result)
-}
-
-$resultHashtable
+$lama=Compare-Hashtables2Level -fromSystem $serviceSystem -fromRegistry $serviceRegistry
+$lama
 ####
 $hardwareSystem=Get-ComputerReport
 $hardwareRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\HARDWARE"
-
-$resultHashtable=[ordered]@{}
-
-foreach ($element in $hardwareSystem.Keys)
-{
-    $tmp1=$($hardwareSystem.$element) 
-    $tmp2=$($hardwareRegistry.$element)
-    $tmp1=ConvertTo-Hashtable -object $tmp1
-    $result=Compare-Hashtables -fromSystem $tmp1 -fromRegistry $tmp2
-    $resultHashtable.Add($element,$result)
-}
-
-$resultHashtable
+$lama=Compare-Hashtables2Level -fromSystem $hardwareSystem -fromRegistry $hardwareRegistry
+$lama
 ###
 $filesSystem=Get-FilesReport -userName $userName -groupName $groupName -departmentName $departmentPath
 $filesRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\FILESHARE"
-
-$resultHashtable=[ordered]@{}
-
-foreach ($element in $filesSystem.Keys)
-{
-    $tmp1=$($filesSystem.$element) 
-    $tmp2=$($filesRegistry.$element)
-    $tmp1=ConvertTo-Hashtable -object $tmp1
-    $result=Compare-Hashtables -fromSystem $tmp1 -fromRegistry $tmp2
-    $resultHashtable.Add($element,$result)
-}
-
-$resultHashtable
+$lama=Compare-Hashtables2Level -fromSystem $filesSystem -fromRegistry $filesRegistry
+$lama
 ###
 $logSystem=Get-LogReport
 $logRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\LOG"
-
-$resultHashtable=[ordered]@{}
-
-foreach ($element in $logSystem.Keys)
-{
-    $tmp1=$($logSystem.$element) 
-    $tmp2=$($logRegistry.$element)
-    $tmp1=ConvertTo-Hashtable -object $tmp1
-    $result=Compare-Hashtables -fromSystem $tmp1 -fromRegistry $tmp2
-    $resultHashtable.Add($element,$result)
-}
-$resultHashtable
+$lama=Compare-Hashtables2Level -fromSystem $logSystem -fromRegistry $logRegistry
+$lama
 ###
 $softwareSystem=Get-SoftwareReport -softwareList $softwareList
-
 $softwareRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SOFTWARE"
-
-$resultHashtable=[ordered]@{}
-
-foreach ($element in $softwareSystem.Keys)
-{
-    $tmp1=$($softwareSystem.$element) 
-    $tmp2=$($softwareRegistry.$element)
-    $tmp1=ConvertTo-Hashtable -object $tmp1
-    $result=Compare-Hashtables -fromSystem $tmp1 -fromRegistry $tmp2
-    $resultHashtable.Add($element,$result)
-}
-$resultHashtable
+$lama=Compare-Hashtables2Level -fromSystem $softwareSystem -fromRegistry $softwareRegistry
+$lama
