@@ -3,7 +3,7 @@
 #Sprawdzenie, czy komputer jest połączony
 #Sprawdzenie, czy skrypt jest umieczony w folderze
 #Ilość pamięci nie działa odpowiednio
-
+#Sprawdzenie, czy są odpowiednie warunki zmian
 ##########################FUNCTIONS####################################
 function Get-FilesReport
 {
@@ -112,7 +112,9 @@ while($true)
         if (-not($isTimeExist))
         {
         "Istnieja różnice w politykach-wykonanie invoke" 
-            Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+            $lama=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+            "#######################################"
+            $lama.HARDWARE
         }
         else
         {
@@ -123,12 +125,16 @@ while($true)
     if ((-not($isLastExist)) -and $isCurrentExist) # 10
     {
         "usunieto wszystkie polityki"
-        Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+        $lama=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+        "#######################################"
+        $lama.HARDWARE
     }
     if ($isLastExist -and (-not($isCurrentExist)) -and $isConnected) # 01
     {
         "Dodano polityki"
-        Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+        $lama=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+        "#######################################"
+        $lama.HARDWARE
     }
     if ($isLastExist -and $isCurrentExist) # 00
     {
