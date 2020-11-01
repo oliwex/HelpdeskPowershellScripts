@@ -536,3 +536,49 @@ foreach ($element in $hardwareSystem.Keys)
 
 $resultHashtable
 ###
+$filesSystem=Get-FilesReport -userName $userName -groupName $groupName -departmentName $departmentPath
+$filesRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\FILESHARE"
+
+$resultHashtable=[ordered]@{}
+
+foreach ($element in $filesSystem.Keys)
+{
+    $tmp1=$($filesSystem.$element) 
+    $tmp2=$($filesRegistry.$element)
+    $tmp1=ConvertTo-Hashtable -object $tmp1
+    $result=Compare-Hashtables -fromSystem $tmp1 -fromRegistry $tmp2
+    $resultHashtable.Add($element,$result)
+}
+
+$resultHashtable
+###
+$logSystem=Get-LogReport
+$logRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\LOG"
+
+$resultHashtable=[ordered]@{}
+
+foreach ($element in $logSystem.Keys)
+{
+    $tmp1=$($logSystem.$element) 
+    $tmp2=$($logRegistry.$element)
+    $tmp1=ConvertTo-Hashtable -object $tmp1
+    $result=Compare-Hashtables -fromSystem $tmp1 -fromRegistry $tmp2
+    $resultHashtable.Add($element,$result)
+}
+$resultHashtable
+###
+$softwareSystem=Get-SoftwareReport -softwareList $softwareList
+
+$softwareRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SOFTWARE"
+
+$resultHashtable=[ordered]@{}
+
+foreach ($element in $softwareSystem.Keys)
+{
+    $tmp1=$($softwareSystem.$element) 
+    $tmp2=$($softwareRegistry.$element)
+    $tmp1=ConvertTo-Hashtable -object $tmp1
+    $result=Compare-Hashtables -fromSystem $tmp1 -fromRegistry $tmp2
+    $resultHashtable.Add($element,$result)
+}
+$resultHashtable

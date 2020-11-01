@@ -68,7 +68,6 @@ $departmentPath="\\$env:COMPUTERNAME\DP"
 
 $pathToScript="C:\TEST\skrypt.ps1"
 $isScriptExist=Test-Path -Path $pathToScript -PathType Leaf
-$isScriptExist
 #######FOR DATA AQUISITION##########
 $softwareList = [ordered]@{
     "7-Zip"             = "*Igor Pavlov*" 
@@ -92,7 +91,7 @@ $filesReport=Get-FilesReport -userName $userName -groupName $groupName -departme
 #Current State
 $gpoLast=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
 
-
+"fsdfdfsd"
 
 while($true)
 {
@@ -100,40 +99,40 @@ while($true)
     
     #Get data after change
     $gpoCurrent=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
-   
+    "Pobranie polityk różnicowych"
     #Testing variables
     $isLastExist=[string]::IsNullOrEmpty($gpoLast)
     $isCurrentExist=[string]::IsNullOrEmpty($gpoCurrent)
-
+    "Sprawdzenie, czy są polityki i ich statusu"
     if ((-not($isLastExist)) -and (-not($isCurrentExist))) # 11
-    {
+    {"Obie polityki istnieją"
         $isTimeDifference=Compare-Object -ReferenceObject $gpoLast.ModificationTime -DifferenceObject $gpoCurrent.ModificationTime
         $isTimeExist=[string]::IsNullOrEmpty($isTimeDifference)
         
         if (-not($isTimeExist))
         {
-        "asdsa" 
+        "Istnieja różnice w politykach-wykonanie invoke" 
             Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
         }
         else
         {
-            "Oba się pełne i są takie same"
+            "Obie polityki są skonfigurowane, ale nie zaszły zmiany"
         }
 
     }
     if ((-not($isLastExist)) -and $isCurrentExist) # 10
     {
-"asdsa" 
+        "usunieto wszystkie polityki"
         Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
     }
     if ($isLastExist -and (-not($isCurrentExist)) -and $isConnected) # 01
-    {"asdsa" 
-
+    {
+        "Dodano polityki"
         Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
     }
     if ($isLastExist -and $isCurrentExist) # 00
     {
-        "Obie są puste - bez zmian"
+        "Brak polityk przed i po sprawdzeniu"
     }
 
     $gpoLast=$gpoCurrent 
