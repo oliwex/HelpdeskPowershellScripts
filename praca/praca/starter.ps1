@@ -118,9 +118,10 @@ while($true)
         if (-not($isTimeExist))
         {
             "Istnieja różnice w politykach-wykonanie invoke" 
-            $lama=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+            $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
             "#######################################"
-            $lama.FIRST
+            $fullReport
+      #      invoke-command -ComputerName SERVER { &'c:\TEST\generator.ps1' } -ArgumentList $fullReport
         }
         else
         {
@@ -131,16 +132,18 @@ while($true)
     if ((-not($isLastExist)) -and $isCurrentExist) # 10
     {
         "usunieto wszystkie polityki"
-        $lama=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+        $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
         "#######################################"
-        $lama.FIRST
+        $fullReport
+      #  invoke-command -ComputerName SERVER { &'c:\TEST\generator.ps1' } -ArgumentList $fullReport
     }
     if ($isLastExist -and (-not($isCurrentExist)) -and $isConnected) # 01
     {
         "Dodano polityki"
-        $lama=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+        $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
         "#######################################"
-        $lama.FIRST
+        $fullReport
+    #    invoke-command -ComputerName SERVER { &'c:\TEST\generator.ps1' } -ArgumentList $fullReport
     }
     if ($isLastExist -and $isCurrentExist) # 00
     {

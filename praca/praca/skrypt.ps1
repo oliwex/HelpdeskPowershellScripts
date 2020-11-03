@@ -1,4 +1,10 @@
-﻿###################BEFORE FUNCTIONS#####################
+﻿param(
+$softwareList,
+$filesReport
+)
+
+
+###################BEFORE FUNCTIONS#####################
 Set-ExecutionPolicy -ExecutionPolicy Bypass
 
 Import-Module -Name Carbon
@@ -414,8 +420,8 @@ return $applicationHashtable
 
 $hardwareSystem=Get-ComputerReport
 $quotaSystem=Get-QuotaReport
-$softwareSystem=Get-SoftwareReport -softwareList $args[0]
-$filesSystem=$args[1]
+$softwareSystem=Get-SoftwareReport -softwareList $softwareList
+#S$filesSystem
 $networkSystem=Get-NetworkReport
 $printerSystem=Get-PrinterReport
 $serviceSystem=Get-ServiceReport
@@ -434,19 +440,19 @@ if ($testRegistry)
     #odczyt danych z rejestru
     #porównanie danych z rejestru wraz z porównaniem danych z systemu, dane wyjściowe są zapisywane w zmiennych
     $hardwareRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\HARDWARE"
-    $hardwareResult=Compare-Hashtables2Level -fromSystem $hardwareSystem -fromRegistry $hardwareRegistry
+    $hardwareReport=Compare-Hashtables2Level -fromSystem $hardwareSystem -fromRegistry $hardwareRegistry
 
     $quotaRegistry=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\QUOTA"
-    $quotaResult=Compare-Hashtables1Level -fromSystem $quotaSystem -fromRegistry $quotaRegistry
+    $quotaReport=Compare-Hashtables1Level -fromSystem $quotaSystem -fromRegistry $quotaRegistry
 
     $softwareRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SOFTWARE"
-    $softwareResult=Compare-Hashtables2Level -fromSystem $softwareSystem -fromRegistry $softwareRegistry
+    $softwareReport=Compare-Hashtables2Level -fromSystem $softwareSystem -fromRegistry $softwareRegistry
 
     $filesRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\FILESHARE"
-    $filesResult=Compare-Hashtables2Level -fromSystem $filesSystem -fromRegistry $filesRegistry
+    $filesReport=Compare-Hashtables2Level -fromSystem $filesSystem -fromRegistry $filesRegistry
 
     $networkRegistry=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\NETWORK"
-    $networkResult=Compare-Hashtables1Level -fromSystem $networkSystem -fromRegistry $networkRegistry
+    $networkReport=Compare-Hashtables1Level -fromSystem $networkSystem -fromRegistry $networkRegistry
 
     $printerRegistry=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\PRINTER"
     $printerReport=Compare-Hashtables1Level -fromSystem $printerSystem -fromRegistry $printerRegistry
