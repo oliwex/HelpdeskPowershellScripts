@@ -1,6 +1,6 @@
 ﻿param(
 $softwareList,
-$filesReport
+$filesSystem
 )
 
 
@@ -421,7 +421,7 @@ return $applicationHashtable
 $hardwareSystem=Get-ComputerReport
 $quotaSystem=Get-QuotaReport
 $softwareSystem=Get-SoftwareReport -softwareList $softwareList
-#S$filesSystem
+#tu można umieścić zmienną $filesSystem która ma hashtable oznaczającą sprawdzenie udziałów sieciowych
 $networkSystem=Get-NetworkReport
 $printerSystem=Get-PrinterReport
 $serviceSystem=Get-ServiceReport
@@ -433,6 +433,9 @@ $logSystem=Get-LogReport
 $fullReport=[ordered]@{}
 
 $testRegistry=Test-Path -Path HKLM:\SYSTEM\TEST
+
+
+
 if ($testRegistry)
 {
     #element istnieje
