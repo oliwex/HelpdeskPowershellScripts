@@ -121,7 +121,7 @@ while($true)
             $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
             "#######################################"
             $fullReport
-      #      invoke-command -ComputerName SERVER { &'c:\TEST\generator.ps1' } -ArgumentList $fullReport
+            invoke-command -ComputerName SERVER { &'c:\TEST\generator.ps1' } -ArgumentList $fullReport
         }
         else
         {
@@ -135,7 +135,7 @@ while($true)
         $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
         "#######################################"
         $fullReport
-      #  invoke-command -ComputerName SERVER { &'c:\TEST\generator.ps1' } -ArgumentList $fullReport
+        invoke-command -ComputerName SERVER { &'c:\TEST\generator.ps1' } -ArgumentList $fullReport
     }
     if ($isLastExist -and (-not($isCurrentExist)) -and $isConnected) # 01
     {
@@ -143,7 +143,7 @@ while($true)
         $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
         "#######################################"
         $fullReport
-    #    invoke-command -ComputerName SERVER { &'c:\TEST\generator.ps1' } -ArgumentList $fullReport
+        invoke-command -ComputerName SERVER { &'c:\TEST\generator.ps1' } -ArgumentList $fullReport
     }
     if ($isLastExist -and $isCurrentExist) # 00
     {
