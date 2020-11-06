@@ -533,4 +533,4 @@ else
     }
 }
 
-$fullReport
+return $fullReport

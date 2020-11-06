@@ -7,7 +7,6 @@
 #sprawdzenie czy są odpowiednie moduły
 ##########################FUNCTIONS####################################
 
-
 function Get-FilesReport
 {
     [CmdletBinding()]
@@ -59,6 +58,115 @@ function Get-FilesReport
     return $filesReport
 }
 
+function New-ReportTitle
+{
+param(
+
+        [Parameter(Position = 0, Mandatory = $true)]
+        [String]$date,
+        [Parameter(Position = 1, Mandatory = $true)]
+        [String]$titleColor,
+        [Parameter(Position = 2, Mandatory = $true)]
+        [String]$subtitleColor,
+        [Parameter(Position = 3, Mandatory = $true)]
+        [String]$dataColor
+)
+    New-PDFText -Text "Raport monitorowania stacji roboczej" -Font HELVETICA -FontColor $titleColor -FontBold $true
+    New-PDFText -Text "Monitorowanie wykonano dnia: ",$date -Font HELVETICA -FontColor $subtitleColor,$dataColor
+}
+
+function New-ReportList
+{
+param(
+
+        [Parameter(Position = 0, Mandatory = $true)]
+        [String]$textColor,
+        [Parameter(Position = 1, Mandatory = $true, ValueFromPipeline = $true)]
+        $report
+)
+    New-PDFText -Text "Sprawdzono: " -Font HELVETICA -FontColor BLACK
+    New-PDFList -Indent 10 -Symbol bullet {
+           foreach($element in $report.Keys)
+           {
+                New-PDFListItem -Text $element
+           }
+        }
+}
+function New-Report1Level
+{
+param(
+
+        [Parameter(Position = 0, Mandatory = $true)]
+        [String]$reportBlock,
+        [Parameter(Position = 1, Mandatory = $true, ValueFromPipeline = $true)]
+        $report
+)
+    New-PDFText -Text $reportBlock -Font HELVETICA -FontColor BLUE
+    New-PDFTable -DataTable $($report.$reportBlock)
+}
+
+function New-Report2Level
+{
+param(
+
+        [Parameter(Position = 0, Mandatory = $true)]
+        [String]$reportBlock,
+        [Parameter(Position = 1, Mandatory = $true, ValueFromPipeline = $true)]
+        $report
+)
+    
+    New-PDFText -Text $reportBlock -Font HELVETICA -FontColor BLUE
+    foreach ($element in $report.$reportBlock.Keys)
+    {
+        New-PDFText -Text $element -Font HELVETICA -FontColor GREEN
+        New-PDFTable -DataTable $($report.$reportBlock.$element)
+    }
+
+}
+function Generate-Report
+{
+param(
+
+        [Parameter(Position = 0, Mandatory = $true, ValueFromPipeline = $true)]
+        $fullReport,
+        [Parameter(Position = 1, Mandatory = $true)]
+        $datetime,
+        [Parameter(Position = 2, Mandatory = $true)]
+        $path
+)
+    
+    New-PDF {
+        ##########TITLE##############
+        New-ReportTitle -date $datetime -titleColor BLUE -subtitleColor BLACK -dataColor GREEN
+        $fullReport | New-ReportList -textColor BLACK
+    
+        #########HARDWARE#############
+        $fullReport | New-Report2Level -reportBlock HARDWARE
+        #########PRINTER#############
+        $fullReport | New-Report2Level -reportBlock PRINTER
+        #########QUOTA#############
+        $fullReport | New-Report1Level -reportBlock QUOTA
+        #########FILESHARE#############
+        $fullReport | New-Report2Level -reportBlock FILESHARE
+        #########SOFTWARE#############
+        $fullReport | New-Report2Level -reportBlock SOFTWARE
+        #########DEFENDER#############
+        $fullReport | New-Report2Level -reportBlock DEFENDER
+        #########FIREWALL#############
+        $fullReport | New-Report2Level -reportBlock FIREWALL
+        #########LOG#############
+        $fullReport | New-Report2Level -reportBlock LOG
+        #########NETWORK#############
+        $fullReport | New-Report1Level -reportBlock NETWORK
+        #########SERVICE#############
+        $fullReport | New-Report2Level -reportBlock SERVICE
+
+    } -FilePath $path -Show
+}
+
+
+
+
 
 ###########################VARIABLES###################################
 $monitoredOU="KOMPUTERY"
@@ -71,6 +179,15 @@ $departmentPath="\\$env:COMPUTERNAME\DP"
 
 $pathToScript="C:\TEST\skrypt.ps1"
 $isScriptExist=Test-Path -Path $pathToScript -PathType Leaf
+
+
+
+$datetime=Get-Date -Format "HH-mm_MM/dd/yyyy"
+$fileName="HOST1-"+"$datetime"+".pdf"
+$path=Join-Path -Path "C:\TEST\" -ChildPath $fileName
+
+
+
 #######FOR DATA AQUISITION##########
 $softwareList = [ordered]@{
     "7-Zip"             = "*Igor Pavlov*" 
@@ -120,8 +237,7 @@ while($true)
             "Istnieja różnice w politykach-wykonanie invoke" 
             $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
             "#######################################"
-            $fullReport
-            invoke-command -ComputerName SERVER { &'c:\TEST\generator.ps1' } -ArgumentList $fullReport
+            $fullReport | Generate-Report -datetime $datetime -path $path
         }
         else
         {
@@ -134,16 +250,14 @@ while($true)
         "usunieto wszystkie polityki"
         $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
         "#######################################"
-        $fullReport
-        invoke-command -ComputerName SERVER { &'c:\TEST\generator.ps1' } -ArgumentList $fullReport
+        $fullReport | Generate-Report -datetime $datetime -path $path
     }
     if ($isLastExist -and (-not($isCurrentExist)) -and $isConnected) # 01
     {
         "Dodano polityki"
         $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
         "#######################################"
-        $fullReport
-        invoke-command -ComputerName SERVER { &'c:\TEST\generator.ps1' } -ArgumentList $fullReport
+        $fullReport | Generate-Report -datetime $datetime -path $path
     }
     if ($isLastExist -and $isCurrentExist) # 00
     {
