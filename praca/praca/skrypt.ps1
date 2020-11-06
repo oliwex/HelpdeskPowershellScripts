@@ -372,7 +372,7 @@ param(
         }
         $object = [PSCustomObject]@{
         ELEMENT       = $element
-        CHANGED       = $state
+        STATUS       = $state
         CURRENT_STATE = $fromSystem[$element]
         }
         $resultObject.Add($object)

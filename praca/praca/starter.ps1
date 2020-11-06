@@ -1,10 +1,12 @@
 ﻿#TODO
-#Skrypt dławi się przed wejściem do pętli
 #Sprawdzenie, czy komputer jest połączony
 #Sprawdzenie, czy skrypt jest umieczony w folderze
 #Ilość pamięci nie działa odpowiednio
-#Sprawdzenie, czy są odpowiednie warunki zmian
+#Dane instalacji programów są nieodpowiednie
+#odpowiednie tłumaczenie uprawnień do udziałów sieciowych
 #sprawdzenie czy są odpowiednie moduły
+#Procent spełnienia założeń skryptu: % CHANGED i  % UNCHANGED
+#Kolorystyka raportów
 ##########################FUNCTIONS####################################
 
 function Get-FilesReport
@@ -166,9 +168,6 @@ param(
 }
 
 
-
-
-
 ###########################VARIABLES###################################
 $monitoredOU="KOMPUTERY"
 $computerList=(Get-ADComputer -Filter * -SearchBase "OU=$monitoredOU, DC=domena, DC=local").Name
@@ -207,7 +206,7 @@ if (-not($testPath))
     New-Item -Path $path -ItemType Directory
 }
 
-$datetime=Get-Date -Format "HH:mm_MM.dd.yyyy"
+$datetime=Get-Date -Format "HH.mm_MM.dd.yyyy"
 $fileName="HOST1-$datetime.pdf"
 $reportPath=Join-Path -Path $path -ChildPath $fileName
 #endregion PDFCreator
@@ -215,61 +214,41 @@ $reportPath=Join-Path -Path $path -ChildPath $fileName
 #Current State
 $gpoLast=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
 
-
-
 while($true)
 {
     Read-Host "Change GPO: "
-    
-    #Get data after change
-    $gpoCurrent=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
-    "Pobranie polityk różnicowych"
-    
-    #Testing variables
     $isLastExist=[string]::IsNullOrEmpty($gpoLast)
+    $gpoCurrent=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
     $isCurrentExist=[string]::IsNullOrEmpty($gpoCurrent)
-    
-    "Sprawdzenie, czy są polityki i ich statusu"
-    if ((-not($isLastExist)) -and (-not($isCurrentExist))) # 11
+    if (($isLastExist -eq $true) -and ($isCurrentExist -eq $true))
     {
-        "Obie polityki istnieją"
-        $isTimeDifference=Compare-Object -ReferenceObject $gpoLast.ModificationTime -DifferenceObject $gpoCurrent.ModificationTime
-        $isTimeExist=[string]::IsNullOrEmpty($isTimeDifference)
-        
-        if (-not($isTimeExist))
+    "Brak polityk w obu przypadkach"
+    }
+    if (($isLastExist -eq $false) -and ($isCurrentExist -eq $true))
+    {
+        "1=POLITYKA,2=NULL"
+        $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+        $fullReport | Generate-Report -datetime $datetime -path $reportPath
+    }
+    if (($isLastExist -eq $true) -and ($isCurrentExist -eq $false))
+    {
+        "1=NULL,2=POLITYKA"
+        $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+    $fullReport | Generate-Report -datetime $datetime -path $reportPath
+    }
+    if (($testLastNull -eq $false) -and ($testCurrentNull -eq $false))
+    {
+        "1=POLITYKA,2=POLITYKA"
+        "POLITYKI ISTNIEJĄ ALE BRAK ZMIAN"
+        $testCompare=Compare-Object -Property DisplayName,Id,ModificationTime -ReferenceObject $gpoLast -DifferenceObject $gpoCurrent
+        $isDifferenceExist=[string]::IsNullOrEmpty($testCompare)
+        if ($isDifferenceExist -eq $false)
         {
-            "Istnieja różnice w politykach-wykonanie invoke" 
+            "POLITYKI ISTNIEJĄ I ZOSTAŁY WYKONANE ZMIANY"
             $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
-            "#######################################"
             $fullReport | Generate-Report -datetime $datetime -path $reportPath
         }
-        else
-        {
-            "Obie polityki są skonfigurowane, ale nie zaszły zmiany"
-        }
-
     }
-    if ((-not($isLastExist)) -and $isCurrentExist) # 10
-    {
-        "usunieto wszystkie polityki"
-        $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
-        "#######################################"
-        $fullReport | Generate-Report -datetime $datetime -path $path
-    }
-    if ($isLastExist -and (-not($isCurrentExist)) -and $isConnected) # 01
-    {
-        "Dodano polityki"
-        $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
-        "#######################################"
-        $fullReport | Generate-Report -datetime $datetime -path $path
-    }
-    if ($isLastExist -and $isCurrentExist) # 00
-    {
-        "Brak polityk przed i po sprawdzeniu"
-    }
-
     $gpoLast=$gpoCurrent 
     Start-Sleep -Seconds 5
 }
-
-
