@@ -123,6 +123,7 @@ param(
     }
 
 }
+
 function Generate-Report
 {
 param(
@@ -151,7 +152,7 @@ param(
         #########SOFTWARE#############
         $fullReport | New-Report2Level -reportBlock SOFTWARE
         #########DEFENDER#############
-        $fullReport | New-Report2Level -reportBlock DEFENDER
+        $fullReport | New-Report1Level -reportBlock DEFENDER
         #########FIREWALL#############
         $fullReport | New-Report2Level -reportBlock FIREWALL
         #########LOG#############
@@ -180,14 +181,6 @@ $departmentPath="\\$env:COMPUTERNAME\DP"
 $pathToScript="C:\TEST\skrypt.ps1"
 $isScriptExist=Test-Path -Path $pathToScript -PathType Leaf
 
-
-
-$datetime=Get-Date -Format "HH-mm_MM/dd/yyyy"
-$fileName="HOST1-"+"$datetime"+".pdf"
-$path=Join-Path -Path "C:\TEST\" -ChildPath $fileName
-
-
-
 #######FOR DATA AQUISITION##########
 $softwareList = [ordered]@{
     "7-Zip"             = "*Igor Pavlov*" 
@@ -206,7 +199,18 @@ $filesReport=Get-FilesReport -userName $userName -groupName $groupName -departme
 ##                                                                    ##
 ########################################################################
 ########################################################################
+#region PDFCreator
+$path=Read-Host -Prompt "Podaj ścieżkę do raportowania"
+$testPath=Test-Path -Path $path -PathType Container
+if (-not($testPath))
+{
+    New-Item -Path $path -ItemType Directory
+}
 
+$datetime=Get-Date -Format "HH:mm_MM.dd.yyyy"
+$fileName="HOST1-$datetime.pdf"
+$reportPath=Join-Path -Path $path -ChildPath $fileName
+#endregion PDFCreator
 
 #Current State
 $gpoLast=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
@@ -237,7 +241,7 @@ while($true)
             "Istnieja różnice w politykach-wykonanie invoke" 
             $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
             "#######################################"
-            $fullReport | Generate-Report -datetime $datetime -path $path
+            $fullReport | Generate-Report -datetime $datetime -path $reportPath
         }
         else
         {
