@@ -17,7 +17,9 @@ function Get-FilesReport
         [String]$userName,
         [Parameter(Mandatory=$true,HelpMessage="GroupName",Position=1)]
         [String]$groupName,
-        [Parameter(Mandatory=$true,HelpMessage="Department",Position=2)]
+        [Parameter(Mandatory=$true,HelpMessage="PathToSharedFolder",Position=2)]
+        [String]$pathToSharedFolder,
+        [Parameter(Mandatory=$true,HelpMessage="DepartmentName",Position=3)]
         [String]$departmentName
     )
 
@@ -25,22 +27,56 @@ function Get-FilesReport
 
     $filesReport = [ordered]@{}
 
+    $departmentPath=Join-Path -Path $pathToSharedFolder -ChildPath $departmentName
     if (Test-Path -Path $departmentPath -PathType Container)
     {
-        $userAccessDepartmentFolder=Get-Item -Path $departmentPath | Get-NTFSEffectiveAccess -Account $userName | select Account, AccessRights, FullName
-        $filesReport.Add("DepartmentFolderUserAccess", $userAccessDepartmentFolder)
+            $userAccessDepartmentFolder=Get-Item -Path $departmentPath | Get-NTFSEffectiveAccess -Account $userName | select Account, AccessRights, FullName
+            if ($userAccessDepartmentFolder.AccessRights -like "WriteExtendedAttributes, WriteAttributes, ReadAndExecute, Synchronize")
+            {
+                $userAccessDepartmentFolder.AccessRights="SET"
+            }
+            else
+            {
+                $userAccessDepartmentFolder.AccessRights="UNSET"
+            }
+            $filesReport.Add("DepartmentFolderUserAccess", $userAccessDepartmentFolder)
 
 
-        $groupAccessDepartmentFolder=Get-Item -Path $departmentPath | Get-NTFSEffectiveAccess -Account $groupName |select Account, AccessRights, FullName
-        $filesReport.Add("DepartmentFolderGroupAccess",$groupAccessDepartmentFolder)
+            $groupAccessDepartmentFolder=Get-Item -Path $departmentPath | Get-NTFSEffectiveAccess -Account $groupName | select Account, AccessRights, FullName
+            if ($groupAccessDepartmentFolder.AccessRights -like "WriteExtendedAttributes, WriteAttributes, ReadAndExecute, Synchronize")
+            {
+                $groupAccessDepartmentFolder.AccessRights="SET"
+            }
+            else
+            {
+                $groupAccessDepartmentFolder.AccessRights="UNSET"
+            }
+
+            $filesReport.Add("DepartmentFolderGroupAccess",$groupAccessDepartmentFolder)
     
-        $userPath=Join-Path -Path $departmentPath -ChildPath $userName.Substring($userName.IndexOf("\")+1)
+        $userPath=Join-Path -Path $pathToSharedFolder -ChildPath $userName.Substring($userName.IndexOf("\"))
         if (Test-Path -Path $userPath -PathType Container)
         {
             $userAccessUserFolder=Get-Item -Path $userPath | Get-NTFSEffectiveAccess -Account $userName | select Account, AccessRights, FullName
+            if ($userAccessUserFolder.AccessRights -like "Write, ReadAndExecute, Synchronize")
+            {
+                $userAccessUserFolder.AccessRights="SET"
+            }
+            else
+            {
+                $userAccessUserFolder.AccessRights="UNSET"
+            }
             $filesReport.Add("UserFolderUserAccess",$userAccessUserFolder)
 
-            $groupAccessUserfolder=Get-Item -Path $userPath | Get-NTFSEffectiveAccess -Account $groupName |select Account, AccessRights, FullName
+            $groupAccessUserfolder=Get-Item -Path $userPath | Get-NTFSEffectiveAccess -Account $groupName | select Account, AccessRights, FullName
+            if ($groupAccessUserfolder.AccessRights -like "Synchronize")
+            {
+                $groupAccessUserfolder.AccessRights="SET"
+            }
+            else
+            {
+                $groupAccessUserfolder.AccessRights="UNSET"
+            }
             $filesReport.Add("UserFolderGroupAccess",$groupAccessUserfolder)
         }
         else
@@ -175,7 +211,8 @@ $computerList=(Get-ADComputer -Filter * -SearchBase "OU=$monitoredOU, DC=domena,
 
 $userName="$env:USERDOMAIN\jnowak"
 $groupName="$env:USERDOMAIN\Pracownicy_DP"
-$departmentPath="\\$env:COMPUTERNAME\DP"
+$pathToSharedFolder="\\$env:COMPUTERNAME"
+$departmentName="DP"
 
 $pathToScript="C:\TEST\skrypt.ps1"
 $isScriptExist=Test-Path -Path $pathToScript -PathType Leaf
@@ -189,7 +226,8 @@ $softwareList = [ordered]@{
     "Java 8"            = "*Oracle*" 
 }
 
-$filesReport=Get-FilesReport -userName $userName -groupName $groupName -departmentName $departmentPath
+$filesReport=Get-FilesReport -userName $userName -groupName $groupName -pathToSharedFolder $pathToSharedFolder -department $departmentName
+
 
 ########################################################################
 ########################################################################
