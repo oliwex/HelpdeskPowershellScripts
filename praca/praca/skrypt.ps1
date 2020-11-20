@@ -287,7 +287,7 @@ function Get-NetworkReport
 {
 
     $deviceId=Get-NetAdapter -Physical | Where-Object {$_.Status -eq "Up"} | Select -ExpandProperty DeviceId
-    $DHCPStatus=Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$id" | Select-Object -ExpandProperty EnableDHCP
+    $DHCPStatus=Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$deviceId" | Select-Object -ExpandProperty EnableDHCP
 
     if ($DHCPStatus -eq 1)
     {
