@@ -250,28 +250,31 @@ function Get-SoftwareReport
     $softwareList
     )
 
-    ##requires Carbon
     $programList = [ordered]@{}
 
-    $32bitPath = "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall" 
-    $64bitPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
-
+    $32bitPath = "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall\" 
+    $64bitPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
+    
     foreach ($programName in $softwareList.Keys)
     {
-        $32bitPathProgram=Join-Path -Path $32bitPath -ChildPath $programName
-        $64bitPathProgram=Join-Path -Path $64bitPath -ChildPath $programName
+
+        $32bitElementName=(Get-ChildItem $32bitPath | Get-ItemProperty | Where-Object { ($_.DisplayName -like "*$programName*") -and ($_.Publisher -like "*$($softwareList[$programName])*") }).PSChildName | Select-Object -Last 1
+        $32bitPathProgram=Join-Path -Path $32bitPath -ChildPath $32bitElementName
+        
+        $64bitElementName=(Get-ChildItem $64bitPath | Get-ItemProperty | Where-Object { ($_.DisplayName -like "*$programName*") -and ($_.Publisher -like "*$($softwareList[$programName])*") }).PSChildName | Select-Object -Last 1
+        $64bitPathProgram=Join-Path -Path $64bitPath -ChildPath $64bitElementName
 
         $32bitTest=Test-RegistryKeyValueExist -Path $32bitPathProgram -Name DisplayName
         $64bitTest=Test-RegistryKeyValueExist -Path $64bitPathProgram -Name DisplayName
 
         if ($64bitTest) #Test 64bit
         {
-            $programInfo=Get-ChildItem $64bitPath | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation| Where-Object { ($_.DisplayName -like "*$programName*") -and ($_.Publisher -like "*$($softwareList[$programName])*") }
+            $programInfo=Get-ItemProperty $64bitPathProgram | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation
             $programList.Add($programName,$programInfo)
         }
         elseif ($32bitTest) #Test 32bit
         {
-            $programInfo=Get-ChildItem $32bitPath | Get-ItemProperty | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation | Where-Object { ($_.DisplayName -like "*$programName*") -and ($_.Publisher -like "*$($softwareList[$programName])*") }
+            $programInfo=Get-ItemProperty $32bitPathProgram | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation 
             $programList.Add($programName,$programInfo)
         }
         else
@@ -280,9 +283,9 @@ function Get-SoftwareReport
         }
     }
 
-    return $programList
+    $programList
 }
-
+#(((Get-ChildItem $64bitPath | Get-ItemProperty | Where-Object { ($_.DisplayName -like "*$programName*") -and ($_.Publisher -like "*$($softwareList[$programName])*") }).PSPath -split 'Uninstall')[1]).Substring(1)
 function Get-NetworkReport
 {
 
