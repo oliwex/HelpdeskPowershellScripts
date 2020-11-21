@@ -3,7 +3,7 @@ $softwareList,
 $filesSystem
 )
 
-
+$softwareList
 ###################BEFORE FUNCTIONS#####################
 Set-ExecutionPolicy -ExecutionPolicy Bypass
 
@@ -250,7 +250,7 @@ function Get-SoftwareReport
     $softwareList
     )
 
-    $programList = [ordered]@{}
+    $softwareReport = [ordered]@{}
 
     $32bitPath = "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall\" 
     $64bitPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
@@ -266,26 +266,26 @@ function Get-SoftwareReport
 
         $32bitTest=Test-RegistryKeyValueExist -Path $32bitPathProgram -Name DisplayName
         $64bitTest=Test-RegistryKeyValueExist -Path $64bitPathProgram -Name DisplayName
-
+        
         if ($64bitTest) #Test 64bit
         {
             $programInfo=Get-ItemProperty $64bitPathProgram | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation
-            $programList.Add($programName,$programInfo)
+            $softwareReport.Add($programName,$programInfo)
         }
         elseif ($32bitTest) #Test 32bit
         {
             $programInfo=Get-ItemProperty $32bitPathProgram | Select-Object DisplayName, Version, InstallDate, Publisher, InstallLocation 
-            $programList.Add($programName,$programInfo)
+            $softwareReport.Add($programName,$programInfo)
         }
         else
         {
-            $programList.Add($programName,"UNSET")
+            $softwareReport.Add($programName,"UNSET")
         }
     }
 
-    $programList
+   return $softwareReport
 }
-#(((Get-ChildItem $64bitPath | Get-ItemProperty | Where-Object { ($_.DisplayName -like "*$programName*") -and ($_.Publisher -like "*$($softwareList[$programName])*") }).PSPath -split 'Uninstall')[1]).Substring(1)
+
 function Get-NetworkReport
 {
 
@@ -449,8 +449,6 @@ function Get-LogReport
 ######################MAIN###########################
 
 $hardwareSystem=Get-ComputerReport
-
-
 $quotaSystem=Get-QuotaReport
 $softwareSystem=Get-SoftwareReport -softwareList $softwareList
 #tu można umieścić zmienną $filesSystem która ma hashtable oznaczającą sprawdzenie udziałów sieciowych
@@ -462,11 +460,9 @@ $defenderSystem=Get-DefenderReport
 $logSystem=Get-LogReport
 
 
-
 $fullReport=[ordered]@{}
 
 $testRegistry=Test-Path -Path HKLM:\SYSTEM\TEST
-
 
 
 if ($testRegistry)
@@ -483,6 +479,8 @@ if ($testRegistry)
 
     $softwareRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SOFTWARE"
     $softwareReport=Compare-Hashtables2Level -fromSystem $softwareSystem -fromRegistry $softwareRegistry
+
+    $softwareReport > C:\lama.txt
 
     $filesRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\FILESHARE"
     $filesReport=Compare-Hashtables2Level -fromSystem $filesSystem -fromRegistry $filesRegistry
