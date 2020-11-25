@@ -562,7 +562,7 @@ $videoController=$fullReport.HARDWARE.VideoController | ConvertTo-Html -As Table
 
 $hardwareReport = ConvertTo-HTML -Head $header -Body "<div class='hardware'>$hardwareReportTitle $disk $processor $memory $videoController</div>"  
 
-#NIE DZIAŁA
+
 $quotaReportTitle="<h2>Quota Report</h2>"
 
 $quota=[PSCustomObject]$fullReport.QUOTA
@@ -574,7 +574,7 @@ $quotaReport = ConvertTo-HTML -Head $header -Body "<div class='quota'>$quotaRepo
 #SOFTWARE
 #FILESHARE
 
-#NIE DZIAŁA
+
 $networkReportTitle="<h2>Network Report</h2>"
 
 $network=[PSCustomObject]$fullReport.NETWORK
@@ -610,14 +610,23 @@ $public=$fullReport.FIREWALL.Public | ConvertTo-Html -As Table -Fragment -PreCon
 
 $firewallReport = ConvertTo-HTML -Head $header -Body "<div class='printer'>$firewallReportTitle $domain $private $public</div>"  
 
-#NIE DZIAŁA
-$defenderReportTitle="<h2>Defender Report</h2>"
 
-$defender=[PSCustomObject]$fullReport.DEFENDER
-$defender=$defender | ConvertTo-Html -As Table -Fragment -PreContent "<h3>Defender Report</h3>"
+#$defenderReportTitle="<h2>Defender Report</h2>"
 
-$defenderReport = ConvertTo-HTML -Head $header -Body "<div class='printer'>$defenderReportTitle $defender</div>"  
+#$defender=[PSCustomObject]$fullReport.DEFENDER
+#$defender=$defender | ConvertTo-Html -As Table -Fragment -PreContent "<h3>Defender Report</h3>"
 
+#$defenderReport = ConvertTo-HTML -Head $header -Body "<div class='printer'>$defenderReportTitle $defender</div>"  
+
+function New-ReportElement($reportElement,$title)
+{
+    $tmp1="<h2>$title</h2>"
+    $tmp=[PSCustomObject]$reportElement | ConvertTo-Html -As Table -Fragment -PreContent "<h3>Defender Report</h3>"
+    $tmp2 = ConvertTo-HTML -Head $header -Body "<div class='printer'>$tmp1 $tmp</div>"
+    return $tmp2 
+}
+
+New-ReportElement($fullReport.DEFENDER,"DEFENDER")
 
 
 $report = ConvertTo-HTML -Head $header -Body "<div class='report'>$hardwareReport $quotaReport $networkReport $printerReport $serviceReport $firewallReport $defenderReport</div>"  
@@ -625,3 +634,4 @@ $report = ConvertTo-HTML -Head $header -Body "<div class='report'>$hardwareRepor
 $report | Out-File C:\Basic-Computer-Information-Report.html
 
 
+#TODO:Sprawdzenie jak w html header jest czytany
