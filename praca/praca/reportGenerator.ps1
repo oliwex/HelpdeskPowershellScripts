@@ -472,7 +472,10 @@ $fullReport=[ordered]@{
     LOG=$logReport;
     FIRST=$false
     }
-###############################################################################
+
+#############################################################################################
+#############################################################################################
+#############################################################################################
 $header = @"
 <style>
 
@@ -549,89 +552,81 @@ $header = @"
 
 </style>
 "@
-#######
+####################################################################################################
+####################################################################################################
+####################################################################################################
+function New-ReportElement
+{
+    [CmdletBinding()]
+    Param(
+    [Parameter(Mandatory=$true,HelpMessage="ReportElement",Position=1)]
+    $reportElement
+    )
+    $reportElement=[PSCustomObject]$reportElement | ConvertTo-Html -As Table -Fragment
+    return $reportElement 
+}
+
+
+####################################################################################################
+####################################################################################################
+####################################################################################################
 
 $reportTitle="<h1>Computer name: HOST1</h1>"
 
+
+#HARDWARE
 $hardwareReportTitle="<h2>Hardware Report</h2>"
-
-$disk=$fullReport.HARDWARE.Disk | ConvertTo-Html -As Table -Fragment -PreContent "<h3>DiskInfo</h3>"
-$processor=$fullReport.HARDWARE.Processor | ConvertTo-Html -As Table -Fragment -PreContent "<h3>Processor</h3>"
-$memory=$fullReport.HARDWARE.Memory | ConvertTo-Html -As Table -Fragment -PreContent "<h3>Memory</h3>"
-$videoController=$fullReport.HARDWARE.VideoController | ConvertTo-Html -As Table -Fragment -PreContent "<h3>Video Controller</h3>"
-
-$hardwareReport = ConvertTo-HTML -Head $header -Body "<div class='hardware'>$hardwareReportTitle $disk $processor $memory $videoController</div>"  
+$disk=New-ReportElement -reportElement $($fullReport.HARDWARE).Disk
+$processor=New-ReportElement -reportElement $($fullReport.HARDWARE).Processor
+$memory=New-ReportElement -reportElement $($fullReport.HARDWARE).Memory
+$videoController=New-ReportElement -reportElement $($fullReport.HARDWARE).VideOController
+$hardwareReport = ConvertTo-HTML -Body "<div class='hardware'>$hardwareReportTitle $disk $processor $memory $videoController</div>"  
 
 
-$quotaReportTitle="<h2>Quota Report</h2>"
-
-$quota=[PSCustomObject]$fullReport.QUOTA
-$quota=$quota | ConvertTo-Html -As Table -Fragment
-
-$quotaReport = ConvertTo-HTML -Head $header -Body "<div class='quota'>$quotaReportTitle $quota</div>"  
+#QUOTA
+$title="<h2>Quota Report</h2>"
+$element=New-ReportElement -reportElement $fullReport.QUOTA
+$nquotaReport = ConvertTo-HTML -Body "<div class='quota'>$title $element</div>"
 
 
 #SOFTWARE
 #FILESHARE
 
 
-$networkReportTitle="<h2>Network Report</h2>"
+#NETWORK
+$title="<h2>Network Report</h2>"
+$element=New-ReportElement -reportElement $fullReport.NETWORK
+$networkReport = ConvertTo-HTML -Body "<div class='network'>$title $element</div>"
 
-$network=[PSCustomObject]$fullReport.NETWORK
-$network=$network | ConvertTo-Html -As Table -Fragment
+#PRINTER
+$title="<h2>Printer Report</h2>"
+$element=New-ReportElement -reportElement $fullReport.PRINTER
+$printerReport = ConvertTo-HTML -Body "<div class='printer'>$title $element</div>"
 
-$networkReport = ConvertTo-HTML -Head $header -Body "<div class='network'>$networkReportTitle $network</div>"  
-
-#NIE DZIAŁA
-$printerReportTitle="<h2>Printer Report</h2>"
-
-$printer=[PSCustomObject]$fullReport.PRINTER
-$printer=$printer | ConvertTo-Html -As Table -Fragment 
-
-$printerReport = ConvertTo-HTML -Head $header -Body "<div class='printer'>$printerReportTitle $printer</div>"  
-
-
+#SERVICE
 $serviceReportTitle="<h2>Service Report</h2>"
+$AppIDSvc=New-ReportElement -reportElement $($fullReport.SERVICE).AppIDSvc
+$mpssvc=New-ReportElement -reportElement $($fullReport.SERVICE).mpssvc
+$W32Time=New-ReportElement -reportElement $($fullReport.SERVICE).W32Time
+$WinDefend=New-ReportElement -reportElement $($fullReport.SERVICE).WinDefend
+$wuauserv=New-ReportElement -reportElement $($fullReport.SERVICE).wuauserv
+$serviceReport = ConvertTo-HTML -Body "<div class='service'>$serviceReportTitle $AppIDSvc $mpssvc $W32Time $WinDefend $wuauserv</div>"  
 
-$AppIDSvc=$fullReport.SERVICE.AppIDSvc | ConvertTo-Html -As Table -Fragment -PreContent "<h3>AppIDSvc Report</h3>"
-$mpssvc=$fullReport.SERVICE.mpssvc | ConvertTo-Html -As Table -Fragment -PreContent "<h3>mpssvc Report</h3>"
-$W32Time=$fullReport.SERVICE.W32Time | ConvertTo-Html -As Table -Fragment -PreContent "<h3>W32Time Report</h3>"
-$WinDefend=$fullReport.SERVICE.WinDefend | ConvertTo-Html -As Table -Fragment -PreContent "<h3>WinDefend Report</h3>"
-$wuauserv=$fullReport.SERVICE.wuauserv | ConvertTo-Html -As Table -Fragment -PreContent "<h3>wuauserv Report</h3>"
-
-$serviceReport = ConvertTo-HTML -Head $header -Body "<div class='service'>$serviceReportTitle $AppIDSvc $mpssvc $W32Time $WinDefend $wuauserv</div>"  
-
-
+#FIREWALL
 $firewallReportTitle="<h2>Firewall Report</h2>"
+$domain=New-ReportElement -reportElement $($fullReport.FIREWALL).Domain
+$private=New-ReportElement -reportElement $($fullReport.FIREWALL).Private
+$public=New-ReportElement -reportElement $($fullReport.FIREWALL).Public
+$firewallReport = ConvertTo-HTML -Body "<div class='firewall'>$firewallReportTitle $domain $private $public</div>"  
 
-$domain=$fullReport.FIREWALL.Domain | ConvertTo-Html -As Table -Fragment -PreContent "<h3>Domain Report</h3>"
-$private=$fullReport.FIREWALL.Private | ConvertTo-Html -As Table -Fragment -PreContent "<h3>Private Report</h3>"
-$public=$fullReport.FIREWALL.Public | ConvertTo-Html -As Table -Fragment -PreContent "<h3>Public Report</h3>"
-
-$firewallReport = ConvertTo-HTML -Head $header -Body "<div class='printer'>$firewallReportTitle $domain $private $public</div>"  
-
-
-#$defenderReportTitle="<h2>Defender Report</h2>"
-
-#$defender=[PSCustomObject]$fullReport.DEFENDER
-#$defender=$defender | ConvertTo-Html -As Table -Fragment -PreContent "<h3>Defender Report</h3>"
-
-#$defenderReport = ConvertTo-HTML -Head $header -Body "<div class='printer'>$defenderReportTitle $defender</div>"  
-
-function New-ReportElement($reportElement,$title)
-{
-    $tmp1="<h2>$title</h2>"
-    $tmp=[PSCustomObject]$reportElement | ConvertTo-Html -As Table -Fragment -PreContent "<h3>Defender Report</h3>"
-    $tmp2 = ConvertTo-HTML -Head $header -Body "<div class='printer'>$tmp1 $tmp</div>"
-    return $tmp2 
-}
-
-New-ReportElement($fullReport.DEFENDER,"DEFENDER")
+#DEFENDER
+$title="<h2>Defender Report</h2>"
+$element=New-ReportElement -reportElement $fullReport.DEFENDER
+$defenderReport = ConvertTo-HTML -Body "<div class='defender'>$title $element</div>"
 
 
+#MERGE
 $report = ConvertTo-HTML -Head $header -Body "<div class='report'>$hardwareReport $quotaReport $networkReport $printerReport $serviceReport $firewallReport $defenderReport</div>"  
-#The command below will generate the report to an HTML file
 $report | Out-File C:\Basic-Computer-Information-Report.html
 
 
-#TODO:Sprawdzenie jak w html header jest czytany
