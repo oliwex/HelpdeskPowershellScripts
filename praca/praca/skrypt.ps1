@@ -480,8 +480,6 @@ if ($testRegistry)
     $softwareRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SOFTWARE"
     $softwareReport=Compare-Hashtables2Level -fromSystem $softwareSystem -fromRegistry $softwareRegistry
 
-    $softwareReport > C:\lama.txt
-
     $filesRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\FILESHARE"
     $filesReport=Compare-Hashtables2Level -fromSystem $filesSystem -fromRegistry $filesRegistry
 

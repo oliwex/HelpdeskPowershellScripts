@@ -95,6 +95,21 @@ function Get-FilesReport
 
     return $filesReport
 }
+function Get-ReportPath
+{
+    $path=Read-Host -Prompt "Podaj ścieżkę do raportowania"
+    $testPath=Test-Path -Path $path -PathType Container
+    if (-not($testPath))
+    {
+        New-Item -Path $path -ItemType Directory
+    }
+
+    $datetime=Get-Date -Format "HH.mm_MM.dd.yyyy"
+    $fileName="$computerToMonitor-$datetime.html"
+    $reportPath=Join-Path -Path $path -ChildPath $fileName
+    return $reportPath
+}
+
 
 ###########################VARIABLES###################################
 $computerToMonitor="HOST1"
@@ -129,6 +144,9 @@ $filesReport=Get-FilesReport -userName $userName -groupName $groupName -pathToSh
 ########################################################################
 
 
+$reportPath=Get-ReportPath
+
+
 #Current State
 $gpoLast=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
 
@@ -147,14 +165,14 @@ while($true)
         "1=POLITYKA,2=NULL"
         $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
         "raportuj"
-        & $pathToReportGenerator "$fullReport","$computerToMonitor"
+        & $pathToReportGenerator "$fullReport","$computerToMonitor","$reportPath"
     }
     if (($isLastExist -eq $true) -and ($isCurrentExist -eq $false))
     {
         "1=NULL,2=POLITYKA"
         $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
         "raportuj"
-        & $pathToReportGenerator "$fullReport","$computerToMonitor"
+        & $pathToReportGenerator "$fullReport","$computerToMonitor","$reportPath"
     }
     if (($testLastNull -eq $false) -and ($testCurrentNull -eq $false))
     {
@@ -167,7 +185,7 @@ while($true)
             "POLITYKI ISTNIEJĄ I ZOSTAŁY WYKONANE ZMIANY"
             $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
             "raportuj"
-            & $pathToReportGenerator "$fullReport","$computerToMonitor"
+            & $pathToReportGenerator "$fullReport","$computerToMonitor","$reportPath"
         }
     }
     $gpoLast=$gpoCurrent 
