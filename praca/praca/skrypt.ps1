@@ -3,7 +3,7 @@ $softwareList,
 $filesSystem
 )
 
-$softwareList
+
 ###################BEFORE FUNCTIONS#####################
 Set-ExecutionPolicy -ExecutionPolicy Bypass
 

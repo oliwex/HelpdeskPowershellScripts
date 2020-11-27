@@ -97,8 +97,7 @@ function Get-FilesReport
 }
 
 ###########################VARIABLES###################################
-$monitoredOU="KOMPUTERY"
-$computerList=(Get-ADComputer -Filter * -SearchBase "OU=$monitoredOU, DC=domena, DC=local").Name
+$computerToMonitor="HOST1"
 
 
 $userName="$env:USERDOMAIN\jnowak"
@@ -146,16 +145,16 @@ while($true)
     if (($isLastExist -eq $false) -and ($isCurrentExist -eq $true))
     {
         "1=POLITYKA,2=NULL"
-        $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+        $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
         "raportuj"
-        Invoke-Command  -FilePath $pathToReportGenerator -ArgumentList $fullReport
+        & $pathToReportGenerator "$fullReport","$computerToMonitor"
     }
     if (($isLastExist -eq $true) -and ($isCurrentExist -eq $false))
     {
         "1=NULL,2=POLITYKA"
-        $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+        $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
         "raportuj"
-        Invoke-Command -FilePath $pathToReportGenerator -ArgumentList $fullReport
+        & $pathToReportGenerator "$fullReport","$computerToMonitor"
     }
     if (($testLastNull -eq $false) -and ($testCurrentNull -eq $false))
     {
@@ -166,9 +165,9 @@ while($true)
         if ($isDifferenceExist -eq $false)
         {
             "POLITYKI ISTNIEJĄ I ZOSTAŁY WYKONANE ZMIANY"
-            $fullReport=Invoke-Command -ComputerName HOST1 -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+            $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
             "raportuj"
-            Invoke-Command  -FilePath $pathToReportGenerator -ArgumentList $fullReport
+            & $pathToReportGenerator "$fullReport","$computerToMonitor"
         }
     }
     $gpoLast=$gpoCurrent 
