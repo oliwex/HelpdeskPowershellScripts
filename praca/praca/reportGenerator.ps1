@@ -4,38 +4,52 @@
 $header = @"
 <style>
 
-    h1 {
-
-        font-family: Arial, Helvetica, sans-serif;
-        color: #e68a00;
+	body
+	{
+		margin: 0 auto;
+		width:80%
+	}
+    .report
+    {
+        text-align: center;
+    }
+    h1 
+    {
+		text-align: center;
+        font-family: Calibri;
+        color: #015965;
         font-size: 28px;
-
     }
-
-    
-    h2 {
-
-        font-family: Arial, Helvetica, sans-serif;
-        color: #000099;
-        font-size: 16px;
-
+    h2 
+	{
+        font-family: 'Lato', sans-serif;
+        color: #009999;
+        font-size: 20px;
+		text-align:center;
     }
-
+	.hardware > table , .software > table , .fileshare > table , .service > table , .firewall > table
+	{
+		display:inline;
+	}
+    .quota > table , .network > table, .printer > table , .defender > table
+	{
+		margin:0 auto;
+	}
     
-    
-   table {
+   table 
+   {
 		font-size: 12px;
-		border: 0px; 
 		font-family: Arial, Helvetica, sans-serif;
+        text-align: left;
 	} 
-	
-    td {
+    td 
+    {
 		padding: 4px;
 		margin: 0px;
 		border: 0;
 	}
-	
-    th {
+    th 
+    {
         background: #395870;
         background: linear-gradient(#49708f, #293f50);
         color: #fff;
@@ -45,35 +59,20 @@ $header = @"
         vertical-align: middle;
 	}
 
-    tbody tr:nth-child(even) {
+    tbody tr:nth-child(even) 
+    {
         background: #f0f0f2;
     }
-    
-
-
-    #CreationDate {
-
-        font-family: Arial, Helvetica, sans-serif;
-        color: #ff3300;
-        font-size: 12px;
-
-    }
-
-
 
     .StopStatus {
 
         color: #ff0000;
     }
     
-  
     .RunningStatus {
 
         color: #008000;
     }
-
-
-
 
 </style>
 "@
@@ -114,21 +113,21 @@ $quotaReport = ConvertTo-HTML -Body "<div class='quota'>$quotaReportTitle $quota
 
 
 #SOFTWARE
-$softwareReportTitle="<h2>Service Report</h2>"
+$softwareReportTitle="<h2>Software Report</h2>"
 $adobe=New-ReportElement -reportElement $($($fullReport.SOFTWARE).Adobe)
 $java=New-ReportElement -reportElement $($($fullReport.SOFTWARE)."Java 8")
 $zip=New-ReportElement -reportElement $($($fullReport.SOFTWARE)."7-zip")
 $notepad=New-ReportElement -reportElement $($($fullReport.SOFTWARE)."Notepad++")
 $edge=New-ReportElement -reportElement $($($fullReport.SOFTWARE)."Microsoft Edge")
-$softwareReport = ConvertTo-HTML -Body "<div class='service'>$softwareReportTitle $adobe $java $zip $notepad $edge</div>" 
+$softwareReport = ConvertTo-HTML -Body "<div class='software'>$softwareReportTitle $adobe $java $zip $notepad $edge</div>" 
 
 #FILESHARE
-$fileshareReportTitle="<h2>Service Report</h2>"
+$fileshareReportTitle="<h2>Fileshare Report</h2>"
 $userFolderUserAccess=New-ReportElement -reportElement $($($fullReport.FILESHARE).UserFolderUserAccess)
 $departmentFolderGroupAccess=New-ReportElement -reportElement $($($fullReport.FILESHARE).DepartmentFolderGroupAccess)
 $userFolderGroupAccess=New-ReportElement -reportElement $($($fullReport.FILESHARE).UserFolderGroupAccess)
 $departmentFolderUserAccess=New-ReportElement -reportElement $($($fullReport.FILESHARE).DepartmentFolderUserAccess)
-$fileshareReport = ConvertTo-HTML -Body "<div class='service'>$fileshareReportTitle $userFolderUserAccess $departmentFolderGroupAccess $userFolderGroupAccess $departmentFolderUserAccess</div>" 
+$fileshareReport = ConvertTo-HTML -Body "<div class='fileshare'>$fileshareReportTitle $userFolderUserAccess $departmentFolderGroupAccess $userFolderGroupAccess $departmentFolderUserAccess</div>" 
 
 #NETWORK
 $networkReportTitle="<h2>Network Report</h2>"

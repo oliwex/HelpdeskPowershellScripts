@@ -97,23 +97,72 @@ function Get-FilesReport
 }
 function Get-ReportPath
 {
-    $path=Read-Host -Prompt "Podaj ścieżkę do raportowania"
-    $testPath=Test-Path -Path $path -PathType Container
-    if (-not($testPath))
-    {
-        New-Item -Path $path -ItemType Directory
-    }
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,HelpMessage="UserName.",Position=0)]
+        [String]$computerToMonitor
+    )
 
-    $datetime=Get-Date -Format "HH.mm_MM.dd.yyyy"
+    do
+    {
+        $isIdentical=$true
+        $reportPath=Read-Host -Prompt "Podaj ścieżkę do logowania zdarzeń"
+        $isReportPathNull=[string]::IsNullorEmpty($reportPath)
+        
+        if ($isReportPathNull)
+        {
+            continue
+        }
+        else
+        {
+            $isIdentical=Test-Path -Path $reportPath -PathType Container
+            if ($isIdentical)
+            {
+                continue
+            }
+            else
+            {
+                New-Item -Path $reportPath -ItemType Directory
+            }
+        }
+
+    }
+    until (-not($isIdentical))
+
+
+    $datetime=Get-Date -Format "HH.mm_dd.MM.yyyy"
     $fileName="$computerToMonitor-$datetime.html"
-    $reportPath=Join-Path -Path $path -ChildPath $fileName
+    $reportPath=Join-Path -Path $reportPath -ChildPath $fileName
     return $reportPath
 }
+#### TODO
+function Get-LogPath
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,HelpMessage="ResultPath",Position=0)]
+        [String]$resultPath,
+        [Parameter(Mandatory=$true,HelpMessage="ComputerToMonitor",Position=1)]
+        [String]$computerToMonitor
+        )
 
+    $logPath=Read-Host -Prompt "Podaj ścieżkę do logowania zdarzeń"
+    $isPathExist=Test-Path -Path $logPath -PathType Container
 
+    if ((-not($isPathExist)) -and ($logPath -ne $resultPath))
+    {
+        New-Item -Path $logPath -ItemType Directory
+    }
+
+    $datetime=Get-Date -Format "HH.mm_dd.MM.yyyy"
+    $fileName="$computerToMonitor-$datetime.txt"
+    $logPathResult=Join-Path -Path $logPath -ChildPath $fileName
+    return $logPathResult
+}
+#TODO: Funkcja do generowania czasu
 ###########################VARIABLES###################################
-$computerToMonitor="HOST1"
-
+$computerToMonitor="HOST"
+$monitoredOU="KOMPUTERY"
 
 $userName="$env:USERDOMAIN\jnowak"
 $groupName="$env:USERDOMAIN\Pracownicy_DP"
@@ -144,8 +193,8 @@ $filesReport=Get-FilesReport -userName $userName -groupName $groupName -pathToSh
 ########################################################################
 
 
-$reportPath=Get-ReportPath
-
+$resultPath=[string]$(Get-ReportPath -computerToMonitor $computerToMonitor)
+$logPath=[string]$(Get-LogPath -resultPath $resultPath -computerToMonitor $computerToMonitor)
 
 #Current State
 $gpoLast=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
@@ -165,14 +214,14 @@ while($true)
         "1=POLITYKA,2=NULL"
         $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
         "raportuj"
-        & $pathToReportGenerator "$fullReport","$computerToMonitor","$reportPath"
+        & $pathToReportGenerator "$fullReport","$computerToMonitor","$resultPath"
     }
     if (($isLastExist -eq $true) -and ($isCurrentExist -eq $false))
     {
         "1=NULL,2=POLITYKA"
         $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
         "raportuj"
-        & $pathToReportGenerator "$fullReport","$computerToMonitor","$reportPath"
+        & $pathToReportGenerator "$fullReport","$computerToMonitor","$resultPath"
     }
     if (($testLastNull -eq $false) -and ($testCurrentNull -eq $false))
     {
@@ -185,7 +234,7 @@ while($true)
             "POLITYKI ISTNIEJĄ I ZOSTAŁY WYKONANE ZMIANY"
             $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
             "raportuj"
-            & $pathToReportGenerator "$fullReport","$computerToMonitor","$reportPath"
+            & $pathToReportGenerator "$fullReport","$computerToMonitor","$resultPath"
         }
     }
     $gpoLast=$gpoCurrent 
