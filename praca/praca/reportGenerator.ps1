@@ -163,6 +163,6 @@ $defenderReport = ConvertTo-HTML -Body "<div class='defender'>$defenderReportTit
 
 #MERGE
 $report = ConvertTo-HTML -Head $header -Body "<div class='report'>$reportTitle $hardwareReport $quotaReport $softwareReport $fileshareReport  $networkReport $printerReport $serviceReport $firewallReport $defenderReport</div>"  
-$report | Out-File $reportPath
+$report | Out-File $resultFile
 
 #######################################

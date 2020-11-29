@@ -6,7 +6,6 @@
 #odpowiednie tłumaczenie uprawnień do udziałów sieciowych
 #sprawdzenie czy są odpowiednie moduły
 #Procent spełnienia założeń skryptu: % CHANGED i  % UNCHANGED
-#Kolorystyka raportów
 ##########################FUNCTIONS####################################
 
 function Get-FilesReport
@@ -95,18 +94,14 @@ function Get-FilesReport
 
     return $filesReport
 }
+
 function Get-ReportPath
 {
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory=$true,HelpMessage="UserName.",Position=0)]
-        [String]$computerToMonitor
-    )
 
     do
     {
         $isIdentical=$true
-        $reportPath=Read-Host -Prompt "Podaj ścieżkę do logowania zdarzeń"
+        $reportPath=Read-Host -Prompt "Podaj ścieżkę do raportowania zdarzeń"
         $isReportPathNull=[string]::IsNullorEmpty($reportPath)
         
         if ($isReportPathNull)
@@ -122,44 +117,104 @@ function Get-ReportPath
             }
             else
             {
-                New-Item -Path $reportPath -ItemType Directory
+                New-Item -Path $reportPath -ItemType Directory | Out-Null
             }
         }
 
     }
     until (-not($isIdentical))
 
-
-    $datetime=Get-Date -Format "HH.mm_dd.MM.yyyy"
-    $fileName="$computerToMonitor-$datetime.html"
-    $reportPath=Join-Path -Path $reportPath -ChildPath $fileName
     return $reportPath
 }
-#### TODO
+
+function Get-ReportFile
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,HelpMessage="ReportPath",Position=0)]
+        [String]$reportPath,
+        [Parameter(Mandatory=$true,HelpMessage="ComputerToMonitor",Position=1)]
+        [String]$computerToMonitor
+    )
+    $datetime=Get-DateTime
+    $fileName="$computerToMonitor-$datetime.html"
+    $reportPath=Join-Path -Path $reportPath -ChildPath $fileName
+
+    return $reportPath
+}
+
+function Get-DateTime
+{
+$datetime=Get-Date -Format "HH.mm.ss.ffff_dd.MM.yyyy"
+return $datetime
+}
+
 function Get-LogPath
 {
     [CmdletBinding()]
     Param(
-        [Parameter(Mandatory=$true,HelpMessage="ResultPath",Position=0)]
-        [String]$resultPath,
-        [Parameter(Mandatory=$true,HelpMessage="ComputerToMonitor",Position=1)]
+
+        [Parameter(Mandatory=$true,HelpMessage="ComputerToMonitor",Position=0)]
         [String]$computerToMonitor
         )
-
-    $logPath=Read-Host -Prompt "Podaj ścieżkę do logowania zdarzeń"
-    $isPathExist=Test-Path -Path $logPath -PathType Container
-
-    if ((-not($isPathExist)) -and ($logPath -ne $resultPath))
+    do
     {
-        New-Item -Path $logPath -ItemType Directory
+        $isIdentical=$true
+        $logPath=Read-Host -Prompt "Podaj ścieżkę do logowania zdarzeń:"
+        $isLogPathNull=[string]::IsNullorEmpty($logPath)
+        
+        if ($isLogPathNull)
+        {
+            continue
+        }
+        else
+        {
+            $isIdentical=Test-Path -Path $logPath -PathType Container
+            if ($isIdentical)
+            {
+                continue
+            }
+            else
+            {
+                New-Item -Path $logPath -ItemType Directory | Out-Null
+            }
+        }
+
     }
+    until (-not($isIdentical))
 
     $datetime=Get-Date -Format "HH.mm_dd.MM.yyyy"
     $fileName="$computerToMonitor-$datetime.txt"
-    $logPathResult=Join-Path -Path $logPath -ChildPath $fileName
-    return $logPathResult
+    $logFilePath=Join-Path -Path $logPath -ChildPath $fileName
+    New-Item -Path $logPath -Name $fileName -ItemType File | Out-Null
+    return  $logFilePath
 }
-#TODO: Funkcja do generowania czasu
+
+function New-InformationLog
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,HelpMessage="LogPath",Position=0)]
+        [String]$logPath,
+        [Parameter(Mandatory=$true,HelpMessage="Message",Position=1)]
+        [String]$message,
+        [Parameter(Mandatory=$true,HelpMessage="Color",Position=2)]
+        [String]$color
+        )
+
+    $datetime=Get-DateTime
+    "[$datetime] $message" >> $logPath
+    if ($color -eq "red")
+    {
+        Write-Host "[$datetime] $message " -ForegroundColor Red
+    }
+    else
+    {
+        Write-Host "[$datetime] $message " -ForegroundColor Green
+    }
+}
+
+
 ###########################VARIABLES###################################
 $computerToMonitor="HOST"
 $monitoredOU="KOMPUTERY"
@@ -181,9 +236,6 @@ $softwareList = [ordered]@{
     "Java 8"            = "*Oracle*" 
 }
 
-$filesReport=Get-FilesReport -userName $userName -groupName $groupName -pathToSharedFolder $pathToSharedFolder -department $departmentName
-
-
 ########################################################################
 ########################################################################
 ##                                                                    ##
@@ -192,49 +244,84 @@ $filesReport=Get-FilesReport -userName $userName -groupName $groupName -pathToSh
 ########################################################################
 ########################################################################
 
+$resultPath=$(Get-ReportPath)
+$logPath=$(Get-LogPath -computerToMonitor $computerToMonitor)
 
-$resultPath=[string]$(Get-ReportPath -computerToMonitor $computerToMonitor)
-$logPath=[string]$(Get-LogPath -resultPath $resultPath -computerToMonitor $computerToMonitor)
+
+
+New-InformationLog -logPath $logPath -message "Rozpoczęcie działania skryptu" -color green
+
+$filesReport=Get-FilesReport -userName $userName -groupName $groupName -pathToSharedFolder $pathToSharedFolder -department $departmentName
+New-InformationLog -logPath $logPath -message "Zebranie informacji o udziałach sieciowych" -color green
+
 
 #Current State
 $gpoLast=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
+New-InformationLog -logPath $logPath -message "Zebranie informacji o obecnym stanie polityk GPO" -color green
 
 while($true)
 {
+
+    $resultFile=$(Get-ReportFile -reportPath $resultPath -computerToMonitor $computerToMonitor)
+
     Read-Host "Change GPO: "
     $isLastExist=[string]::IsNullOrEmpty($gpoLast)
     $gpoCurrent=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
     $isCurrentExist=[string]::IsNullOrEmpty($gpoCurrent)
+
+    New-InformationLog -logPath $logPath -message "Sprawdzenie stanu polityk" -color green
+
     if (($isLastExist -eq $true) -and ($isCurrentExist -eq $true))
     {
     "Brak polityk w obu przypadkach"
+    New-InformationLog -logPath $logPath -message "Polityki nie istniają zarówno przed oraz po sprawdzeniu" -color red
     }
+
+
+
     if (($isLastExist -eq $false) -and ($isCurrentExist -eq $true))
     {
         "1=POLITYKA,2=NULL"
+        New-InformationLog -logPath $logPath -message "Polityki zostały zmienione. Następuje odwołanie do zdalnego hosta" -color green
+
         $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+        New-InformationLog -logPath $logPath -message "Dane zostały zebrane.Zostaje wykonany raport." -color green
         "raportuj"
-        & $pathToReportGenerator "$fullReport","$computerToMonitor","$resultPath"
+        & $pathToReportGenerator "$fullReport","$computerToMonitor","$resultFile"
+        New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
     }
+
+
+
     if (($isLastExist -eq $true) -and ($isCurrentExist -eq $false))
     {
         "1=NULL,2=POLITYKA"
+        New-InformationLog -logPath $logPath -message "Polityki zostały zmienione. Następuje odwołanie do zdalnego hosta" -color green
+
         $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+        New-InformationLog -logPath $logPath -message "Dane zostały zebrane.Zostaje wykonany raport." -color green
         "raportuj"
-        & $pathToReportGenerator "$fullReport","$computerToMonitor","$resultPath"
+        & $pathToReportGenerator "$fullReport","$computerToMonitor","$resultFile"
+        New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
     }
+
+
     if (($testLastNull -eq $false) -and ($testCurrentNull -eq $false))
     {
         "1=POLITYKA,2=POLITYKA"
+        New-InformationLog -logPath $logPath -message "Polityki istnieją w obu przypadkach." -color green
         "POLITYKI ISTNIEJĄ ALE BRAK ZMIAN"
         $testCompare=Compare-Object -Property DisplayName,Id,ModificationTime -ReferenceObject $gpoLast -DifferenceObject $gpoCurrent
         $isDifferenceExist=[string]::IsNullOrEmpty($testCompare)
         if ($isDifferenceExist -eq $false)
         {
+            New-InformationLog -logPath $logPath -message "Polityki zostały zmienione. Następuje odwołanie do zdalnego hosta" -color green
             "POLITYKI ISTNIEJĄ I ZOSTAŁY WYKONANE ZMIANY"
             $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
+            New-InformationLog -logPath $logPath -message "Dane zostały zebrane.Zostaje wykonany raport." -color green
             "raportuj"
-            & $pathToReportGenerator "$fullReport","$computerToMonitor","$resultPath"
+            & $pathToReportGenerator "$fullReport","$computerToMonitor","$resultFile"
+            New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
         }
     }
     $gpoLast=$gpoCurrent 
