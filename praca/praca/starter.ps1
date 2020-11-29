@@ -3,7 +3,6 @@
 #Sprawdzenie, czy skrypt jest umieczony w folderze
 #Ilość pamięci nie działa odpowiednio
 #Dane instalacji programów są nieodpowiednie
-#odpowiednie tłumaczenie uprawnień do udziałów sieciowych
 #sprawdzenie czy są odpowiednie moduły
 #Procent spełnienia założeń skryptu: % CHANGED i  % UNCHANGED
 ##########################FUNCTIONS####################################
@@ -41,7 +40,6 @@ function Test-Workplace
         [String]$computerToMonitor
     )
 
-    $pathToScript=Read-Host "Podaj ścieżkę do plików skryptowych:"
     do
     {
         $scriptPathTest=$false
@@ -63,9 +61,8 @@ function Test-Workplace
         $connecetion=Test-Connection -ComputerName $computerToMonitor -Quiet
     }
     until ($scriptPathTest -and $reportPathTest -and $connecetion)
-
+    return $rootPath
 }
-
 
 function Get-FilesReport
 {
@@ -76,7 +73,6 @@ function Get-FilesReport
     )
 
     ##requires NTFSSecurity
-    $($userInformation.PathToSharedFolder)
     $filesReport = [ordered]@{}
 
     $departmentPath=Join-Path -Path $($userInformation.PathToSharedFolder) -ChildPath $($userInformation.Department)
@@ -303,7 +299,10 @@ Generator  = "reportGenerator.ps1"
 ########################################################################
 
 
-Test-Workplace -scriptHashtable $scriptHashtable -computerToMonitor $computerToMonitor
+$rootPath=Test-Workplace -scriptHashtable $scriptHashtable -computerToMonitor $computerToMonitor
+$scriptPath=Join-Path -Path $rootPath -ChildPath $scriptHashtable["Skrypt"]
+$generatorPath=Join-Path -Path $rootPath -ChildPath $scriptHashtable["Generator"]
+
 
 
 $resultPath=$(Get-ReportPath)
@@ -321,7 +320,7 @@ while($true)
     New-InformationLog -logPath $logPath -message "Zebranie informacji o udziałach sieciowych" -color green
     $userData=Get-UserInformation
     $filesReport=Get-FilesReport -userInformation $userData
-    
+
     New-InformationLog -logPath $logPath -message "Zebranie informacji o pliku raportowym" -color green
     $resultFile=$(Get-ReportFile -reportPath $resultPath -computerToMonitor $computerToMonitor)
 
@@ -333,20 +332,19 @@ while($true)
     $isCurrentExist=[string]::IsNullOrEmpty($gpoCurrent)
 
 
-
     if (($isLastExist -eq $true) -and ($isCurrentExist -eq $true))
     {
-    New-InformationLog -logPath $logPath -message "Polityki nie istniają zarówno przed oraz po sprawdzeniu" -color red
+        New-InformationLog -logPath $logPath -message "Polityki nie istniają zarówno przed oraz po sprawdzeniu" -color red
     }
 
     if (($isLastExist -eq $false) -and ($isCurrentExist -eq $true))
     {
         "1=POLITYKA,2=NULL"
         New-InformationLog -logPath $logPath -message "Polityki zostały zmienione. Następuje odwołanie do zdalnego hosta" -color green
-        $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
-
+        $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList ($filesReport,$softwareList)
+        $fullReport
         New-InformationLog -logPath $logPath -message "Dane zostały zebrane.Zostaje wykonany raport." -color green
-        & $pathToReportGenerator "$fullReport","$computerToMonitor","$resultFile"
+        & $generatorPath "$fullReport","$computerToMonitor","$resultFile"
         
         New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
     }
@@ -357,10 +355,10 @@ while($true)
     {
         "1=NULL,2=POLITYKA"
         New-InformationLog -logPath $logPath -message "Polityki zostały zmienione. Następuje odwołanie do zdalnego hosta" -color green
-        $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
-        
+        $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList ($filesReport,$softwareList)
+        $fullReport
         New-InformationLog -logPath $logPath -message "Dane zostały zebrane.Zostaje wykonany raport." -color green
-        & $pathToReportGenerator "$fullReport","$computerToMonitor","$resultFile"
+        & $generatorPath "$fullReport","$computerToMonitor","$resultFile"
         
         New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
     }
@@ -371,17 +369,17 @@ while($true)
         "1=POLITYKA,2=POLITYKA"
         New-InformationLog -logPath $logPath -message "Polityki istnieją w obu przypadkach. Następuje porównanie polityk pod kątem wykonanych zmian" -color green
         
-
         $testCompare=Compare-Object -Property DisplayName,Id,ModificationTime -ReferenceObject $gpoLast -DifferenceObject $gpoCurrent
         $isDifferenceExist=[string]::IsNullOrEmpty($testCompare)
         if ($isDifferenceExist -eq $false)
         {
             "POLITYKI ISTNIEJĄ I ZOSTAŁY WYKONANE ZMIANY"
             New-InformationLog -logPath $logPath -message "Polityki zostały zmienione. Następuje odwołanie do zdalnego hosta" -color green
-            $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $pathToScript -ArgumentList $softwareList,$filesReport
-            
+            $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList ($filesReport,$softwareList)
+
+            $fullReport
             New-InformationLog -logPath $logPath -message "Dane zostały zebrane.Zostaje wykonany raport." -color green
-            & $pathToReportGenerator "$fullReport","$computerToMonitor","$resultFile"
+            & $generatorPath "$fullReport","$computerToMonitor","$resultFile"
             
             New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
         }

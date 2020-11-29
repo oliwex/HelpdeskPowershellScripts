@@ -1,8 +1,4 @@
-﻿param(
-$softwareList,
-$filesSystem
-)
-
+﻿param($filesSystem,$softwareList)
 
 ###################BEFORE FUNCTIONS#####################
 Set-ExecutionPolicy -ExecutionPolicy Bypass
