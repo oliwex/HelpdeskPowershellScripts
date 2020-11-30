@@ -196,7 +196,7 @@ function Get-ComputerReport
     $computerReport = [ordered]@{
         "Disk"            = Get-Disk | Where-Object {$_.Number -eq 0 } | Select-Object FriendlyName, @{Name = "Size"; Expression = { (($_.Size)/1GB), "GB" -join " "} }
         "Processor"       = Get-CimInstance -Class Win32_Processor | Select-Object Name, @{Name = "TDP"; Expression = { $_.MaxClockSpeed } }
-        "Memory"          = Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property capacity -Sum | % {[Math]::Round(($_.sum / 1GB),2)} | Select-Object @{Name="RAM";Expression={ $_ , "GB" -join " "}}
+        "Memory"          = Get-CimInstance Win32_PhysicalMemory | Select-Object @{Name="RAM";Expression={ (($_.Capacity)/1GB) , "GB" -join " "}}
         "VideoController" = Get-CimInstance Win32_VideoController | Where-Object { $_.DeviceId -eq "VideoController1" } | Select-Object Name, @{Name = "RAM"; Expression = { ($_.AdapterRam / 1GB), "GB" -join " " } }
     }
 
