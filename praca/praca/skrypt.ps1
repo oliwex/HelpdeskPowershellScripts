@@ -196,7 +196,7 @@ function Get-ComputerReport
     $computerReport = [ordered]@{
         "Disk"            = Get-Disk | Where-Object {$_.Number -eq 0 } | Select-Object FriendlyName, @{Name = "Size"; Expression = { (($_.Size)/1GB), "GB" -join " "} }
         "Processor"       = Get-CimInstance -Class Win32_Processor | Select-Object Name, @{Name = "TDP"; Expression = { $_.MaxClockSpeed } }
-        "Memory"          = Get-CimInstance Win32_ComputerSystem | Select-Object @{Name="RAM";Expression={ [MATH]::Round(($_.TotalPhysicalMemory / 1GB),2), "GB" -join " "}}
+        "Memory"          = Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property capacity -Sum | % {[Math]::Round(($_.sum / 1GB),2)} | Select-Object @{Name="RAM";Expression={ $_ , "GB" -join " "}}
         "VideoController" = Get-CimInstance Win32_VideoController | Where-Object { $_.DeviceId -eq "VideoController1" } | Select-Object Name, @{Name = "RAM"; Expression = { ($_.AdapterRam / 1GB), "GB" -join " " } }
     }
 
@@ -207,9 +207,7 @@ function Get-QuotaReport
 {
     ##requires Carbon
     $unitList ="KB", "MB", "GB", "TB", "PB", "EB"
-    $path="HKLM:\Software\Policies\Microsoft\Windows NT"
-
-    $path=Join-Path -Path $path -ChildPath "DiskQuota"
+    $path="HKLM:\Software\Policies\Microsoft\Windows NT\DiskQuota"
     $pathExist=Test-Path -Path $path
 
     if ($pathExist)
@@ -285,8 +283,8 @@ function Get-SoftwareReport
 function Get-NetworkReport
 {
 
-    $deviceId=Get-NetAdapter -Physical | Where-Object {$_.Status -eq "Up"} | Select -ExpandProperty DeviceId
-    $DHCPStatus=Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$deviceId" | Select-Object -ExpandProperty EnableDHCP
+    $deviceId=(Get-NetAdapter -Physical | Where-Object {$_.Status -eq "Up"}).DeviceID
+    $DHCPStatus=(Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$deviceId").EnableDHCP
 
     if ($DHCPStatus -eq 1)
     {
@@ -419,10 +417,9 @@ function Get-DefenderReport
 
 function Get-LogReport 
 {
-    $logs="Application","Setup","System","Security"
     $logReport = [ordered]@{}
 
-    $logs | ForEach-Object {
+    "Application","Setup","System","Security" | ForEach-Object {
 
         $testRetention=Test-RegistryKeyValueExist -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\$_  -Name "Retention"
 
@@ -557,5 +554,7 @@ else
     FIRST=$true
     }
 }
+
+Set-ExecutionPolicy -ExecutionPolicy Restricted
 
 return $fullReport

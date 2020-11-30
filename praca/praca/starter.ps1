@@ -1,6 +1,4 @@
 ﻿#TODO
-#Ilość pamięci nie działa odpowiednio
-#sprawdzenie czy są odpowiednie moduły
 #Procent spełnienia założeń skryptu: % CHANGED i  % UNCHANGED
 ##########################FUNCTIONS####################################
 function New-InformationLog
@@ -56,8 +54,14 @@ function Test-Workplace
             $reportPathTest=Test-Path -Path $reportPath -PathType Leaf
         }
         $connecetion=Test-Connection -ComputerName $computerToMonitor -Quiet
+        
+        $installedModule=(($(Get-InstalledModule).Name).Contains("NTFSSecurity"))
+        if (-not($installedModule))
+        {
+            Install-Module -Name NTFSSEcurity -AllowClobber
+        }
     }
-    until ($scriptPathTest -and $reportPathTest -and $connecetion)
+    until ($scriptPathTest -and $reportPathTest -and $connecetion -and $installedModule)
     return $rootPath
 }
 
@@ -265,12 +269,9 @@ function Get-UserInformation
     return $files
 }
 
-
 ###########################VARIABLES###################################
 $computerToMonitor="HOST"
 $monitoredOU="KOMPUTERY"
-
-
 
 #######FOR DATA AQUISITION##########
 $softwareList = [ordered]@{
@@ -342,7 +343,7 @@ while($true)
 
         New-InformationLog -logPath $logPath -message "Dane zostały zebrane.Zostaje wykonany raport." -color green
         
-        Invoke-Command -ComputerName SERVER -FilePath $generatorPath -ArgumentList $fullReport,$computerToMonitor,$resultFile
+        Invoke-Command -ComputerName $($env:COMPUTERNAME) -FilePath $generatorPath -ArgumentList $fullReport,$computerToMonitor,$resultFile
 
         
         New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
@@ -357,7 +358,7 @@ while($true)
         $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList $filesReport,$softwareList
 
         New-InformationLog -logPath $logPath -message "Dane zostały zebrane.Zostaje wykonany raport." -color green
-        Invoke-Command -ComputerName SERVER -FilePath $generatorPath -ArgumentList $fullReport,$computerToMonitor,$resultFile
+        Invoke-Command -ComputerName $($env:COMPUTERNAME) -FilePath $generatorPath -ArgumentList $fullReport,$computerToMonitor,$resultFile
         
         New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
     }
@@ -377,7 +378,7 @@ while($true)
             $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList $filesReport,$softwareList
 
             New-InformationLog -logPath $logPath -message "Dane zostały zebrane.Zostaje wykonany raport." -color green
-            Invoke-Command -ComputerName SERVER -FilePath $generatorPath -ArgumentList $fullReport,$computerToMonitor,$resultFile
+            Invoke-Command -ComputerName $($env:COMPUTERNAME) -FilePath $generatorPath -ArgumentList $fullReport,$computerToMonitor,$resultFile
             
             New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
         }
