@@ -1,8 +1,5 @@
 ﻿#TODO
-#Sprawdzenie, czy komputer jest połączony
-#Sprawdzenie, czy skrypt jest umieczony w folderze
 #Ilość pamięci nie działa odpowiednio
-#Dane instalacji programów są nieodpowiednie
 #sprawdzenie czy są odpowiednie moduły
 #Procent spełnienia założeń skryptu: % CHANGED i  % UNCHANGED
 ##########################FUNCTIONS####################################
@@ -341,10 +338,12 @@ while($true)
     {
         "1=POLITYKA,2=NULL"
         New-InformationLog -logPath $logPath -message "Polityki zostały zmienione. Następuje odwołanie do zdalnego hosta" -color green
-        $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList ($filesReport,$softwareList)
-        $fullReport
+        $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList $filesReport,$softwareList
+
         New-InformationLog -logPath $logPath -message "Dane zostały zebrane.Zostaje wykonany raport." -color green
-        & $generatorPath "$fullReport","$computerToMonitor","$resultFile"
+        
+        Invoke-Command -ComputerName SERVER -FilePath $generatorPath -ArgumentList $fullReport,$computerToMonitor,$resultFile
+
         
         New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
     }
@@ -355,10 +354,10 @@ while($true)
     {
         "1=NULL,2=POLITYKA"
         New-InformationLog -logPath $logPath -message "Polityki zostały zmienione. Następuje odwołanie do zdalnego hosta" -color green
-        $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList ($filesReport,$softwareList)
-        $fullReport
+        $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList $filesReport,$softwareList
+
         New-InformationLog -logPath $logPath -message "Dane zostały zebrane.Zostaje wykonany raport." -color green
-        & $generatorPath "$fullReport","$computerToMonitor","$resultFile"
+        Invoke-Command -ComputerName SERVER -FilePath $generatorPath -ArgumentList $fullReport,$computerToMonitor,$resultFile
         
         New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
     }
@@ -375,11 +374,10 @@ while($true)
         {
             "POLITYKI ISTNIEJĄ I ZOSTAŁY WYKONANE ZMIANY"
             New-InformationLog -logPath $logPath -message "Polityki zostały zmienione. Następuje odwołanie do zdalnego hosta" -color green
-            $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList ($filesReport,$softwareList)
+            $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList $filesReport,$softwareList
 
-            $fullReport
             New-InformationLog -logPath $logPath -message "Dane zostały zebrane.Zostaje wykonany raport." -color green
-            & $generatorPath "$fullReport","$computerToMonitor","$resultFile"
+            Invoke-Command -ComputerName SERVER -FilePath $generatorPath -ArgumentList $fullReport,$computerToMonitor,$resultFile
             
             New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
         }
