@@ -3,6 +3,7 @@
 #############################################################################################
 #############################################################################################
 $style = @"
+<head>
 <style>
 
 	body
@@ -65,14 +66,14 @@ $style = @"
         background: #f0f0f2;
     }
 
-    .StopStatus {
+    .changed {
 
-        color: #ff0000;
+        color: #FF0000;
     }
     
-    .RunningStatus {
+    .notchanged {
 
-        color: #008000;
+        color: #00FF00;
     }
 
 </style>
@@ -88,6 +89,8 @@ function New-ReportElement
     $reportElement
     )
     $element=[PSCustomObject]$reportElement | ConvertTo-Html -As Table -Fragment
+    $element = $element -replace '<td>NOTCHANGED</td>','<td class="notchanged">NOTCHANGED</td>'
+    $element = $element -replace '<td>CHANGED</td>','<td class="changed">CHANGED</td>'
     return $element
 }
 

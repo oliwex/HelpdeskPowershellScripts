@@ -1,5 +1,9 @@
-﻿#TODO
-#Procent spełnienia założeń skryptu: % CHANGED i  % UNCHANGED
+﻿####################SCRIPT FILES########################################
+$scriptHashtable = [ordered]@{
+Skrypt     = "skrypt.ps1" 
+Generator  = "reportGenerator.ps1" 
+}
+
 ##########################FUNCTIONS####################################
 function New-InformationLog
 {
@@ -269,9 +273,38 @@ function Get-UserInformation
     return $files
 }
 
-###########################VARIABLES###################################
-$computerToMonitor="HOST"
-$monitoredOU="KOMPUTERY"
+function Get-ComputerInformation
+{
+    $computerInfo=$null
+    do
+    {
+        $flag=$false
+        $computerName=Read-Host "Podaj nazwę komputera"
+        $isComputerNull=[string]::IsNullOrEmpty($computerName)
+        if (-not($isComputerNull))
+        {
+            try
+            {
+                $computerInfo=(Get-ADComputer -Identity $computerName ).DistinguishedName
+            }
+            catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]
+            {
+                continue
+            }
+            $computerList=(Get-ADComputer -Filter {OperatingSystem -like "Windows 10*"}).DistinguishedName
+            if ($computerList.Contains($computerInfo))
+            {
+                $computerInfo=[ordered]@{
+                Computer=$computerName;
+                OU=((Get-ADComputer -Identity $computerName).DistinguishedName.Split(",")[1]).Split("=")[1];
+                }
+                $flag=$true
+            }
+        }
+    }
+    until ($flag)
+    return $computerInfo
+}
 
 #######FOR DATA AQUISITION##########
 $softwareList = [ordered]@{
@@ -282,12 +315,6 @@ $softwareList = [ordered]@{
     "Java 8"            = "*Oracle*" 
 }
 
-
-$scriptHashtable = [ordered]@{
-Skrypt     = "skrypt.ps1" 
-Generator  = "reportGenerator.ps1" 
-}
-
 ########################################################################
 ########################################################################
 ##                                                                    ##
@@ -295,11 +322,13 @@ Generator  = "reportGenerator.ps1"
 ##                                                                    ##
 ########################################################################
 ########################################################################
+$computerInformation=Get-ComputerInformation
+$monitoredOU=$computerInformation["OU"]
+$computerToMonitor=$computerInformation["Computer"]
 
-
-$rootPath=Test-Workplace -scriptHashtable $scriptHashtable -computerToMonitor $computerToMonitor
-$scriptPath=Join-Path -Path $rootPath -ChildPath $scriptHashtable["Skrypt"]
-$generatorPath=Join-Path -Path $rootPath -ChildPath $scriptHashtable["Generator"]
+$rootPath=Test-Workplace -scriptHashtable $scriptHashtable -computerToMonitor $($computerInformation["Computer"])
+$scriptPath=Join-Path -Path $rootPath -ChildPath $($scriptHashtable["Skrypt"])
+$generatorPath=Join-Path -Path $rootPath -ChildPath $($scriptHashtable["Generator"])
 
 
 
@@ -308,9 +337,12 @@ $logPath=$(Get-LogPath -computerToMonitor $computerToMonitor)
 New-InformationLog -logPath $logPath -message "Zebranie informacji o potrzebnych folderach logowania oraz raportowania" -color green
 
 
+
+
+
 #Current State
 New-InformationLog -logPath $logPath -message "Zebranie informacji o obecnym stanie polityk GPO" -color green
-$gpoLast=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
+$gpoLast=(((Get-ADOrganizationalUnit -Filter {Name -eq $monitoredOU}).distinguishedname | Get-GPInheritance).GpoLinks | ForEach-Object {Get-GPO -Guid $_.gpoid}).ModificationTime
 
 
 while($true)
@@ -326,7 +358,7 @@ while($true)
     New-InformationLog -logPath $logPath -message "Sprawdzenie stanu polityk po zmianie" -color green
 
     $isLastExist=[string]::IsNullOrEmpty($gpoLast)
-    $gpoCurrent=Get-ADOrganizationalUnit -Filter {name -eq $monitoredOU} | Select-Object -ExpandProperty distinguishedname | Get-GPInheritance | Select-Object -ExpandProperty gpolinks | ForEach-Object {Get-GPO -Guid $_.gpoid} | Select-Object ModificationTime
+    $gpoCurrent=(((Get-ADOrganizationalUnit -Filter {Name -eq $monitoredOU}).distinguishedname | Get-GPInheritance).GpoLinks | ForEach-Object {Get-GPO -Guid $_.gpoid}).ModificationTime
     $isCurrentExist=[string]::IsNullOrEmpty($gpoCurrent)
 
 
