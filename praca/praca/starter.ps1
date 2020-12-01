@@ -19,14 +19,7 @@ function New-InformationLog
 
     $datetime=Get-DateTime
     "[$datetime] $message" >> $logPath
-    if ($color -eq "red")
-    {
-        Write-Host "[$datetime] $message " -ForegroundColor Red
-    }
-    else
-    {
-        Write-Host "[$datetime] $message " -ForegroundColor Green
-    }
+    Write-Host "[$datetime] $message " -ForegroundColor $color
 }
 
 function Test-Workplace
@@ -43,29 +36,38 @@ function Test-Workplace
     {
         $scriptPathTest=$false
         $reportPathTest=$false
-        $rootPath=Read-Host "Podaj ścieżkę do plików skryptowych:"
+        $rootPath=Read-Host "Podaj ścieżkę przechowującą pliki skryptów:"
         $isScriptPathNull=[string]::IsNullorEmpty($rootPath)
         
         if ($isScriptPathNull)
         {
+            New-InformationLog -logPath $logPath -message "Nie podano danych ścieżki." -color red
             continue
         }
         else
         {
+            New-InformationLog -logPath $logPath -message "Podano prawidłowe dane. Następuje tworzenie pełnych ścieżek do plików." -color green
             $scriptPath=Join-Path -Path $rootPath -ChildPath $scriptHashtable["Skrypt"]
             $reportPath=Join-Path -Path $rootPath -ChildPath $scriptHashtable["Generator"]
             $scriptPathTest=Test-Path -Path $scriptPath -PathType Leaf
             $reportPathTest=Test-Path -Path $reportPath -PathType Leaf
+            New-InformationLog -logPath $logPath -message "Wykonano sprawdzenie, czy pliki o nazwach: $($scriptHashtable["Skrypt"]) oraz $($scriptHashtable["Generator"]) znajdują się w $rootPath" -color green
         }
         $connecetion=Test-Connection -ComputerName $computerToMonitor -Quiet
+        New-InformationLog -logPath $logPath -message "Wykonano sprawdzenie, czy istnieje połączenie między serwerem a stacjami roboczymi." -color green
         
         $installedModule=(($(Get-InstalledModule).Name).Contains("NTFSSecurity"))
+        New-InformationLog -logPath $logPath -message "Wykonano sprawdzenie, czy moduł jest zainstalowany na serwerze" -color green
+
         if (-not($installedModule))
         {
             Install-Module -Name NTFSSEcurity -AllowClobber
+            New-InformationLog -logPath $logPath -message "Moduł nie był zainstalowany, toteż wykonano jego instalacje." -color red
         }
     }
     until ($scriptPathTest -and $reportPathTest -and $connecetion -and $installedModule)
+
+    New-InformationLog -logPath $logPath -message "Poprawnie sprawdzono środowisko serwera przed dalszą działalnością skryptu" -color green
     return $rootPath
 }
 
@@ -155,7 +157,7 @@ function Get-ReportPath
     do
     {
         $isIdentical=$true
-        $reportPath=Read-Host -Prompt "Podaj ścieżkę do raportowania zdarzeń"
+        $reportPath=Read-Host -Prompt "Podaj ścieżkę do przechowującą pliki raportów"
         $isReportPathNull=[string]::IsNullorEmpty($reportPath)
         
         if ($isReportPathNull)
@@ -192,9 +194,9 @@ function Get-ReportFile
     )
     $datetime=Get-DateTime
     $fileName="$computerToMonitor-$datetime.html"
-    $reportPath=Join-Path -Path $reportPath -ChildPath $fileName
-
-    return $reportPath
+    $reportFile=Join-Path -Path $reportPath -ChildPath $fileName
+    New-InformationLog -logPath $logPath -message "Utworzono nazwę dla pliku raportującego" -color green
+    return $reportFile
 }
 
 function Get-DateTime
@@ -250,13 +252,15 @@ function Get-UserInformation
     {
             $userName=Read-Host "Podaj nazwę użytkownika"
             $isUsernameNull=[string]::IsNullorEmpty($userName)
-        
+            New-InformationLog -logPath $logPath -message "Pobrano dane użytkownika do weryfikacji udziałów sieciowych." -color green
+            
             $groupName=Read-Host "Podaj nazwę grupy"
             $isGroupNull=[string]::IsNullorEmpty($groupName)
-
+            New-InformationLog -logPath $logPath -message "Pobrano nazwę grupy do weryfikacji udziałów sieciowych." -color green
+            
             $departmentName=Read-Host "Podaj nazwę departamentu"
             $isDepartmentNull=[string]::IsNullorEmpty($departmentName)
-
+            New-InformationLog -logPath $logPath -message "Pobrano nazwę departamentu do weryfikacji udziałów sieciowych." -color green
 
             $isUserExist=((Get-ADUser -Filter *).SamAccountName).Contains($userName)
             $isGroupExist=((Get-ADGroup -Filter *).Name).Contains($groupName)
@@ -270,16 +274,17 @@ function Get-UserInformation
     PathToSharedFolder   = "\\$env:COMPUTERNAME"
     Department           = $departmentName
     }
+    New-InformationLog -logPath $logPath -message "Utworzono strukturę danych z informacjami o użytkowniku do weryfikacji udziałów sieciowych" -color green
     return $files
 }
 
 function Get-ComputerInformation
 {
-    $computerInfo=$null
+    $computerInfo=$nulls
     do
     {
         $flag=$false
-        $computerName=Read-Host "Podaj nazwę komputera"
+        $computerName=Read-Host "Podaj nazwę komputera zdalnego:"
         $isComputerNull=[string]::IsNullOrEmpty($computerName)
         if (-not($isComputerNull))
         {
@@ -292,6 +297,7 @@ function Get-ComputerInformation
                 continue
             }
             $computerList=(Get-ADComputer -Filter {OperatingSystem -like "Windows 10*"}).DistinguishedName
+
             if ($computerList.Contains($computerInfo))
             {
                 $computerInfo=[ordered]@{
@@ -299,6 +305,9 @@ function Get-ComputerInformation
                 OU=((Get-ADComputer -Identity $computerName).DistinguishedName.Split(",")[1]).Split("=")[1];
                 }
                 $flag=$true
+            }
+            else
+            {
             }
         }
     }
@@ -326,41 +335,47 @@ $computerInformation=Get-ComputerInformation
 $monitoredOU=$computerInformation["OU"]
 $computerToMonitor=$computerInformation["Computer"]
 
-$rootPath=Test-Workplace -scriptHashtable $scriptHashtable -computerToMonitor $($computerInformation["Computer"])
-$scriptPath=Join-Path -Path $rootPath -ChildPath $($scriptHashtable["Skrypt"])
-$generatorPath=Join-Path -Path $rootPath -ChildPath $($scriptHashtable["Generator"])
-
-
-
 $resultPath=$(Get-ReportPath)
 $logPath=$(Get-LogPath -computerToMonitor $computerToMonitor)
-New-InformationLog -logPath $logPath -message "Zebranie informacji o potrzebnych folderach logowania oraz raportowania" -color green
+New-InformationLog -logPath $logPath -message "Zebrano informacje o komputerze oraz OU do raportowania." -color green
+New-InformationLog -logPath $logPath -message "Zebrano informacje o ścieżce do raportowania." -color green
+New-InformationLog -logPath $logPath -message "Zebrano informacje o ścieżce do zapisywania zdarzeń." -color green
 
+$rootPath=Test-Workplace -scriptHashtable $scriptHashtable -computerToMonitor $($computerInformation["Computer"])
+New-InformationLog -logPath $logPath -message "Sprawdzono, czy system jest gotowy na wykonanie skryptu." -color green
 
+$scriptPath=Join-Path -Path $rootPath -ChildPath $($scriptHashtable["Skrypt"])
+New-InformationLog -logPath $logPath -message "Utworzono ścieżkę do skryptu pobierającego dane z systemu zewnętrznego." -color green
 
-
+$generatorPath=Join-Path -Path $rootPath -ChildPath $($scriptHashtable["Generator"])
+New-InformationLog -logPath $logPath -message "Utworzono ścieżkę do skryptu generującego raport." -color green
 
 #Current State
-New-InformationLog -logPath $logPath -message "Zebranie informacji o obecnym stanie polityk GPO" -color green
 $gpoLast=(((Get-ADOrganizationalUnit -Filter {Name -eq $monitoredOU}).distinguishedname | Get-GPInheritance).GpoLinks | ForEach-Object {Get-GPO -Guid $_.gpoid}).ModificationTime
-
+New-InformationLog -logPath $logPath -message "Zebrano informacje o obecnym stanie polityk GPO" -color green
 
 while($true)
 {
-    New-InformationLog -logPath $logPath -message "Zebranie informacji o udziałach sieciowych" -color green
+    
     $userData=Get-UserInformation
+    New-InformationLog -logPath $logPath -message "Zebrano informacje o danych użytkownikach potrzebnych do weryfikacji uprawnień do udziałów sieciowych" -color green
+    
     $filesReport=Get-FilesReport -userInformation $userData
-
-    New-InformationLog -logPath $logPath -message "Zebranie informacji o pliku raportowym" -color green
+    New-InformationLog -logPath $logPath -message "Zebrano informacje o udziałach sieciowych" -color green
+    
+    
     $resultFile=$(Get-ReportFile -reportPath $resultPath -computerToMonitor $computerToMonitor)
+    New-InformationLog -logPath $logPath -message "Zebrano informacje o nazwie pliku raportowego" -color green
 
-    Read-Host "Change GPO: "
-    New-InformationLog -logPath $logPath -message "Sprawdzenie stanu polityk po zmianie" -color green
+
+    Read-Host "Proszę zmienić GPO: "
+    New-InformationLog -logPath $logPath -message "Użytkownik został poproszony o wykonanie zmian w GPO" -color green
 
     $isLastExist=[string]::IsNullOrEmpty($gpoLast)
     $gpoCurrent=(((Get-ADOrganizationalUnit -Filter {Name -eq $monitoredOU}).distinguishedname | Get-GPInheritance).GpoLinks | ForEach-Object {Get-GPO -Guid $_.gpoid}).ModificationTime
+    New-InformationLog -logPath $logPath -message "Pobrano obecny stan polityk" -color green
     $isCurrentExist=[string]::IsNullOrEmpty($gpoCurrent)
-
+    New-InformationLog -logPath $logPath -message "Sprawdzono, czy polityki nie są puste" -color green
 
     if (($isLastExist -eq $true) -and ($isCurrentExist -eq $true))
     {
@@ -369,14 +384,12 @@ while($true)
 
     if (($isLastExist -eq $false) -and ($isCurrentExist -eq $true))
     {
-        "1=POLITYKA,2=NULL"
+        #1=POLITYKA,2=NULL
         New-InformationLog -logPath $logPath -message "Polityki zostały zmienione. Następuje odwołanie do zdalnego hosta" -color green
         $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList $filesReport,$softwareList
 
         New-InformationLog -logPath $logPath -message "Dane zostały zebrane.Zostaje wykonany raport." -color green
-        
         Invoke-Command -ComputerName $($env:COMPUTERNAME) -FilePath $generatorPath -ArgumentList $fullReport,$computerToMonitor,$resultFile
-
         
         New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
     }
@@ -385,7 +398,7 @@ while($true)
 
     if (($isLastExist -eq $true) -and ($isCurrentExist -eq $false))
     {
-        "1=NULL,2=POLITYKA"
+        #1=NULL,2=POLITYKA
         New-InformationLog -logPath $logPath -message "Polityki zostały zmienione. Następuje odwołanie do zdalnego hosta" -color green
         $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList $filesReport,$softwareList
 
@@ -398,14 +411,14 @@ while($true)
 
     if (($testLastNull -eq $false) -and ($testCurrentNull -eq $false))
     {
-        "1=POLITYKA,2=POLITYKA"
+        #1=POLITYKA,2=POLITYKA
         New-InformationLog -logPath $logPath -message "Polityki istnieją w obu przypadkach. Następuje porównanie polityk pod kątem wykonanych zmian" -color green
         
         $testCompare=Compare-Object -Property DisplayName,Id,ModificationTime -ReferenceObject $gpoLast -DifferenceObject $gpoCurrent
         $isDifferenceExist=[string]::IsNullOrEmpty($testCompare)
         if ($isDifferenceExist -eq $false)
         {
-            "POLITYKI ISTNIEJĄ I ZOSTAŁY WYKONANE ZMIANY"
+            #POLITYKI ISTNIEJĄ I ZOSTAŁY WYKONANE ZMIANY"
             New-InformationLog -logPath $logPath -message "Polityki zostały zmienione. Następuje odwołanie do zdalnego hosta" -color green
             $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList $filesReport,$softwareList
 
@@ -414,8 +427,13 @@ while($true)
             
             New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
         }
+        else
+        {
+            New-InformationLog -logPath $logPath -message "Nie wykonano zmian w politykach" -color red
+        }
     }
     New-InformationLog -logPath $logPath -message "Następuje przekazanie stanu obecnego do stanu poprzedniego" -color green
     $gpoLast=$gpoCurrent 
+    New-InformationLog -logPath $logPath -message "Obecna iteracja skryptu została zakończona" -color green
     Start-Sleep -Seconds 5
 }
