@@ -56,14 +56,26 @@ function Test-Workplace
         $connecetion=Test-Connection -ComputerName $computerToMonitor -Quiet
         New-InformationLog -logPath $logPath -message "Wykonano sprawdzenie, czy istnieje połączenie między serwerem a stacjami roboczymi." -color green
         
+        if ($connecetion)
+        {
+           New-InformationLog -logPath $logPath -message "Połączenie z komputerem: $computerToMonitor zostało nawiązane prawidłowo." -color green 
+        }
+        else
+        {
+           New-InformationLog -logPath $logPath -message "Połączenie z komputerem: $computerToMonitor nie zostało nawiązane." -color red 
+        }
+
+
+
         $installedModule=(($(Get-InstalledModule).Name).Contains("NTFSSecurity"))
         New-InformationLog -logPath $logPath -message "Wykonano sprawdzenie, czy moduł jest zainstalowany na serwerze" -color green
 
         if (-not($installedModule))
         {
-            Install-Module -Name NTFSSEcurity -AllowClobber
+            Install-Module -Name NTFSSecurity -AllowClobber
             New-InformationLog -logPath $logPath -message "Moduł nie był zainstalowany, toteż wykonano jego instalacje." -color red
         }
+
     }
     until ($scriptPathTest -and $reportPathTest -and $connecetion -and $installedModule)
 
@@ -216,7 +228,7 @@ function Get-LogPath
     do
     {
         $isIdentical=$true
-        $logPath=Read-Host -Prompt "Podaj ścieżkę do logowania zdarzeń:"
+        $logPath=Read-Host -Prompt "Podaj ścieżkę do logowania zdarzeń"
         $isLogPathNull=[string]::IsNullorEmpty($logPath)
         
         if ($isLogPathNull)
@@ -284,7 +296,7 @@ function Get-ComputerInformation
     do
     {
         $flag=$false
-        $computerName=Read-Host "Podaj nazwę komputera zdalnego:"
+        $computerName=Read-Host "Podaj nazwę komputera zdalnego"
         $isComputerNull=[string]::IsNullOrEmpty($computerName)
         if (-not($isComputerNull))
         {
@@ -368,7 +380,12 @@ while($true)
     New-InformationLog -logPath $logPath -message "Zebrano informacje o nazwie pliku raportowego" -color green
 
 
-    Read-Host "Proszę zmienić GPO: "
+    $endVar=Read-Host "Proszę zmienić GPO lub wpisać koniec, jeśli skrypt ma zostać zakończony"
+    if ($endVar -like "koniec")
+    {
+        New-InformationLog -logPath $logPath -message "Wywołano zakończenie skryptu" -color cyan
+        break
+    }
     New-InformationLog -logPath $logPath -message "Użytkownik został poproszony o wykonanie zmian w GPO" -color green
 
     $isLastExist=[string]::IsNullOrEmpty($gpoLast)
@@ -437,3 +454,4 @@ while($true)
     New-InformationLog -logPath $logPath -message "Obecna iteracja skryptu została zakończona" -color green
     Start-Sleep -Seconds 5
 }
+New-InformationLog -logPath $logPath -message "Skrypt zakończony" -color green
