@@ -426,7 +426,7 @@ while($true)
     }
 
 
-    if (($testLastNull -eq $false) -and ($testCurrentNull -eq $false))
+    if (($isLastExist -eq $false) -and ($isCurrentExist -eq $false))
     {
         #1=POLITYKA,2=POLITYKA
         New-InformationLog -logPath $logPath -message "Polityki istnieją w obu przypadkach. Następuje porównanie polityk pod kątem wykonanych zmian" -color green
