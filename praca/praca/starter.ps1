@@ -1,6 +1,6 @@
 ﻿####################SCRIPT FILES########################################
 $scriptHashtable = [ordered]@{
-Skrypt     = "skrypt.ps1" 
+Skrypt     = "dataGraber.ps1" 
 Generator  = "reportGenerator.ps1" 
 }
 ##########################FUNCTIONS####################################
