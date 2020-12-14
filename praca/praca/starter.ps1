@@ -435,7 +435,7 @@ while($true)
         $isDifferenceExist=[string]::IsNullOrEmpty($testCompare)
         if ($isDifferenceExist -eq $false)
         {
-            #POLITYKI ISTNIEJĄ I ZOSTAŁY WYKONANE ZMIANY"
+            #1=POLITYKA,2=POLITYKA,3=CHANGED
             New-InformationLog -logPath $logPath -message "Polityki zostały zmienione. Następuje odwołanie do zdalnego hosta" -color green
             $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList $filesReport,$softwareList
 

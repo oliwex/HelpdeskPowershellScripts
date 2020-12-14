@@ -288,12 +288,10 @@ function Get-NetworkReport
 
     if ($DHCPStatus -eq 1)
     {
-        #Przypisane DHCP
         $networkInfo=Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$deviceId" | Select-Object @{Name="IPAddress";Expression={$_.DhcpIpAddress}},@{Name="SubnetMask";Expression={$_.DHCPSubnetMask}},@{Name="DefaultGateway";Expression={$_.DHCPDefaultGateway}},@{Name="NameServer";Expression={$_.DHCPNameServer}},@{Name="DHCPServer";Expression={$_.DHCPServer}}
     }
     else
     {
-        #Przypisane Manualnie
         $networkInfo=Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$deviceId" | Select-Object  @{Name="IPAddress";Expression={$_.IPAddress}},@{Name="SubnetMask";Expression={$_.SubnetMask}},@{Name="DefaultGateway";Expression={$_.DefaultGateway}},@{Name="NameServer";Expression={$_.NameServer}},@{Name="DHCPServer";Expression={"UNSET"}}
     }
 
@@ -444,7 +442,6 @@ function Get-LogReport
 $hardwareSystem=Get-ComputerReport
 $quotaSystem=Get-QuotaReport
 $softwareSystem=Get-SoftwareReport -softwareList $softwareList
-#tu można umieścić zmienną $filesSystem która ma hashtable oznaczającą sprawdzenie udziałów sieciowych
 $networkSystem=Get-NetworkReport
 $printerSystem=Get-PrinterReport
 $serviceSystem=Get-ServiceReport
@@ -463,10 +460,7 @@ $testRegistry=Test-Path -Path $registryReportFullPath
 
 if ($testRegistry)
 {
-    #element istnieje
 
-    #odczyt danych z rejestru
-    #porównanie danych z rejestru wraz z porównaniem danych z systemu, dane wyjściowe są zapisywane w zmiennych
     $hardwareRegistry=Get-Registry2LevelData -pathToRegistry "$registryReportFullPath\HARDWARE"
     $hardwareReport=Compare-Hashtables2Level -fromSystem $hardwareSystem -fromRegistry $hardwareRegistry
 
@@ -497,7 +491,6 @@ if ($testRegistry)
     $logRegistry=Get-Registry2LevelData -pathToRegistry "$registryReportFullPath\LOG"
     $logReport=Compare-Hashtables2Level -fromSystem $logSystem -fromRegistry $logRegistry
 
-    #przeslanie danych do stacji roboczej
     $fullReport=[ordered]@{
     HARDWARE=$hardwareReport;
     QUOTA=$quotaReport;
@@ -515,9 +508,6 @@ if ($testRegistry)
 }
 else
 {
-    #element nie istnieje
-    #zapis do rejestru jako konfiguracja startowa
-
     Prepare-Workplace -path HKLM:\SYSTEM -folder DATA
     Save-ToRegistry2Level -pathToRegistry "$registryReportFullPath\HARDWARE" -hashtableData $hardwareSystem
     Save-ToRegistry1Level -pathToRegistry "$registryReportFullPath\QUOTA" -hashtableData $quotaSystem
@@ -557,7 +547,6 @@ else
     FIRST=$true
     }
 }
-
 Set-ExecutionPolicy -ExecutionPolicy Restricted
 
 return $fullReport

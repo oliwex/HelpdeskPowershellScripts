@@ -100,22 +100,17 @@ function New-ReportElement
     }
     else
     {
+        $element="<table><tr><th>ELEMENT</th><th>CURRENT_STATE</th></tr>"
         if ($reportElement.GetType().Name -eq "Hashtable")
         {
-            $element="<table><tr><th>ELEMENT</th><th>CURRENT_STATE</th></tr>"
             $tableBody=$($reportElement.Keys) | ForEach-Object { "<tr><td>$_</td><td>$($reportElement[$_])</td></tr>"}
-            $element=$element+$tableBody+"</table>"
         }
         else
         {
-            $element="<table><tr><th>ELEMENT</th><th>CURRENT_STATE</th></tr>"
             $tableBody=$($reportElement.Keys) | ForEach-Object { "<tr><td>$_</td><td>$($reportElement.$_)</td></tr>"}
-            $element=$element+$tableBody+"</table>"
         }
-       
-
+        $element=$element+$tableBody+"</table>"
     }
-    
     return $element
 }
 
