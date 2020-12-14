@@ -1,12 +1,9 @@
 ﻿param($filesSystem,$softwareList)
-
 ###################BEFORE FUNCTIONS#####################
 Set-ExecutionPolicy -ExecutionPolicy Bypass
-
 ##################TOOL FUNCTIONS########################
 function Test-RegistryKeyValueExist 
 {
-
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -16,35 +13,37 @@ function Test-RegistryKeyValueExist
         [string]
         $Name
     )
-    if ( -not (Test-Path -Path $Path -PathType Container) ) {
+    if ( -not (Test-Path -Path $Path -PathType Container) ) 
+    {
         return $false
     }
     $properties = Get-ItemProperty -Path $Path 
-    if ( -not $properties )  {
+    if ( -not $properties )  
+    {
         return $false
     }
     $member = Get-Member -InputObject $properties -Name $Name
-    if ( $member ) {
+    if ( $member ) 
+    {
         return $true
     }
-    else {
+    else 
+    {
         return $false
     }
 }
 
 function Prepare-Workplace
 {
-[CmdletBinding()]
-Param(
-    [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
-    [String]$path,
-    [Parameter(Mandatory=$true,HelpMessage="GroupName",Position=1)]
-    [String]$folder
-)
-
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
+        [String]$path,
+        [Parameter(Mandatory=$true,HelpMessage="Folder",Position=1)]
+        [String]$folder
+    )
     New-Item –Path $path –Name $folder -ItemType RegistryKey
     $finalPath=Join-Path -Path $path -ChildPath $folder
-
     "HARDWARE","QUOTA","SOFTWARE","FILESHARE","NETWORK","PRINTER","SERVICE","FIREWALL","LOG","DEFENDER" | foreach-Object {
     New-Item –Path $finalPath –Name $_ -ItemType RegistryKey
     }
@@ -59,13 +58,11 @@ function Save-ToRegistry2Level
         [Parameter(Mandatory=$true,HelpMessage="DataToSave",Position=1)]
         $hashtableData
     )
-
     foreach ($dataElement in $hashtableData.Keys) 
     {
         $dataName = $hashtableData[$dataElement]
         $keyPath = Join-Path $pathToRegistry -ChildPath $dataElement
         New-Item -Path $pathToRegistry -Name $dataElement -ItemType RegistryKey
-    
         foreach ($property in $dataName.PSObject.Properties) 
         {
             New-ItemProperty -Path $keyPath -Name $property.Name -Value $property.Value -Force
@@ -75,14 +72,13 @@ function Save-ToRegistry2Level
 
 function Save-ToRegistry1Level
 {
-[CmdletBinding()]
-Param(
-    [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
-    [String]$pathToRegistry,
-    [Parameter(Mandatory=$true,HelpMessage="DataToSave",Position=1)]
-    $hashtableData
-)
-
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,HelpMessage="Path",Position=0)]
+        [String]$pathToRegistry,
+        [Parameter(Mandatory=$true,HelpMessage="DataToSave",Position=1)]
+        $hashtableData
+    )
     foreach ($element in $hashtableData.Keys)
     {
         New-ItemProperty -Path $pathToRegistry -Name $element -Value $hashtableData[$element] -Force
@@ -122,15 +118,12 @@ function Get-Registry2LevelData
 
 Function Compare-Hashtables1Level
 {
-param(
-
+    param(
         [Parameter(Position = 0, Mandatory = $true)]
-        $fromSystem
-        ,
+        $fromSystem,
         [Parameter(Position = 1, Mandatory = $true)]
         $fromRegistry
-    )
-     
+    ) 
     $resultObject = [System.Collections.Generic.List[PSCustomObject]]::new()
     foreach ($element in $fromRegistry.Keys)
     {
@@ -149,22 +142,18 @@ param(
         }
         $resultObject.Add($object)
     }
-
-return $resultObject
+    return $resultObject
 }
 
 Function Compare-Hashtables2Level
 {
-param(
-
+    param(
         [Parameter(Position = 0, Mandatory = $true)]
-        $fromSystem
-        ,
+        $fromSystem,
         [Parameter(Position = 1, Mandatory = $true)]
         $fromRegistry
     )
     $resultHashtable=[ordered]@{}
-
     foreach ($element in $fromSystem.Keys)
     {
         $tmp1=$($fromSystem.$element) 
@@ -173,33 +162,28 @@ param(
         $result=Compare-Hashtables1Level -fromSystem $tmp1 -fromRegistry $tmp2
         $resultHashtable.Add($element,$result)
     }
-return $resultHashtable
+    return $resultHashtable
 }
 
 function ConvertTo-Hashtable
 {
-  param(
+    param(
         [Parameter(Position = 0, Mandatory = $true)]
         $object
         )
-
 $applicationHashtable=[ordered]@{}
-$object.psobject.properties | Foreach { $applicationHashtable[$_.Name] = $_.Value }
-
+$object.psobject.properties | ForEach-Object { $applicationHashtable[$_.Name] = $_.Value }
 return $applicationHashtable 
 }
-
 ######################FUNCTIONS#########################
-
 function Get-ComputerReport 
 {
     $computerReport = [ordered]@{
         "Disk"            = Get-Disk | Where-Object {$_.Number -eq 0 } | Select-Object FriendlyName, @{Name = "Size"; Expression = { (($_.Size)/1GB), "GB" -join " "} }
         "Processor"       = Get-CimInstance -Class Win32_Processor | Select-Object Name, @{Name = "TDP"; Expression = { $_.MaxClockSpeed } }
-        "Memory"          = Get-CimInstance Win32_PhysicalMemory | Select-Object @{Name="RAM";Expression={ (($_.Capacity)/1GB) , "GB" -join " "}}
-        "VideoController" = Get-CimInstance Win32_VideoController | Where-Object { $_.DeviceId -eq "VideoController1" } | Select-Object Name, @{Name = "RAM"; Expression = { ($_.AdapterRam / 1GB), "GB" -join " " } }
+        "Memory"          = Get-CimInstance -Class Win32_PhysicalMemory | Select-Object @{Name="RAM";Expression={ (($_.Capacity)/1GB) , "GB" -join " "}}
+        "VideoController" = Get-CimInstance -Class Win32_VideoController | Where-Object { $_.DeviceId -eq "VideoController1" } | Select-Object Name, @{Name = "RAM"; Expression = { ($_.AdapterRam / 1GB), "GB" -join " " } }
     }
-
     return $computerReport
 }
 
@@ -209,28 +193,27 @@ function Get-QuotaReport
     $unitList ="KB", "MB", "GB", "TB", "PB", "EB"
     $path="HKLM:\Software\Policies\Microsoft\Windows NT\DiskQuota"
     $pathExist=Test-Path -Path $path
-
     if ($pathExist)
     {
         $quotaReport = Get-ItemProperty -Path $path | Select-Object Enable, Enforce, Limit, LimitUnits, Threshold, ThresholdUnits
         $quotaReport = [ordered]@{
-            "enable"         = $quotaReport.Enable
-            "enforce"        = $quotaReport.Enforce 
-            "limit"          = $quotaReport.Limit 
-            "LimitUnits"     = $unitList[$quotaReport.LimitUnits - 1] 
-            "Threshold"      = $quotaReport.Threshold
-            "ThresholdUnits" = $unitList[$quotaReport.ThresholdUnits - 1] 
+        "enable"         = $quotaReport.Enable
+        "enforce"        = $quotaReport.Enforce 
+        "limit"          = $quotaReport.Limit 
+        "LimitUnits"     = $unitList[$quotaReport.LimitUnits - 1] 
+        "Threshold"      = $quotaReport.Threshold
+        "ThresholdUnits" = $unitList[$quotaReport.ThresholdUnits - 1] 
         }
     }
     else 
     {
         $quotaReport = [ordered]@{
-            "enable"         ="UNSET" 
-            "enforce"        ="UNSET" 
-            "limit"          ="UNSET" 
-            "LimitUnits"     ="UNSET" 
-            "Threshold"      ="UNSET"
-            "ThresholdUnits" = "UNSET"
+        "enable"         ="UNSET" 
+        "enforce"        ="UNSET" 
+        "limit"          ="UNSET" 
+        "LimitUnits"     ="UNSET" 
+        "Threshold"      ="UNSET"
+        "ThresholdUnits" = "UNSET"
         }
     }
     return $quotaReport
@@ -243,21 +226,17 @@ function Get-SoftwareReport
     [Parameter(Mandatory=$true,HelpMessage="SoftwareList",Position=0)]
     $softwareList
     )
-
     $softwareReport = [ordered]@{}
-
     $32bitPath = "HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall\" 
     $64bitPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
-    
     foreach ($programName in $softwareList.Keys)
     {
-
         $32bitElementName=(Get-ChildItem $32bitPath | Get-ItemProperty | Where-Object { ($_.DisplayName -like "*$programName*") -and ($_.Publisher -like "*$($softwareList[$programName])*") }).PSChildName | Select-Object -Last 1
         $32bitPathProgram=Join-Path -Path $32bitPath -ChildPath $32bitElementName
         
         $64bitElementName=(Get-ChildItem $64bitPath | Get-ItemProperty | Where-Object { ($_.DisplayName -like "*$programName*") -and ($_.Publisher -like "*$($softwareList[$programName])*") }).PSChildName | Select-Object -Last 1
         $64bitPathProgram=Join-Path -Path $64bitPath -ChildPath $64bitElementName
-
+        
         $32bitTest=Test-RegistryKeyValueExist -Path $32bitPathProgram -Name DisplayName
         $64bitTest=Test-RegistryKeyValueExist -Path $64bitPathProgram -Name DisplayName
         
@@ -276,16 +255,13 @@ function Get-SoftwareReport
             $softwareReport.Add($programName,"UNSET")
         }
     }
-
    return $softwareReport
 }
 
 function Get-NetworkReport
 {
-
     $deviceId=(Get-NetAdapter -Physical | Where-Object {$_.Status -eq "Up"}).DeviceID
     $DHCPStatus=(Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$deviceId").EnableDHCP
-
     if ($DHCPStatus -eq 1)
     {
         $networkInfo=Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$deviceId" | Select-Object @{Name="IPAddress";Expression={$_.DhcpIpAddress}},@{Name="SubnetMask";Expression={$_.DHCPSubnetMask}},@{Name="DefaultGateway";Expression={$_.DHCPDefaultGateway}},@{Name="NameServer";Expression={$_.DHCPNameServer}},@{Name="DHCPServer";Expression={$_.DHCPServer}}
@@ -294,21 +270,19 @@ function Get-NetworkReport
     {
         $networkInfo=Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$deviceId" | Select-Object  @{Name="IPAddress";Expression={$_.IPAddress}},@{Name="SubnetMask";Expression={$_.SubnetMask}},@{Name="DefaultGateway";Expression={$_.DefaultGateway}},@{Name="NameServer";Expression={$_.NameServer}},@{Name="DHCPServer";Expression={"UNSET"}}
     }
-
     $network = [ordered]@{
-            IPAddress        = $networkInfo.IPAddress
-            SubnetMask       = $networkInfo.SubnetMask
-            DefaultGateway   = $networkInfo.DefaultGateway
-            NameServer       = $networkInfo.NameServer
-            DHCPServer       = $networkInfo.DHCPServer
-            }
-
+    IPAddress       = $networkInfo.IPAddress
+    SubnetMask      = $networkInfo.SubnetMask
+    DefaultGateway  = $networkInfo.DefaultGateway
+    NameServer      = $networkInfo.NameServer
+    DHCPServer      = $networkInfo.DHCPServer
+    }
     return $network
 }
 
 function Get-PrinterReport
 {
-    $printer=Get-Printer | Where-Object {(($_.PortName -like "*USB*") -or ($_.PortName -like "192.168.*.*")) -and ($_.DeviceType -eq "Print")} | Select Name,Type,DriverName,PortName,Shared,Published
+    $printer=Get-Printer | Where-Object {(($_.PortName -like "*USB*") -or ($_.PortName -like "192.168.*.*")) -and ($_.DeviceType -eq "Print")} | Select-Object Name,Type,DriverName,PortName,Shared,Published
     $printReport = [ordered]@{}
     foreach ($print in $printer)
     {
@@ -334,9 +308,9 @@ function Get-FirewallReport
 {
     $firewallReportArray=(Get-NetFirewallProfile -PolicyStore ActiveStore | Select-Object Name, Enabled, @{label = "LogFilePath"; expression = { $_.LogFileName } }, @{label = "LogSize"; expression = { $_.LogMaxSizeKilobytes } })
     $firewallReport = [ordered]@{
-        Domain  = $firewallReportArray[0]
-        Private = $firewallReportArray[1]
-        Public  = $firewallReportArray[2]
+    Domain  = $firewallReportArray[0]
+    Private = $firewallReportArray[1]
+    Public  = $firewallReportArray[2]
     }
     return $firewallReport
 }
@@ -344,7 +318,6 @@ function Get-FirewallReport
 function Get-DefenderReport
 {
     $paths="HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Signature Updates","HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender"
-
     $defenderReport = [ordered]@{
         "Windows Defender Status"           = $null
         "Potentially Unwanted Apps"         = $null
@@ -353,8 +326,7 @@ function Get-DefenderReport
         "Security Update days"              = $null
         "Spyware Update Days"               = $null
     }
-    
-    $status=Get-ItemProperty -Path $paths[1] | Select @{Name="Windows Defender";Expression={$_.DisableAntiSpyware}}
+    $status=Get-ItemProperty -Path $paths[1] | Select-Object @{Name="Windows Defender";Expression={$_.DisableAntiSpyware}}
     if (-not ($status -eq 1))
     {
         $defenderReport["Windows Defender Status"]="SET"
@@ -363,8 +335,7 @@ function Get-DefenderReport
     {
         $defenderReport["Windows Defender Status"]="UNSET"
     }
-
-    $status=Get-MpPreference | Select-Object PUAProtection,DisableRemovableDriveScanning,DisableIOAVProtection  #b,c,d 
+    $status=Get-MpPreference | Select-Object PUAProtection,DisableRemovableDriveScanning,DisableIOAVProtection
     if ($status.PUAProtection -eq 0)
     {
         $defenderReport["Potentially Unwanted Apps"]="UNSET"
@@ -395,9 +366,7 @@ function Get-DefenderReport
     {
         $defenderReport["Scan All Files and Attachments"]="UNSET"
     }
-
     $test=Test-RegistryKeyValueExist -Path $paths[0] -Name "AVSignatureDue"
-
     if ($test)
     {
         $defenderElement=Get-ItemProperty -Path $paths[0] | Select-Object @{Name="Security updates days";expression={$_.AVSignatureDue}},@{Name="Spyware update days";expression={$_.ASSignatureDue}}
@@ -409,21 +378,16 @@ function Get-DefenderReport
         $defenderReport["Security Update days"]="UNSET"
         $defenderReport["Spyware Update Days"]="UNSET"
     }
-
     return $defenderReport
 }
 
 function Get-LogReport 
 {
     $logReport = [ordered]@{}
-
     "Application","Setup","System","Security" | ForEach-Object {
-
         $testRetention=Test-RegistryKeyValueExist -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\$_  -Name "Retention"
-
         if ($testRetention)
-        {
-            
+        {  
             $logReportValue=Get-WinEvent -ListLog $_ | Select-Object LogName, @{label = "MaximumSizeInBytes"; expression = { $_.MaximumSizeInBytes / 1024 } }, LogMode, @{label = "Retention"; expression = {"SET"} }
         }
         else
@@ -432,13 +396,11 @@ function Get-LogReport
         }
         $logReport.Add($_,$logReportValue)
     }
-
     return $logReport
 }
 
 
 ######################MAIN###########################
-
 $hardwareSystem=Get-ComputerReport
 $quotaSystem=Get-QuotaReport
 $softwareSystem=Get-SoftwareReport -softwareList $softwareList
@@ -449,7 +411,6 @@ $firewallSystem=Get-FirewallReport
 $defenderSystem=Get-DefenderReport
 $logSystem=Get-LogReport
 
-
 $fullReport=[ordered]@{}
 
 $registryReportPath="HKLM:\SYSTEM"
@@ -457,10 +418,8 @@ $registryReportElement="DATA"
 $registryReportFullPath=Join-Path -Path $registryReportPath -ChildPath $registryReportElement
 $testRegistry=Test-Path -Path $registryReportFullPath
 
-
 if ($testRegistry)
 {
-
     $hardwareRegistry=Get-Registry2LevelData -pathToRegistry "$registryReportFullPath\HARDWARE"
     $hardwareReport=Compare-Hashtables2Level -fromSystem $hardwareSystem -fromRegistry $hardwareRegistry
 
@@ -504,7 +463,6 @@ if ($testRegistry)
     LOG=$logReport;
     FIRST=$false
     }
-
 }
 else
 {
@@ -548,5 +506,4 @@ else
     }
 }
 Set-ExecutionPolicy -ExecutionPolicy Restricted
-
 return $fullReport

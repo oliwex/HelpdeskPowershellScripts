@@ -3,7 +3,6 @@ $scriptHashtable = [ordered]@{
 Skrypt     = "skrypt.ps1" 
 Generator  = "reportGenerator.ps1" 
 }
-
 ##########################FUNCTIONS####################################
 function New-InformationLog
 {
@@ -16,7 +15,6 @@ function New-InformationLog
         [Parameter(Mandatory=$true,HelpMessage="Color",Position=2)]
         [String]$color
         )
-
     $datetime=Get-DateTime
     "[$datetime] $message" >> $logPath
     Write-Host "[$datetime] $message " -ForegroundColor $color
@@ -26,19 +24,17 @@ function Test-Workplace
 {    
 [CmdletBinding()]
     Param(
-        [Parameter(Mandatory=$true,HelpMessage="ReportPath",Position=0)]
+        [Parameter(Mandatory=$true,HelpMessage="ScriptHashtable",Position=0)]
         $scriptHashtable,
         [Parameter(Mandatory=$true,HelpMessage="ComputerToMonitor",Position=1)]
         [String]$computerToMonitor
     )
-
     do
     {
         $scriptPathTest=$false
         $reportPathTest=$false
         $rootPath=Read-Host "Podaj ścieżkę przechowującą pliki skryptów:"
         $isScriptPathNull=[string]::IsNullorEmpty($rootPath)
-        
         if ($isScriptPathNull)
         {
             New-InformationLog -logPath $logPath -message "Nie podano danych ścieżki." -color red
@@ -55,7 +51,6 @@ function Test-Workplace
         }
         $connecetion=Test-Connection -ComputerName $computerToMonitor -Quiet
         New-InformationLog -logPath $logPath -message "Wykonano sprawdzenie, czy istnieje połączenie między serwerem a stacjami roboczymi." -color green
-        
         if ($connecetion)
         {
            New-InformationLog -logPath $logPath -message "Połączenie z komputerem: $computerToMonitor zostało nawiązane prawidłowo." -color green 
@@ -64,21 +59,15 @@ function Test-Workplace
         {
            New-InformationLog -logPath $logPath -message "Połączenie z komputerem: $computerToMonitor nie zostało nawiązane." -color red 
         }
-
-
-
         $installedModule=(($(Get-InstalledModule).Name).Contains("NTFSSecurity"))
         New-InformationLog -logPath $logPath -message "Wykonano sprawdzenie, czy moduł jest zainstalowany na serwerze" -color green
-
         if (-not($installedModule))
         {
             Install-Module -Name NTFSSecurity -AllowClobber
             New-InformationLog -logPath $logPath -message "Moduł nie był zainstalowany, toteż wykonano jego instalacje." -color red
         }
-
     }
     until ($scriptPathTest -and $reportPathTest -and $connecetion -and $installedModule)
-
     New-InformationLog -logPath $logPath -message "Poprawnie sprawdzono środowisko serwera przed dalszą działalnością skryptu" -color green
     return $rootPath
 }
@@ -90,41 +79,35 @@ function Get-FilesReport
         [Parameter(Mandatory=$true,HelpMessage="UserInformation",Position=0)]
         $userInformation
     )
-
     ##requires NTFSSecurity
     $filesReport = [ordered]@{}
-
     $departmentPath=Join-Path -Path $($userInformation.PathToSharedFolder) -ChildPath $($userInformation.Department)
     if (Test-Path -Path $departmentPath -PathType Container)
     {
-            $userAccessDepartmentFolder=Get-Item -Path $departmentPath | Get-NTFSEffectiveAccess -Account $($userInformation.Username) | select Account, AccessRights, FullName
-            if ($userAccessDepartmentFolder.AccessRights -like "WriteExtendedAttributes, WriteAttributes, ReadAndExecute, Synchronize")
-            {
-                $userAccessDepartmentFolder.AccessRights="SET"
-            }
-            else
-            {
-                $userAccessDepartmentFolder.AccessRights="UNSET"
-            }
-            $filesReport.Add("DepartmentFolderUserAccess", $userAccessDepartmentFolder)
-
-
-            $groupAccessDepartmentFolder=Get-Item -Path $departmentPath | Get-NTFSEffectiveAccess -Account $($userInformation.Groupname) | select Account, AccessRights, FullName
-            if ($groupAccessDepartmentFolder.AccessRights -like "WriteExtendedAttributes, WriteAttributes, ReadAndExecute, Synchronize")
-            {
-                $groupAccessDepartmentFolder.AccessRights="SET"
-            }
-            else
-            {
-                $groupAccessDepartmentFolder.AccessRights="UNSET"
-            }
-
-            $filesReport.Add("DepartmentFolderGroupAccess",$groupAccessDepartmentFolder)
-    
+        $userAccessDepartmentFolder=Get-Item -Path $departmentPath | Get-NTFSEffectiveAccess -Account $($userInformation.Username) | Select-Object Account, AccessRights, FullName
+        if ($userAccessDepartmentFolder.AccessRights -like "WriteExtendedAttributes, WriteAttributes, ReadAndExecute, Synchronize")
+        {
+            $userAccessDepartmentFolder.AccessRights="SET"
+        }
+        else
+        {
+            $userAccessDepartmentFolder.AccessRights="UNSET"
+        }
+        $filesReport.Add("DepartmentFolderUserAccess", $userAccessDepartmentFolder)
+        $groupAccessDepartmentFolder = Get-Item -Path $departmentPath | Get-NTFSEffectiveAccess -Account $($userInformation.Groupname) | Select-Object Account, AccessRights, FullName
+        if ($groupAccessDepartmentFolder.AccessRights -like "WriteExtendedAttributes, WriteAttributes, ReadAndExecute, Synchronize")
+        {
+            $groupAccessDepartmentFolder.AccessRights="SET"
+        }
+        else
+        {
+            $groupAccessDepartmentFolder.AccessRights="UNSET"
+        }
+        $filesReport.Add("DepartmentFolderGroupAccess",$groupAccessDepartmentFolder)
         $userPath=Join-Path -Path $($userInformation.PathToSharedFolder) -ChildPath $($userInformation.Username)
         if (Test-Path -Path $userPath -PathType Container)
         {
-            $userAccessUserFolder=Get-Item -Path $userPath | Get-NTFSEffectiveAccess -Account $($userInformation.Username) | select Account, AccessRights, FullName
+            $userAccessUserFolder = Get-Item -Path $userPath | Get-NTFSEffectiveAccess -Account $($userInformation.Username) | Select-Object Account, AccessRights, FullName
             if ($userAccessUserFolder.AccessRights -like "Write, ReadAndExecute, Synchronize")
             {
                 $userAccessUserFolder.AccessRights="SET"
@@ -134,8 +117,7 @@ function Get-FilesReport
                 $userAccessUserFolder.AccessRights="UNSET"
             }
             $filesReport.Add("UserFolderUserAccess",$userAccessUserFolder)
-
-            $groupAccessUserfolder=Get-Item -Path $userPath | Get-NTFSEffectiveAccess -Account $($userInformation.Groupname) | select Account, AccessRights, FullName
+            $groupAccessUserfolder=Get-Item -Path $userPath | Get-NTFSEffectiveAccess -Account $($userInformation.Groupname) | Select-Object Account, AccessRights, FullName
             if ($groupAccessUserfolder.AccessRights -like "Synchronize")
             {
                 $groupAccessUserfolder.AccessRights="SET"
@@ -159,19 +141,16 @@ function Get-FilesReport
         $filesReport.Add("UserFolderUserAccess","UNSET")
         $filesReport.Add("UserFolderGroupAccess","UNSET")
     }
-
     return $filesReport
 }
 
 function Get-ReportPath
 {
-
     do
     {
         $isIdentical=$true
         $reportPath=Read-Host -Prompt "Podaj ścieżkę do przechowującą pliki raportów"
         $isReportPathNull=[string]::IsNullorEmpty($reportPath)
-        
         if ($isReportPathNull)
         {
             continue
@@ -188,10 +167,8 @@ function Get-ReportPath
                 New-Item -Path $reportPath -ItemType Directory | Out-Null
             }
         }
-
     }
     until (-not($isIdentical))
-
     return $reportPath
 }
 
@@ -213,15 +190,14 @@ function Get-ReportFile
 
 function Get-DateTime
 {
-$datetime=Get-Date -Format "HH.mm.ss.ffff_dd.MM.yyyy"
-return $datetime
+    $datetime=Get-Date -Format "HH.mm.ss.ffff_dd.MM.yyyy"
+    return $datetime
 }
 
 function Get-LogPath
 {
     [CmdletBinding()]
     Param(
-
         [Parameter(Mandatory=$true,HelpMessage="ComputerToMonitor",Position=0)]
         [String]$computerToMonitor
         )
@@ -230,7 +206,6 @@ function Get-LogPath
         $isIdentical=$true
         $logPath=Read-Host -Prompt "Podaj ścieżkę do logowania zdarzeń"
         $isLogPathNull=[string]::IsNullorEmpty($logPath)
-        
         if ($isLogPathNull)
         {
             continue
@@ -247,10 +222,8 @@ function Get-LogPath
                 New-Item -Path $logPath -ItemType Directory | Out-Null
             }
         }
-
     }
     until (-not($isIdentical))
-
     $datetime=Get-Date -Format "HH.mm_dd.MM.yyyy"
     $fileName="$computerToMonitor-$datetime.txt"
     $logFilePath=Join-Path -Path $logPath -ChildPath $fileName
@@ -262,24 +235,22 @@ function Get-UserInformation
 {
     do
     {
-            $userName=Read-Host "Podaj nazwę użytkownika"
-            $isUsernameNull=[string]::IsNullorEmpty($userName)
-            New-InformationLog -logPath $logPath -message "Pobrano dane użytkownika do weryfikacji udziałów sieciowych." -color green
+        $userName=Read-Host "Podaj nazwę użytkownika"
+        $isUsernameNull=[string]::IsNullorEmpty($userName)
+        New-InformationLog -logPath $logPath -message "Pobrano dane użytkownika do weryfikacji udziałów sieciowych." -color green
             
-            $groupName=Read-Host "Podaj nazwę grupy"
-            $isGroupNull=[string]::IsNullorEmpty($groupName)
-            New-InformationLog -logPath $logPath -message "Pobrano nazwę grupy do weryfikacji udziałów sieciowych." -color green
+        $groupName=Read-Host "Podaj nazwę grupy"
+        $isGroupNull=[string]::IsNullorEmpty($groupName)
+        New-InformationLog -logPath $logPath -message "Pobrano nazwę grupy do weryfikacji udziałów sieciowych." -color green
             
-            $departmentName=Read-Host "Podaj nazwę departamentu"
-            $isDepartmentNull=[string]::IsNullorEmpty($departmentName)
-            New-InformationLog -logPath $logPath -message "Pobrano nazwę departamentu do weryfikacji udziałów sieciowych." -color green
+        $departmentName=Read-Host "Podaj nazwę departamentu"
+        $isDepartmentNull=[string]::IsNullorEmpty($departmentName)
+        New-InformationLog -logPath $logPath -message "Pobrano nazwę departamentu do weryfikacji udziałów sieciowych." -color green
 
-            $isUserExist=((Get-ADUser -Filter *).SamAccountName).Contains($userName)
-            $isGroupExist=((Get-ADGroup -Filter *).Name).Contains($groupName)
-
+        $isUserExist=((Get-ADUser -Filter *).SamAccountName).Contains($userName)
+        $isGroupExist=((Get-ADGroup -Filter *).Name).Contains($groupName)
     }
     until (($isUserExist) -and ($isGroupExist) -and (-not($isDepartmentNull)))
-    
     $files = [ordered]@{
     Username             = $userName
     Groupname            = $groupName
@@ -309,7 +280,6 @@ function Get-ComputerInformation
                 continue
             }
             $computerList=(Get-ADComputer -Filter {OperatingSystem -like "Windows 10*"}).DistinguishedName
-
             if ($computerList.Contains($computerInfo))
             {
                 $computerInfo=[ordered]@{
@@ -317,9 +287,6 @@ function Get-ComputerInformation
                 OU=((Get-ADComputer -Identity $computerName).DistinguishedName.Split(",")[1]).Split("=")[1];
                 }
                 $flag=$true
-            }
-            else
-            {
             }
         }
     }
@@ -335,7 +302,6 @@ $softwareList = [ordered]@{
     "Microsoft Edge"    = "*Microsoft*" 
     "Java 8"            = "*Oracle*" 
 }
-
 ########################################################################
 ########################################################################
 ##                                                                    ##
@@ -368,17 +334,14 @@ New-InformationLog -logPath $logPath -message "Zebrano informacje o obecnym stan
 
 while($true)
 {
-    
     $userData=Get-UserInformation
     New-InformationLog -logPath $logPath -message "Zebrano informacje o danych użytkownikach potrzebnych do weryfikacji uprawnień do udziałów sieciowych" -color green
     
     $filesReport=Get-FilesReport -userInformation $userData
     New-InformationLog -logPath $logPath -message "Zebrano informacje o udziałach sieciowych" -color green
     
-    
     $resultFile=$(Get-ReportFile -reportPath $resultPath -computerToMonitor $computerToMonitor)
     New-InformationLog -logPath $logPath -message "Zebrano informacje o nazwie pliku raportowego" -color green
-
 
     $endVar=Read-Host "Proszę zmienić GPO lub wpisać koniec, jeśli skrypt ma zostać zakończony"
     if ($endVar -like "koniec")
@@ -411,8 +374,6 @@ while($true)
         New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
     }
 
-
-
     if (($isLastExist -eq $true) -and ($isCurrentExist -eq $false))
     {
         #1=NULL,2=POLITYKA
@@ -424,7 +385,6 @@ while($true)
         
         New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
     }
-
 
     if (($isLastExist -eq $false) -and ($isCurrentExist -eq $false))
     {
