@@ -455,7 +455,10 @@ $logSystem=Get-LogReport
 
 $fullReport=[ordered]@{}
 
-$testRegistry=Test-Path -Path HKLM:\SYSTEM\TEST
+$registryReportPath="HKLM:\SYSTEM"
+$registryReportElement="DATA"
+$registryReportFullPath=Join-Path -Path $registryReportPath -ChildPath $registryReportElement
+$testRegistry=Test-Path -Path $registryReportFullPath
 
 
 if ($testRegistry)
@@ -464,34 +467,34 @@ if ($testRegistry)
 
     #odczyt danych z rejestru
     #porównanie danych z rejestru wraz z porównaniem danych z systemu, dane wyjściowe są zapisywane w zmiennych
-    $hardwareRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\HARDWARE"
+    $hardwareRegistry=Get-Registry2LevelData -pathToRegistry "$registryReportFullPath\HARDWARE"
     $hardwareReport=Compare-Hashtables2Level -fromSystem $hardwareSystem -fromRegistry $hardwareRegistry
 
-    $quotaRegistry=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\QUOTA"
+    $quotaRegistry=Get-Registry1LevelData -pathToRegistry "$registryReportFullPath\QUOTA"
     $quotaReport=Compare-Hashtables1Level -fromSystem $quotaSystem -fromRegistry $quotaRegistry
 
-    $softwareRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SOFTWARE"
+    $softwareRegistry=Get-Registry2LevelData -pathToRegistry "$registryReportFullPath\SOFTWARE"
     $softwareReport=Compare-Hashtables2Level -fromSystem $softwareSystem -fromRegistry $softwareRegistry
 
-    $filesRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\FILESHARE"
+    $filesRegistry=Get-Registry2LevelData -pathToRegistry "$registryReportFullPath\FILESHARE"
     $filesReport=Compare-Hashtables2Level -fromSystem $filesSystem -fromRegistry $filesRegistry
 
-    $networkRegistry=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\NETWORK"
+    $networkRegistry=Get-Registry1LevelData -pathToRegistry "$registryReportFullPath\NETWORK"
     $networkReport=Compare-Hashtables1Level -fromSystem $networkSystem -fromRegistry $networkRegistry
 
-    $printerRegistry=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\PRINTER"
+    $printerRegistry=Get-Registry1LevelData -pathToRegistry "$registryReportFullPath\PRINTER"
     $printerReport=Compare-Hashtables1Level -fromSystem $printerSystem -fromRegistry $printerRegistry
 
-    $serviceRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SERVICE"
+    $serviceRegistry=Get-Registry2LevelData -pathToRegistry "$registryReportFullPath\SERVICE"
     $serviceReport=Compare-Hashtables2Level -fromSystem $serviceSystem -fromRegistry $serviceRegistry
 
-    $firewallRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\FIREWALL"
+    $firewallRegistry=Get-Registry2LevelData -pathToRegistry "$registryReportFullPath\FIREWALL"
     $firewallReport=Compare-Hashtables2Level -fromSystem $firewallSystem -fromRegistry $firewallRegistry
 
-    $defenderRegistry=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\DEFENDER"
+    $defenderRegistry=Get-Registry1LevelData -pathToRegistry "$registryReportFullPath\DEFENDER"
     $defenderReport=Compare-Hashtables1Level -fromSystem $defenderSystem -fromRegistry $defenderRegistry
 
-    $logRegistry=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\LOG"
+    $logRegistry=Get-Registry2LevelData -pathToRegistry "$registryReportFullPath\LOG"
     $logReport=Compare-Hashtables2Level -fromSystem $logSystem -fromRegistry $logRegistry
 
     #przeslanie danych do stacji roboczej
@@ -515,29 +518,29 @@ else
     #element nie istnieje
     #zapis do rejestru jako konfiguracja startowa
 
-    Prepare-Workplace -path HKLM:\SYSTEM -folder TEST
-    Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\HARDWARE" -hashtableData $hardwareSystem
-    Save-ToRegistry1Level -pathToRegistry "HKLM:\SYSTEM\TEST\QUOTA" -hashtableData $quotaSystem
-    Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\SOFTWARE" -hashtableData $softwareSystem
-    Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\FILESHARE" -hashtableData $filesSystem
-    Save-ToRegistry1Level -pathToRegistry "HKLM:\SYSTEM\TEST\NETWORK" -hashtableData $networkSystem
-    Save-ToRegistry1Level -pathToRegistry "HKLM:\SYSTEM\TEST\PRINTER" -hashtableData $printerSystem
-    Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\SERVICE" -hashtableData $serviceSystem
-    Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\FIREWALL" -hashtableData $firewallSystem
-    Save-ToRegistry1Level -pathToRegistry "HKLM:\SYSTEM\TEST\DEFENDER" -hashtableData $defenderSystem
-    Save-ToRegistry2Level -pathToRegistry "HKLM:\SYSTEM\TEST\LOG" -hashtableData $logSystem
+    Prepare-Workplace -path HKLM:\SYSTEM -folder DATA
+    Save-ToRegistry2Level -pathToRegistry "$registryReportFullPath\HARDWARE" -hashtableData $hardwareSystem
+    Save-ToRegistry1Level -pathToRegistry "$registryReportFullPath\QUOTA" -hashtableData $quotaSystem
+    Save-ToRegistry2Level -pathToRegistry "$registryReportFullPath\SOFTWARE" -hashtableData $softwareSystem
+    Save-ToRegistry2Level -pathToRegistry "$registryReportFullPath\FILESHARE" -hashtableData $filesSystem
+    Save-ToRegistry1Level -pathToRegistry "$registryReportFullPath\NETWORK" -hashtableData $networkSystem
+    Save-ToRegistry1Level -pathToRegistry "$registryReportFullPath\PRINTER" -hashtableData $printerSystem
+    Save-ToRegistry2Level -pathToRegistry "$registryReportFullPath\SERVICE" -hashtableData $serviceSystem
+    Save-ToRegistry2Level -pathToRegistry "$registryReportFullPath\FIREWALL" -hashtableData $firewallSystem
+    Save-ToRegistry1Level -pathToRegistry "$registryReportFullPath\DEFENDER" -hashtableData $defenderSystem
+    Save-ToRegistry2Level -pathToRegistry "$registryReportFullPath\LOG" -hashtableData $logSystem
 
     #Odczyt danych z rejestru
-    $hardwareReport=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\HARDWARE"
-    $quotaReport=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\QUOTA"
-    $softwareReport=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SOFTWARE"
-    $filesReport=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\FILESHARE"
-    $networkReport=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\NETWORK"
-    $printerReport=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\PRINTER"
-    $serviceReport=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\SERVICE"
-    $firewallReport=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\FIREWALL"
-    $defenderReport=Get-Registry1LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\DEFENDER"
-    $logReport=Get-Registry2LevelData -pathToRegistry "HKLM:\SYSTEM\TEST\LOG"
+    $hardwareReport=Get-Registry2LevelData -pathToRegistry "$registryReportFullPath\HARDWARE"
+    $quotaReport=Get-Registry1LevelData -pathToRegistry "$registryReportFullPath\QUOTA"
+    $softwareReport=Get-Registry2LevelData -pathToRegistry "$registryReportFullPath\SOFTWARE"
+    $filesReport=Get-Registry2LevelData -pathToRegistry "$registryReportFullPath\FILESHARE"
+    $networkReport=Get-Registry1LevelData -pathToRegistry "$registryReportFullPath\NETWORK"
+    $printerReport=Get-Registry1LevelData -pathToRegistry "$registryReportFullPath\PRINTER"
+    $serviceReport=Get-Registry2LevelData -pathToRegistry "$registryReportFullPath\SERVICE"
+    $firewallReport=Get-Registry2LevelData -pathToRegistry "$registryReportFullPath\FIREWALL"
+    $defenderReport=Get-Registry1LevelData -pathToRegistry "$registryReportFullPath\DEFENDER"
+    $logReport=Get-Registry2LevelData -pathToRegistry "$registryReportFullPath\LOG"
 
     #przeslanie danych do stacji roboczej
     $fullReport=[ordered]@{
