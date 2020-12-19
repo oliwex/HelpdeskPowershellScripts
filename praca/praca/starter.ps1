@@ -1,7 +1,11 @@
 ﻿####################SCRIPT FILES########################################
 $scriptHashtable = [ordered]@{
-Skrypt     = "dataGraber.ps1" 
-Generator  = "reportGenerator.ps1" 
+DATAGRABER     = "dataGraber.ps1" 
+GENERATOR  = "reportGenerator.ps1" 
+}
+$computerHashtable = [ordered]@{
+DHCP_SERVER = "SERVER1"
+STORAGE_SERVER = "SERVER2"
 }
 ##########################FUNCTIONS####################################
 function New-InformationLog
@@ -27,38 +31,57 @@ function Test-Workplace
         [Parameter(Mandatory=$true,HelpMessage="ScriptHashtable",Position=0)]
         $scriptHashtable,
         [Parameter(Mandatory=$true,HelpMessage="ComputerToMonitor",Position=1)]
-        [String]$computerToMonitor
+        $computerHashtable
     )
     do
     {
         $scriptPathTest=$false
         $reportPathTest=$false
-        $rootPath=Read-Host "Podaj ścieżkę przechowującą pliki skryptów:"
+        $rootPath=Read-Host "Podaj ścieżkę przechowującą pliki skryptów"
         $isScriptPathNull=[string]::IsNullorEmpty($rootPath)
         if ($isScriptPathNull)
         {
-            New-InformationLog -logPath $logPath -message "Nie podano danych ścieżki." -color red
+            New-InformationLog -logPath $logPath -message "Ściezka nieprawidłowa." -color red
             continue
         }
         else
         {
-            New-InformationLog -logPath $logPath -message "Podano prawidłowe dane. Następuje tworzenie pełnych ścieżek do plików." -color green
-            $scriptPath=Join-Path -Path $rootPath -ChildPath $scriptHashtable["Skrypt"]
-            $reportPath=Join-Path -Path $rootPath -ChildPath $scriptHashtable["Generator"]
-            $scriptPathTest=Test-Path -Path $scriptPath -PathType Leaf
-            $reportPathTest=Test-Path -Path $reportPath -PathType Leaf
-            New-InformationLog -logPath $logPath -message "Wykonano sprawdzenie, czy pliki o nazwach: $($scriptHashtable["Skrypt"]) oraz $($scriptHashtable["Generator"]) znajdują się w $rootPath" -color green
+            $rootPathTest=Test-Path -Path $rootPath -PathType Container
+            if ($rootPathTest)
+            {
+
+                New-InformationLog -logPath $logPath -message "Ścieżka została podana.Następuje tworzenie pełnych ścieżek do plików." -color green
+                $scriptPath=Join-Path -Path $rootPath -ChildPath $scriptHashtable["DATAGRABER"]
+                $reportPath=Join-Path -Path $rootPath -ChildPath $scriptHashtable["GENERATOR"]
+                $scriptPathTest=Test-Path -Path $scriptPath -PathType Leaf
+                $reportPathTest=Test-Path -Path $reportPath -PathType Leaf
+                if ((-not($scriptPathTest)) -or (-not($scriptPathTest)))
+                {
+                    New-InformationLog -logPath $logPath -message "Pliki o nazwach: $($scriptHashtable["DATAGRABER"]) oraz $($scriptHashtable["GENERATOR"]) nie znajdują się w: $rootPath" -color red
+                    continue
+                }
+            }
+            else
+            {
+                New-InformationLog -logPath $logPath -message "Podana ściezka nie istnieje" -color red
+                continue
+            }
         }
-        $connecetion=Test-Connection -ComputerName $computerToMonitor -Quiet
-        New-InformationLog -logPath $logPath -message "Wykonano sprawdzenie, czy istnieje połączenie między serwerem a stacjami roboczymi." -color green
-        if ($connecetion)
+        New-InformationLog -logPath $logPath -message "Wykonano sprawdzenie, czy pliki o nazwach: $($scriptHashtable["DATAGRABER"]) oraz $($scriptHashtable["GENERATOR"]) znajdują się w $rootPath" -color green
+        $connection=$true
+        foreach ($computer in $computerHashtable.Keys)
         {
-           New-InformationLog -logPath $logPath -message "Połączenie z komputerem: $computerToMonitor zostało nawiązane prawidłowo." -color green 
+            $connectionFlag=Test-Connection -ComputerName $computer -Quiet
+            if ($connectionFlag -eq $false)
+            {
+                $connection=$false
+                New-InformationLog -logPath $logPath -message "Połączenie z komputerem $computer nie zostało nawiązane." -color red
+                break
+            }
+            New-InformationLog -logPath $logPath -message "Połączenie z komputerem $computer zostało nawiązane." -color green
         }
-        else
-        {
-           New-InformationLog -logPath $logPath -message "Połączenie z komputerem: $computerToMonitor nie zostało nawiązane." -color red 
-        }
+        New-InformationLog -logPath $logPath -message "Wykonano sprawdzenie, czy istnieje połączenie z komputerami." -color green
+
         $installedModule=(($(Get-InstalledModule).Name).Contains("NTFSSecurity"))
         New-InformationLog -logPath $logPath -message "Wykonano sprawdzenie, czy moduł jest zainstalowany na serwerze" -color green
         if (-not($installedModule))
@@ -67,7 +90,7 @@ function Test-Workplace
             New-InformationLog -logPath $logPath -message "Moduł nie był zainstalowany, toteż wykonano jego instalacje." -color red
         }
     }
-    until ($scriptPathTest -and $reportPathTest -and $connecetion -and $installedModule)
+    until ($scriptPathTest -and $reportPathTest -and $connection -and $installedModule)
     New-InformationLog -logPath $logPath -message "Poprawnie sprawdzono środowisko serwera przed dalszą działalnością skryptu" -color green
     return $rootPath
 }
@@ -149,7 +172,7 @@ function Get-ReportPath
     do
     {
         $isIdentical=$true
-        $reportPath=Read-Host -Prompt "Podaj ścieżkę do przechowującą pliki raportów"
+        $reportPath=Read-Host -Prompt "Podaj ścieżkę przechowującą pliki raportów"
         $isReportPathNull=[string]::IsNullorEmpty($reportPath)
         if ($isReportPathNull)
         {
@@ -263,7 +286,7 @@ function Get-UserInformation
 
 function Get-ComputerInformation
 {
-    $computerInfo=$nulls
+
     do
     {
         $flag=$false
@@ -311,21 +334,22 @@ $softwareList = [ordered]@{
 ########################################################################
 $computerInformation=Get-ComputerInformation
 $monitoredOU=$computerInformation["OU"]
-$computerToMonitor=$computerInformation["Computer"]
 
 $resultPath=$(Get-ReportPath)
-$logPath=$(Get-LogPath -computerToMonitor $computerToMonitor)
+$logPath=$(Get-LogPath -computerToMonitor $computerInformation["Computer"])
+$computerHashtable.Add("MONITORED_COMPUTER",$computerInformation["Computer"])
+
 New-InformationLog -logPath $logPath -message "Zebrano informacje o komputerze oraz OU do raportowania." -color green
 New-InformationLog -logPath $logPath -message "Zebrano informacje o ścieżce do raportowania." -color green
 New-InformationLog -logPath $logPath -message "Zebrano informacje o ścieżce do zapisywania zdarzeń." -color green
 
-$rootPath=Test-Workplace -scriptHashtable $scriptHashtable -computerToMonitor $($computerInformation["Computer"])
+$rootPath=Test-Workplace -scriptHashtable $scriptHashtable -computerHashtable $computerHashtable
 New-InformationLog -logPath $logPath -message "Sprawdzono, czy system jest gotowy na wykonanie skryptu." -color green
 
-$scriptPath=Join-Path -Path $rootPath -ChildPath $($scriptHashtable["Skrypt"])
+$scriptPath=Join-Path -Path $rootPath -ChildPath $scriptHashtable["DATAGRABER"]
 New-InformationLog -logPath $logPath -message "Utworzono ścieżkę do skryptu pobierającego dane z systemu zewnętrznego." -color green
 
-$generatorPath=Join-Path -Path $rootPath -ChildPath $($scriptHashtable["Generator"])
+$generatorPath=Join-Path -Path $rootPath -ChildPath $scriptHashtable["GENERATOR"]
 New-InformationLog -logPath $logPath -message "Utworzono ścieżkę do skryptu generującego raport." -color green
 
 #Current State
@@ -340,7 +364,7 @@ while($true)
     $filesReport=Get-FilesReport -userInformation $userData
     New-InformationLog -logPath $logPath -message "Zebrano informacje o udziałach sieciowych" -color green
     
-    $resultFile=$(Get-ReportFile -reportPath $resultPath -computerToMonitor $computerToMonitor)
+    $resultFile=$(Get-ReportFile -reportPath $resultPath -computerToMonitor $computerHashtable["MONITORED_COMPUTER"])
     New-InformationLog -logPath $logPath -message "Zebrano informacje o nazwie pliku raportowego" -color green
 
     $endVar=Read-Host "Proszę zmienić GPO lub wpisać koniec, jeśli skrypt ma zostać zakończony"
@@ -366,10 +390,10 @@ while($true)
     {
         #1=POLITYKA,2=NULL
         New-InformationLog -logPath $logPath -message "Polityki zostały zmienione. Następuje odwołanie do zdalnego hosta" -color green
-        $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList $filesReport,$softwareList
+        $fullReport=Invoke-Command -ComputerName $computerHashtable["MONITORED_COMPUTER"] -FilePath $scriptPath -ArgumentList $filesReport,$softwareList
 
         New-InformationLog -logPath $logPath -message "Dane zostały zebrane.Zostaje wykonany raport." -color green
-        Invoke-Command -ComputerName $($env:COMPUTERNAME) -FilePath $generatorPath -ArgumentList $fullReport,$computerToMonitor,$resultFile
+        Invoke-Command -ComputerName $($env:COMPUTERNAME) -FilePath $generatorPath -ArgumentList $fullReport,$($computerHashtable["MONITORED_COMPUTER"]),$resultFile
         
         New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
     }
@@ -378,10 +402,10 @@ while($true)
     {
         #1=NULL,2=POLITYKA
         New-InformationLog -logPath $logPath -message "Polityki zostały zmienione. Następuje odwołanie do zdalnego hosta" -color green
-        $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList $filesReport,$softwareList
+        $fullReport=Invoke-Command -ComputerName $computerHashtable["MONITORED_COMPUTER"] -FilePath $scriptPath -ArgumentList $filesReport,$softwareList
 
         New-InformationLog -logPath $logPath -message "Dane zostały zebrane.Zostaje wykonany raport." -color green
-        Invoke-Command -ComputerName $($env:COMPUTERNAME) -FilePath $generatorPath -ArgumentList $fullReport,$computerToMonitor,$resultFile
+        Invoke-Command -ComputerName $($env:COMPUTERNAME) -FilePath $generatorPath -ArgumentList $fullReport,$($computerHashtable["MONITORED_COMPUTER"]),$resultFile
         
         New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
     }
@@ -397,10 +421,10 @@ while($true)
         {
             #1=POLITYKA,2=POLITYKA,3=CHANGED
             New-InformationLog -logPath $logPath -message "Polityki zostały zmienione. Następuje odwołanie do zdalnego hosta" -color green
-            $fullReport=Invoke-Command -ComputerName $computerToMonitor -FilePath $scriptPath -ArgumentList $filesReport,$softwareList
+            $fullReport=Invoke-Command -ComputerName $computerHashtable["MONITORED_COMPUTER"] -FilePath $scriptPath -ArgumentList $filesReport,$softwareList
 
             New-InformationLog -logPath $logPath -message "Dane zostały zebrane.Zostaje wykonany raport." -color green
-            Invoke-Command -ComputerName $($env:COMPUTERNAME) -FilePath $generatorPath -ArgumentList $fullReport,$computerToMonitor,$resultFile
+            Invoke-Command -ComputerName $($env:COMPUTERNAME) -FilePath $generatorPath -ArgumentList $fullReport,$($computerHashtable["MONITORED_COMPUTER"]),$resultFile
             
             New-InformationLog -logPath $logPath -message "Raport został wykonany. Można go zobaczyć w: $resultFile" -color green
         }
