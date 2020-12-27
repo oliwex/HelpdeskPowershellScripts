@@ -4,8 +4,8 @@ DATAGRABER     = "dataGraber.ps1"
 GENERATOR  = "reportGenerator.ps1" 
 }
 $computerHashtable = [ordered]@{
-DHCP_SERVER = "SERVER1"
-STORAGE_SERVER = "SERVER2"
+NETWORK_SERVER = "NETWORK_SERVER"
+STORAGE_SERVER = "STORAGE_SERVER"
 }
 ##########################FUNCTIONS####################################
 function New-InformationLog
