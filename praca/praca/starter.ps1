@@ -1,4 +1,4 @@
-﻿####################SCRIPT FILES########################################
+﻿####################SCRIPT PARAMETERS########################################
 $scriptHashtable = [ordered]@{
 DATAGRABER     = "dataGraber.ps1" 
 GENERATOR  = "reportGenerator.ps1" 
@@ -69,7 +69,7 @@ function Test-Workplace
         }
         New-InformationLog -logPath $logPath -message "Wykonano sprawdzenie, czy pliki o nazwach: $($scriptHashtable["DATAGRABER"]) oraz $($scriptHashtable["GENERATOR"]) znajdują się w $rootPath" -color green
         $connection=$true
-        foreach ($computer in $computerHashtable.Keys)
+        foreach ($computer in $computerHashtable.Values)
         {
             $connectionFlag=Test-Connection -ComputerName $computer -Quiet
             if ($connectionFlag -eq $false)
