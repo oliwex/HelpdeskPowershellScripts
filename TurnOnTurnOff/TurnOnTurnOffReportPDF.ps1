@@ -10,4 +10,4 @@ New-PDF {
 
     New-PDFTable -DataTable $DataTable2
 
-} -FilePath "C:\Users\lama\Desktop\powershell\Example06.pdf" -Show
+} -FilePath "F:\GIT\HelpdeskPowershellScripts\Random\Example06.pdf" -Show

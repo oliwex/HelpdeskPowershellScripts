@@ -1,8 +1,8 @@
-if ((Get-Service AudioSrv).Status -like "*Running*")
+﻿if ((Get-Service AudioSrv).Status -like "*Running*")
 {
 Add-Type -AssemblyName System.speech
 $speak = New-Object System.Speech.Synthesis.SpeechSynthesizer
-$speak.Speak('Hi guys') 
+$speak.Speak('Cześć') 
 }
 else
 {

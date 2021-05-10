@@ -1,0 +1,1 @@
+﻿Get-ADComputer -Filter 'operatingsystem -like "*Windows 10*"' -Properties  Name,Operatingsystem, OperatingSystemVersion,IPv4Address | Select-Object -Property Name, OperatingSystemVersion, IPv4Address | Group-object OperatingSystemVersion| Select Count,Name | Sort-Object -Descending Name

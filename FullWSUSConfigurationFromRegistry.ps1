@@ -265,4 +265,4 @@
     End{}
 }
 
-Get-WindowsUpdateConfiguration -ComputerName DELLA235
+Get-WindowsUpdateConfiguration
