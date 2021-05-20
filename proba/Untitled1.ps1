@@ -7,7 +7,7 @@ Param(
         [Switch] $extended
     )
 
-    $data=Get-ADUser -Filter * -SearchBase $OUpath -SearchScope Onelevel -Properties AccountExpirationDate,AccountNotDelegated,AllowReversiblePasswordEncryption,CannotChangePassword,CanonicalName,Certificates,City,CN,Company,Country,Created,Department,Description,DisplayName,DistinguishedName,Division,EmailAddress,EmployeeID,EmployeeNumber,Enabled,Fax,GivenName,HomeDirectory,HomeDirRequired,HomeDrive,HomePage,HomePhone,Initials,LastLogonDate,LogonWorkstations,Manager,MemberOf,MobilePhone,Modified,Name,ObjectCategory,ObjectClass,ObjectGuid,Office,OfficePhone,Organization,OtherName,PasswordExpired,PasswordLastSet,PasswordNeverExpires,PasswordNotRequired,POBox,PostalCode,PrimaryGroup,ProfilePath,ProtectedFromAccidentalDeletion,SamAccountName,ScriptPath,ServicePrincipalName,SID,SIDHistory,SmartCardLogonRequired,State,StreetAddress,Surname,Title,TrustedForDelegation,TrustedToAuthForDelegation,UseDESKeyOnly,UserPrincipalName #,msDS-SupportedEncryptionTypes,User-Account-Control
+    $data=Get-ADUser -Filter * -SearchBase $OUpath -SearchScope Onelevel -Properties *
 
     if ($extended)
     {
@@ -15,7 +15,7 @@ Param(
     }
     else
     {
-        $data | Select DistinguishedName,GivenName,Name,ObjectClass,ObjectGuid,SamAccountName,SID,Surname,UserPrincipalName,CannotChangePassword,PasswordNeverExpires,AllowReversiblePasswordEncryption,Enabled,SmartCardLogonRequired,TrustedForDelegation,UseDESKeyOnly #,msDS-SupportedEncryptionTypes,User-Account-Control
+        $data | Select DistinguishedName,GivenName,Name,ObjectClass,ObjectGuid,SamAccountName,SID,Surname,UserPrincipalName,CannotChangePassword,PasswordNeverExpires,AllowReversiblePasswordEncryption,Enabled,SmartCardLogonRequired,TrustedForDelegation,UseDESKeyOnly,msDS-SupportedEncryptionTypes <# This Account support Kerberos 128/256 Auth mają 8 lub 16 wartosc, gdy sa oba to maja 24 #>
     }
 }
 
