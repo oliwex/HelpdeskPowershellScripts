@@ -1,1 +1,0 @@
-﻿Get-ADUser -LdapFilter "(&(objectclass=user)(objectcategory=user)(useraccountcontrol:1.2.840.113556.1.4.803:=4194304))" | Format-Table Name, DistinguishedName
