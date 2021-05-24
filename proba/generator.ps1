@@ -9,7 +9,7 @@ Param(
     $Object.psobject.properties | Foreach { $hashtable[$_.Name] = $_.Value }
     $hashtable
 }
-(Get-ADOrganizationalUnit -Filter *).DistinguishedName
+
 ########################################################
 ########################################################
 ########################################################
@@ -79,17 +79,25 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
         DocText {
             "Ta część zawiera spis użytkowników w każdej jednostce organizacyjnej"
         }
+    
+
+
 
         $OUs=(Get-ADOrganizationalUnit -Filter *).DistinguishedName
+        
         foreach($OU in $OUs)
         {
+            DocNumbering -Text $OU -Level 1 -Type Numbered -Heading Heading1 {
+     
             $UserInfo=(Get-UserFromOU -OUpath $OU -extended:$false)
-            foreach($User in $UserInfo)
-            {
-                $hashtable=ConvertTo-Hashtable -Object $User
-                DocTable -DataTable $hashtable -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle 'User'
+                foreach($User in $UserInfo)
+                {
+                    $hashtable=ConvertTo-Hashtable -Object $User
+                    DocTable -DataTable $hashtable -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $User.Name
+                    DocText -LineBreak
+                    #po userze
+                }
             }
-            DocText -LineBreak 
         }
         DocText -LineBreak
     }
