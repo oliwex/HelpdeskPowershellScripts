@@ -16,16 +16,17 @@ Param(
 ########################################################
 ########################################################
 
-function Get-UserFromOU
+function Get-UsersFromOU
 {
 Param(
         [Parameter(Mandatory=$true)]
         [alias("OU","OrganisationalUnit")]
-        [String] $OUpath,
-        [Switch] $extended
+        [String] $ouPath,
+        [alias("Extended")]
+        [Switch] $isExtended
     )
 
-    $data=Get-ADUser -Filter * -SearchBase $OUpath -SearchScope Onelevel -Properties *
+    $data=Get-ADUser -Filter * -Properties * -SearchBase $ouPath -SearchScope Onelevel 
 
     if ($extended)
     {
@@ -36,6 +37,30 @@ Param(
         $data | Select DistinguishedName,GivenName,Name,ObjectClass,ObjectGuid,SamAccountName,SID,Surname,UserPrincipalName,CannotChangePassword,PasswordNeverExpires,AllowReversiblePasswordEncryption,Enabled,SmartCardLogonRequired,TrustedForDelegation,UseDESKeyOnly,msDS-SupportedEncryptionTypes,userAccountControl
     }
 }
+
+
+function Get-OUInformation
+{
+Param(
+        [Parameter(Mandatory=$true)]
+        [alias("OU","OrganisationalUnit")]
+        [String] $OUpath,
+        [alias("Extended")]
+        [Switch] $isExtended
+    )
+
+    $data=Get-ADOrganizationalUnit -Filter * -Properties * -SearchBase $OUpath
+
+    if ($extended)
+    {
+        $data
+    }
+    else
+    {
+        $data | Select Name,Description,Street,City,State,PostalCode,Country,ManagedBy
+    }
+}
+
 
 ########################################################
 ########################################################
@@ -88,8 +113,14 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
         foreach($OU in $OUs)
         {
             DocNumbering -Text $OU -Level 1 -Type Numbered -Heading Heading1 {
-     
-            $UserInfo=(Get-UserFromOU -OUpath $OU -extended:$false)
+            
+            $dataTMP=Get-OUInformation -OU $OU -Extended:$false
+            $hashtableTMP=ConvertTo-Hashtable -Object $dataTMP
+
+            DocTable -DataTable $hashtableTMP -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "OU"
+            DocText -LineBreak
+
+                $UserInfo=(Get-UserFromOU -OUpath $OU -Extended:$false)
                 foreach($User in $UserInfo)
                 {
                     $hashtable=ConvertTo-Hashtable -Object $User
