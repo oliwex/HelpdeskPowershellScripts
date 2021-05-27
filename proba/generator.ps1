@@ -28,7 +28,7 @@ Param(
 
     $data=Get-ADUser -Filter * -Properties * -SearchBase $ouPath -SearchScope Onelevel 
 
-    if ($extended)
+    if ($isExtended)
     {
         $data
     }
@@ -44,14 +44,14 @@ function Get-OUsInformation
 Param(
         [Parameter(Mandatory=$true)]
         [alias("OU","OrganisationalUnit")]
-        [String] $OUpath,
+        [String] $oupath,
         [alias("Extended")]
         [Switch] $isExtended
     )
 
-    $data=Get-ADOrganizationalUnit -Filter * -Properties * -SearchBase $OUpath
+    $data=Get-ADOrganizationalUnit -Filter * -Properties * -SearchBase $oupath
 
-    if ($extended)
+    if ($isExtended)
     {
         $data
     }
@@ -105,21 +105,21 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
             "Ta część zawiera spis użytkowników w każdej jednostce organizacyjnej"
         }
     
-        $OUs=(Get-ADOrganizationalUnit -Filter *).DistinguishedName
+        $ous=(Get-ADOrganizationalUnit -Filter *).DistinguishedName
         
-        foreach($OU in $OUs)
+        foreach($ou in $ous)
         {
-            DocNumbering -Text $OU -Level 1 -Type Numbered -Heading Heading1 {
+            DocNumbering -Text $uo -Level 1 -Type Numbered -Heading Heading1 {
             
-            $dataTMP=Get-OUsInformation -OU $OU -Extended:$false
+            $ouInfo=Get-OUsInformation -OU $ou -Extended:$false
 
-            DocTable -DataTable $dataTMP -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "OU" -Transpose
+            DocTable -DataTable $ouInfo -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($ouInfo.Name.ToString()) -Transpose
             DocText -LineBreak
 
-            $UserInfo=(Get-UsersFromOU -OUpath $OU -Extended:$false)
-            foreach($User in $UserInfo)
+            $usersInfo=(Get-UsersFromOU -OUpath $OU -Extended:$false)
+            foreach($user in $usersInfo)
             {
-                DocTable -DataTable $User -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $User.Name -Transpose
+                DocTable -DataTable $user -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $user.Name -Transpose
                 DocText -LineBreak
                 #po userze
             }
