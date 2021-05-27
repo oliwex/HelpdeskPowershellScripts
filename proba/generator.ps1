@@ -39,7 +39,7 @@ Param(
 }
 
 
-function Get-OUInformation
+function Get-OUsInformation
 {
 Param(
         [Parameter(Mandatory=$true)]
@@ -105,29 +105,24 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
             "Ta część zawiera spis użytkowników w każdej jednostce organizacyjnej"
         }
     
-
-
-
         $OUs=(Get-ADOrganizationalUnit -Filter *).DistinguishedName
         
         foreach($OU in $OUs)
         {
             DocNumbering -Text $OU -Level 1 -Type Numbered -Heading Heading1 {
             
-            $dataTMP=Get-OUInformation -OU $OU -Extended:$false
-            $hashtableTMP=ConvertTo-Hashtable -Object $dataTMP
+            $dataTMP=Get-OUsInformation -OU $OU -Extended:$false
 
-            DocTable -DataTable $hashtableTMP -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "OU"
+            DocTable -DataTable $dataTMP -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "OU" -Transpose
             DocText -LineBreak
 
-                $UserInfo=(Get-UserFromOU -OUpath $OU -Extended:$false)
-                foreach($User in $UserInfo)
-                {
-                    $hashtable=ConvertTo-Hashtable -Object $User
-                    DocTable -DataTable $hashtable -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $User.Name
-                    DocText -LineBreak
-                    #po userze
-                }
+            $UserInfo=(Get-UsersFromOU -OUpath $OU -Extended:$false)
+            foreach($User in $UserInfo)
+            {
+                DocTable -DataTable $User -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $User.Name -Transpose
+                DocText -LineBreak
+                #po userze
+            }
             }
         }
         DocText -LineBreak
