@@ -49,7 +49,7 @@ Param(
         [Switch] $isExtended
     )
 
-    $data=Get-ADOrganizationalUnit -Filter * -Properties * -SearchBase $oupath -SearchScope 0
+    $data=Get-ADOrganizationalUnit -Filter * -Properties * -SearchBase $oupath -SearchScope 0 | Select-Object -Property * -ExcludeProperty AddedProperties,PropertyNames,RemovedProperties,ModifiedProperties,PropertyCount #ForTesting
 
     if ($isExtended)
     {
@@ -122,7 +122,7 @@ function Get-GPOPolicy {
         }
     }
 }
-#$lama=Get-GPOPolicy
+$lama=Get-GPOPolicy
 #$lama | Where-Object {$_.Links -contains "domena.local/KOMPUTERY"}
 
 ########################################################
@@ -139,7 +139,7 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
     DocText {
         "Jest to dokumentacja domeny ActiveDirectory przeprowadzona w domena.local. Wszytskie informacje są tajne"
     }
-
+    <#
     #OU
     DocNumbering -Text 'Spis jednostek organizacyjnych' -Level 0 -Type Numbered -Heading Heading1 {
         
@@ -147,22 +147,47 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
             "Ta część zawiera spis jednostek organizacyjnych wraz z informacjami o każdej z nich"
         }
         
-        $ous=(Get-ADOrganizationalUnit -Filter "*").DistinguishedName
+        $ous=(Get-ADOrganizationalUnit -Filter "*")
         
         foreach($ou in $ous)
         {
-            DocNumbering -Text $ou -Level 1 -Type Numbered -Heading Heading1 {
+            DocNumbering -Text $($ou.Name) -Level 1 -Type Numbered -Heading Heading1 {
             
-            $ouInfo=Get-OUsInformation -OU $ou -Extended:$false
+            $ouInfo=Get-OUsInformation -OU $($ou.DistinguishedName) -Extended:$true
 
-            DocTable -DataTable $ouInfo -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $ou -Transpose
+            DocTable -DataTable $ouInfo -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($ou.DistinguishedName) -Transpose
             
             DocText -LineBreak
             }
         }
        
         DocText -LineBreak
+        #TODO: More about OU elements
+        #TODO:Definition about every parameter
     }
+    #>
+    
+    #Group Policies
+    DocNumbering -Text 'Spis GPO' -Level 0 -Type Numbered -Heading Heading1 {
+        
+        DocText {
+            "Ta część zawiera spis polis grup w każdej jednostce organizacyjnej"
+            "Ten blok nie pokazuje informacji o polisach grup, które są podłączone do SITE" #TODO:Get linked gpo to sites
+        }
+
+        $gpoPolicies=Get-GPOPolicy
+        foreach($gpoPolicy in $gpoPolicies)
+        {
+            DocNumbering -Text $($gpoPolicy.Name) -Level 1 -Type Numbered -Heading Heading1 {
+                DocTable -DataTable $gpoPolicy -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($gpoPolicy.Name) -Transpose
+            }
+        }
+
+
+        #DocTable -DataTable $ADForest.ForestInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle 'Forest Summary'
+        DocText -LineBreak
+    }
+
     <#
     #Grupy
     DocNumbering -Text 'Spis grup' -Level 0 -Type Numbered -Heading Heading1 {
