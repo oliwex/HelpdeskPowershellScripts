@@ -122,7 +122,13 @@ function Get-GPOPolicy {
         }
     }
 }
-$lama=Get-GPOPolicy
+
+$gpoPolicies=Get-GPOPolicy
+        foreach($gpoPolicy in $gpoPolicies)
+        {
+        $gpoPolicy | Select-Object -Property * -ExcludeProperty ACLs
+        "AasdasdasdasD"
+        }
 #$lama | Where-Object {$_.Links -contains "domena.local/KOMPUTERY"}
 
 ########################################################
@@ -179,7 +185,10 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
         foreach($gpoPolicy in $gpoPolicies)
         {
             DocNumbering -Text $($gpoPolicy.Name) -Level 1 -Type Numbered -Heading Heading1 {
-                DocTable -DataTable $gpoPolicy -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($gpoPolicy.Name) -Transpose
+                DocTable -DataTable $($gpoPolicy | Select-Object -Property * -ExcludeProperty ACLs) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($gpoPolicy.Name) -Transpose
+            }
+            DocNumbering -Text "'$($gpoPolicy.Name)' Permissions" -Level 2 -Type Bulleted -Heading Heading1 {
+                DocTable -DataTable $($gpoPolicy).ACLs -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "Permissions"
             }
         }
 
