@@ -123,13 +123,32 @@ function Get-GPOPolicy {
     }
 }
 
-$gpoPolicies=Get-GPOPolicy
-        foreach($gpoPolicy in $gpoPolicies)
-        {
-        $gpoPolicy | Select-Object -Property * -ExcludeProperty ACLs
-        "AasdasdasdasD"
+function Get-WinADDomainFineGrainedPolicies {
+    [CmdletBinding()]
+    param(
+        [string] $Domain = $Env:USERDNSDOMAIN
+    )
+    $FineGrainedPoliciesData = Get-ADFineGrainedPasswordPolicy -Filter * -Server $Domain
+    $FineGrainedPolicies = foreach ($Policy in $FineGrainedPoliciesData) {
+        [PsCustomObject] @{
+            'Name'                          = $Policy.Name
+            'Complexity Enabled'            = $Policy.ComplexityEnabled
+            'Lockout Duration'              = $Policy.LockoutDuration
+            'Lockout Observation Window'    = $Policy.LockoutObservationWindow
+            'Lockout Threshold'             = $Policy.LockoutThreshold
+            'Max Password Age'              = $Policy.MaxPasswordAge
+            'Min Password Length'           = $Policy.MinPasswordLength
+            'Min Password Age'              = $Policy.MinPasswordAge
+            'Password History Count'        = $Policy.PasswordHistoryCount
+            'Reversible Encryption Enabled' = $Policy.ReversibleEncryptionEnabled
+            'Precedence'                    = $Policy.Precedence
+            'Applies To'                    = $Policy.AppliesTo 
+            'Distinguished Name'            = $Policy.DistinguishedName
         }
-#$lama | Where-Object {$_.Links -contains "domena.local/KOMPUTERY"}
+    }
+    return $FineGrainedPolicies
+
+}
 
 ########################################################
 ########################################################
@@ -174,7 +193,7 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
     #>
     
     #Group Policies
-    DocNumbering -Text 'Spis GPO' -Level 0 -Type Numbered -Heading Heading1 {
+    DocNumbering -Text 'GPO list' -Level 0 -Type Numbered -Heading Heading1 {
         
         DocText {
             "Ta część zawiera spis polis grup w każdej jednostce organizacyjnej"
@@ -192,10 +211,39 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
             }
         }
 
-
         #DocTable -DataTable $ADForest.ForestInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle 'Forest Summary'
         DocText -LineBreak
     }
+
+    #FGPP-Fine Grained Password Policies
+    DocNumbering -Text 'Fine Grained Password Policies' -Level 0 -Type Numbered -Heading Heading1 {
+        
+        DocText {
+            "Ta część zawiera spis polis grup w każdej jednostce organizacyjnej"
+            "Ten blok nie pokazuje informacji o polisach grup, które są podłączone do SITE" #TODO:Get linked gpo to sites
+        }
+
+        $fgpps=Get-WinADDomainFineGrainedPolicies
+
+        foreach($fgpp in $fgpps)
+        {
+            DocNumbering -Text $($fgpp.Name) -Level 1 -Type Numbered -Heading Heading1 {
+                DocTable -DataTable $($fgpp | Select-Object -Property * -ExcludeProperty "Applies To") -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($fgpp.Name) -Transpose
+            }
+            
+            DocNumbering -Text $($fgpp.Name) -Level 2 -Type Bulleted -Heading Heading1 {
+                DocList -Type Bulleted {
+                    foreach ($appl in $($fgpp.'Applies To')) 
+                    {
+                        DocListItem -Level 1 -Text $appl
+                    }
+                }
+            }
+        }
+        #DocTable -DataTable $ADForest.ForestInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle 'Forest Summary'
+        DocText -LineBreak
+    }
+
 
     <#
     #Grupy
