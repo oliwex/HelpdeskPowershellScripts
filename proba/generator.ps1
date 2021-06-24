@@ -39,17 +39,17 @@ Param(
 }
 
 
-function Get-OUsInformation
+function Get-OUInformation
 {
 Param(
         [Parameter(Mandatory=$true)]
         [alias("OU","OrganisationalUnit")]
-        [String] $oupath,
+        [String] $ouPath,
         [alias("Extended")]
         [Switch] $isExtended
     )
 
-    $data=Get-ADOrganizationalUnit -Filter * -Properties * -SearchBase $oupath -SearchScope 0 | Select-Object -Property * -ExcludeProperty AddedProperties,PropertyNames,RemovedProperties,ModifiedProperties,PropertyCount #ForTesting
+    $data=Get-ADOrganizationalUnit -Filter * -Properties * -SearchBase $ouPath -SearchScope 0 | Select-Object -Property * -ExcludeProperty AddedProperties,PropertyNames,RemovedProperties,ModifiedProperties,PropertyCount #ForTesting
 
     if ($isExtended)
     {
@@ -60,58 +60,92 @@ Param(
         $data | Select Name,Description,Street,City,State,PostalCode,Country,ManagedBy
     }
 }
-function Get-GPOPolicy {
-    [CmdletBinding()]
-    param(
-        [Array] $GroupPolicies,
-        [string] $Domain = $Env:USERDNSDOMAIN,
-        [string] $Splitter
+
+function Get-OUACL
+{
+Param(
+        [Parameter(Mandatory=$true)]
+        [alias("OU","OrganisationalUnit")]
+        [String] $ouPath
     )
-    if ($null -eq $GroupPolicies) {
-        $GroupPolicies = Get-GPO -Domain $Domain -All
-    }
-    ForEach ($GPO in $GroupPolicies) {
-        [xml]$XmlGPReport = $GPO.generatereport('xml')
+        $path = "AD:\" + $ouPath
+        $acls = (Get-Acl -Path $path).Access | Where-Object {$_.IsInherited -eq $false} | Select-Object ActiveDirectoryRights,InheritanceType,ObjectType,InheritedObjectType,ObjectFlags,IdentityReference,IsInherited,InheritanceFlags,PropagationFlags,AccessControlType
+
+        $info=(Get-ACL -Path $path | Select Owner,Group,'AreAccessRulesProtected','AreAuditRulesProtected','AreAccessRulesCanonical','AreAuditRulesCanonical')
+    
+        [PSCustomObject] @{
+        'DN'    = $ouPath
+        'Owner' = $info.Owner
+        'Group' = $info.Group
+        'Are Access Rules Protected' = $info.'AreAccessRulesProtected'
+        'Are AuditRules Protected' = $info.'AreAuditRulesProtected'
+        'Are Access Rules Canonical' = $info.'AreAccessRulesCanonical'
+        'Are Audit Rules Canonical' = $info.'AreAuditRulesCanonical'
+        'ACLs' = $acls
+        }
+
+}
+
+function Get-GPOPolicy 
+{
+    $groupPolicies = Get-GPO -Domain $($Env:USERDNSDOMAIN) -All
+
+    foreach ($gpo in $groupPolicies) 
+    {
+        [xml]$xmlGPOReport = $gpo.generatereport('xml')
         #GPO version
-        if ($XmlGPReport.GPO.Computer.VersionDirectory -eq 0 -and $XmlGPReport.GPO.Computer.VersionSysvol -eq 0) {
-            $ComputerSettings = "NeverModified"
-        } else {
-            $ComputerSettings = "Modified"
+        if (($xmlGPOReport.GPO.Computer.VersionDirectory -eq 0) -and ($xmlGPOReport.GPO.Computer.VersionSysvol -eq 0)) 
+        {
+            $computerSettings = "NeverModified"
+        } 
+        else 
+        {
+            $computerSettings = "Modified"
         }
-        if ($XmlGPReport.GPO.User.VersionDirectory -eq 0 -and $XmlGPReport.GPO.User.VersionSysvol -eq 0) {
-            $UserSettings = "NeverModified"
-        } else {
-            $UserSettings = "Modified"
+        if (($xmlGPOReport.GPO.User.VersionDirectory -eq 0) -and ($xmlGPOReport.GPO.User.VersionSysvol -eq 0))
+        {
+            $userSettings = "NeverModified"
+        } 
+        else 
+        {
+            $userSettings = "Modified"
         }
+
         #GPO content
-        if ($null -eq $XmlGPReport.GPO.User.ExtensionData) {
-            $UserSettingsConfigured = $false
-        } else {
-            $UserSettingsConfigured = $true
+        if ($null -eq $xmlGPOReport.GPO.User.ExtensionData) 
+        {
+            $userSettingsConfigured = $false
+        } 
+        else 
+        {
+            $userSettingsConfigured = $true
         }
-        if ($null -eq $XmlGPReport.GPO.Computer.ExtensionData) {
-            $ComputerSettingsConfigured = $false
-        } else {
-            $ComputerSettingsConfigured = $true
+        if ($null -eq $xmlGPOReport.GPO.Computer.ExtensionData) 
+        {
+            $computerSettingsConfigured = $false
+        } 
+        else 
+        {
+            $computerSettingsConfigured = $true
         }
         #Output
         [PsCustomObject] @{
-            'Name'                   = $XmlGPReport.GPO.Name
-            'Links'                  = $XmlGPReport.GPO.LinksTo | Select-Object -ExpandProperty SOMPath
-            'Has Computer Settings'  = $ComputerSettingsConfigured
-            'Has User Settings'      = $UserSettingsConfigured
-            'User Enabled'           = $XmlGPReport.GPO.User.Enabled
-            'Computer Enabled'       = $XmlGPReport.GPO.Computer.Enabled
-            'Computer Settings'      = $ComputerSettings
-            'User Settings'          = $UserSettings
-            'Gpo Status'             = $GPO.GpoStatus
-            'Creation Time'          = $GPO.CreationTime
-            'Modification Time'      = $GPO.ModificationTime
-            'WMI Filter'             = $GPO.WmiFilter.name
-            'WMI Filter Description' = $GPO.WmiFilter.Description
-            'Path'                   = $GPO.Path
-            'GUID'                   = $GPO.Id
-            'ACLs'                   = $XmlGPReport.GPO.SecurityDescriptor.Permissions.TrusteePermissions | ForEach-Object -Process {
+            'Name'                   = $xmlGPOReport.GPO.Name
+            'Links'                  = $xmlGPOReport.GPO.LinksTo | Select-Object -ExpandProperty SOMPath
+            'Has Computer Settings'  = $computerSettingsConfigured
+            'Has User Settings'      = $userSettingsConfigured
+            'User Enabled'           = $xmlGPOReport.GPO.User.Enabled
+            'Computer Enabled'       = $xmlGPOReport.GPO.Computer.Enabled
+            'Computer Settings'      = $computerSettings
+            'User Settings'          = $userSettings
+            'Gpo Status'             = $gpo.GpoStatus
+            'Creation Time'          = $gpo.CreationTime
+            'Modification Time'      = $gpo.ModificationTime
+            'WMI Filter'             = $gpo.WmiFilter.name
+            'WMI Filter Description' = $gpo.WmiFilter.Description
+            'Path'                   = $gpo.Path
+            'GUID'                   = $gpo.Id
+            'ACLs'                   = $xmlGPOReport.GPO.SecurityDescriptor.Permissions.TrusteePermissions | ForEach-Object -Process {
                 New-Object -TypeName PSObject -Property @{
                     'User'            = $_.trustee.name.'#Text'
                     'Permission Type' = $_.type.PermissionType
@@ -123,32 +157,32 @@ function Get-GPOPolicy {
     }
 }
 
-function Get-WinADDomainFineGrainedPolicies {
-    [CmdletBinding()]
-    param(
-        [string] $Domain = $Env:USERDNSDOMAIN
-    )
-    $FineGrainedPoliciesData = Get-ADFineGrainedPasswordPolicy -Filter * -Server $Domain
-    $FineGrainedPolicies = foreach ($Policy in $FineGrainedPoliciesData) {
+
+
+function Get-FineGrainedPolicies {
+
+    $fineGrainedPoliciesData = Get-ADFineGrainedPasswordPolicy -Filter * -Server $($Env:USERDNSDOMAIN)
+    $fineGrainedPolicies = foreach ($policy in $fineGrainedPoliciesData) {
         [PsCustomObject] @{
-            'Name'                          = $Policy.Name
-            'Complexity Enabled'            = $Policy.ComplexityEnabled
-            'Lockout Duration'              = $Policy.LockoutDuration
-            'Lockout Observation Window'    = $Policy.LockoutObservationWindow
-            'Lockout Threshold'             = $Policy.LockoutThreshold
-            'Max Password Age'              = $Policy.MaxPasswordAge
-            'Min Password Length'           = $Policy.MinPasswordLength
-            'Min Password Age'              = $Policy.MinPasswordAge
-            'Password History Count'        = $Policy.PasswordHistoryCount
-            'Reversible Encryption Enabled' = $Policy.ReversibleEncryptionEnabled
-            'Precedence'                    = $Policy.Precedence
-            'Applies To'                    = $Policy.AppliesTo 
-            'Distinguished Name'            = $Policy.DistinguishedName
+            'Name'                          = $policy.Name
+            'Complexity Enabled'            = $policy.ComplexityEnabled
+            'Lockout Duration'              = $policy.LockoutDuration
+            'Lockout Observation Window'    = $policy.LockoutObservationWindow
+            'Lockout Threshold'             = $policy.LockoutThreshold
+            'Max Password Age'              = $policy.MaxPasswordAge
+            'Min Password Length'           = $policy.MinPasswordLength
+            'Min Password Age'              = $policy.MinPasswordAge
+            'Password History Count'        = $policy.PasswordHistoryCount
+            'Reversible Encryption Enabled' = $policy.ReversibleEncryptionEnabled
+            'Precedence'                    = $policy.Precedence
+            'Applies To'                    = $policy.AppliesTo 
+            'Distinguished Name'            = $policy.DistinguishedName
         }
     }
-    return $FineGrainedPolicies
+    return $fineGrainedPolicies
 
 }
+
 
 ########################################################
 ########################################################
@@ -164,7 +198,7 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
     DocText {
         "Jest to dokumentacja domeny ActiveDirectory przeprowadzona w domena.local. Wszytskie informacje są tajne"
     }
-    <#
+    
     #OU
     DocNumbering -Text 'Spis jednostek organizacyjnych' -Level 0 -Type Numbered -Heading Heading1 {
         
@@ -172,17 +206,32 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
             "Ta część zawiera spis jednostek organizacyjnych wraz z informacjami o każdej z nich"
         }
         
-        $ous=(Get-ADOrganizationalUnit -Filter "*")
+        $ous=(Get-ADOrganizationalUnit -Filter "*").DistinguishedName
         
         foreach($ou in $ous)
         {
-            DocNumbering -Text $($ou.Name) -Level 1 -Type Numbered -Heading Heading1 {
+            DocNumbering -Text $ou -Level 1 -Type Numbered -Heading Heading1 {
             
-            $ouInfo=Get-OUsInformation -OU $($ou.DistinguishedName) -Extended:$true
-
-            DocTable -DataTable $ouInfo -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($ou.DistinguishedName) -Transpose
+            DocTable -DataTable $(Get-OUInformation -OU $ou -Extended:$true) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $ou -Transpose
             
             DocText -LineBreak
+
+                DocNumbering -Text "'$ou' Permission" -Level 2 -Type Bulleted -Heading Heading1 {
+
+                DocTable -DataTable $($(Get-OUACL -OU $ou) | Select-Object -Property * -ExcludeProperty ACLs) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "OU Options" -Transpose
+
+                DocText -LineBreak
+
+                    $(Get-OUACL -ouPath $ou).ACLs | ForEach-Object {
+
+                    DocTable -DataTable $($_) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "Permissions" -Transpose
+
+                    DocText -LineBreak
+                    }
+
+                DocText -LineBreak
+                }
+            
             }
         }
        
@@ -190,9 +239,11 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
         #TODO: More about OU elements
         #TODO:Definition about every parameter
     }
-    #>
+    
     
     #Group Policies
+    #DONE
+    <#
     DocNumbering -Text 'GPO list' -Level 0 -Type Numbered -Heading Heading1 {
         
         DocText {
@@ -214,8 +265,12 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
         #DocTable -DataTable $ADForest.ForestInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle 'Forest Summary'
         DocText -LineBreak
     }
+    #>
+
 
     #FGPP-Fine Grained Password Policies
+    #DONE
+    <#
     DocNumbering -Text 'Fine Grained Password Policies' -Level 0 -Type Numbered -Heading Heading1 {
         
         DocText {
@@ -223,7 +278,7 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
             "Ten blok nie pokazuje informacji o polisach grup, które są podłączone do SITE" #TODO:Get linked gpo to sites
         }
 
-        $fgpps=Get-WinADDomainFineGrainedPolicies
+        $fgpps=Get-FineGrainedPolicies
 
         foreach($fgpp in $fgpps)
         {
@@ -231,7 +286,7 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
                 DocTable -DataTable $($fgpp | Select-Object -Property * -ExcludeProperty "Applies To") -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($fgpp.Name) -Transpose
             }
             
-            DocNumbering -Text $($fgpp.Name) -Level 2 -Type Bulleted -Heading Heading1 {
+            DocNumbering -Text "'$($fgpp.Name)' is applied to" -Level 2 -Type Bulleted -Heading Heading1 {
                 DocList -Type Bulleted {
                     foreach ($appl in $($fgpp.'Applies To')) 
                     {
@@ -243,7 +298,7 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
         #DocTable -DataTable $ADForest.ForestInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle 'Forest Summary'
         DocText -LineBreak
     }
-
+    #>
 
     <#
     #Grupy
