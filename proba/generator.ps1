@@ -1,4 +1,9 @@
-﻿function ConvertTo-Hashtable
+﻿#############################################
+#TODO:Definition about every parameter
+#
+#############################################
+
+function ConvertTo-Hashtable
 {
 Param(
         [Parameter(Mandatory=$true)]
@@ -198,8 +203,9 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
     DocText {
         "Jest to dokumentacja domeny ActiveDirectory przeprowadzona w domena.local. Wszytskie informacje są tajne"
     }
-    
+    <#
     #OU
+    #DONE
     DocNumbering -Text 'Spis jednostek organizacyjnych' -Level 0 -Type Numbered -Heading Heading1 {
         
         DocText {
@@ -236,21 +242,20 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
         }
        
         DocText -LineBreak
-        #TODO: More about OU elements
+
         #TODO:Definition about every parameter
     }
-    
+    #>
     
     #Group Policies
     #DONE
-    <#
+    
     DocNumbering -Text 'GPO list' -Level 0 -Type Numbered -Heading Heading1 {
         
         DocText {
             "Ta część zawiera spis polis grup w każdej jednostce organizacyjnej"
             "Ten blok nie pokazuje informacji o polisach grup, które są podłączone do SITE" #TODO:Get linked gpo to sites
         }
-
         $gpoPolicies=Get-GPOPolicy
         foreach($gpoPolicy in $gpoPolicies)
         {
@@ -262,10 +267,10 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
             }
         }
 
-        #DocTable -DataTable $ADForest.ForestInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle 'Forest Summary'
         DocText -LineBreak
     }
-    #>
+    #TODO:Wykres polityki przypisane do OU vs nieprzypisane
+    #TODO:Wykres przypisywania polityk do OU,domeny, site
 
 
     #FGPP-Fine Grained Password Policies
@@ -277,9 +282,7 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
             "Ta część zawiera spis polis grup w każdej jednostce organizacyjnej"
             "Ten blok nie pokazuje informacji o polisach grup, które są podłączone do SITE" #TODO:Get linked gpo to sites
         }
-
         $fgpps=Get-FineGrainedPolicies
-
         foreach($fgpp in $fgpps)
         {
             DocNumbering -Text $($fgpp.Name) -Level 1 -Type Numbered -Heading Heading1 {
@@ -337,7 +340,6 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
         }
         DocText -LineBreak
     }
-
     #Inna część
     DocNumbering -Text 'Spis użytkowników' -Level 0 -Type Numbered -Heading Heading1 {
         
