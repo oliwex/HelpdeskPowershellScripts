@@ -243,7 +243,6 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
        
         DocText -LineBreak
 
-        #TODO:Definition about every parameter
     }
     #>
     
@@ -265,12 +264,26 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
             DocNumbering -Text "'$($gpoPolicy.Name)' Permissions" -Level 2 -Type Bulleted -Heading Heading1 {
                 DocTable -DataTable $($gpoPolicy).ACLs -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "Permissions"
             }
+
+            if ($gpoPolicy.Links -eq $null)
+            {
+                $counter++
+            }
+
+            $kupa=@{
+            'Polityki Przypisane'=$gpoPolicies.Count;
+            'Polityki nieprzypisane'=$counter
+            }
+            DocChart -Title 'Polityki przypisane/nieprzypisane' -DataTable $kupa -LegendPosition Bottom -LegendOverlay $false
         }
+
+
 
         DocText -LineBreak
     }
+    
     #TODO:Wykres polityki przypisane do OU vs nieprzypisane
-    #TODO:Wykres przypisywania polityk do OU,domeny, site
+    #TODO:Wykres przypisywania polityk do OU,domeny, site w konteksćie liczności
 
 
     #FGPP-Fine Grained Password Policies
