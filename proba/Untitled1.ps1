@@ -1,9 +1,6 @@
-<<<<<<< HEAD:proba/Untitled1.ps1
 ﻿
+
 function Get-OUInformation
-=======
-﻿function Get-OUInformation
->>>>>>> master:proba/reportGenerator.ps1
 {
 Param(
         [Parameter(Mandatory=$true)]
@@ -14,7 +11,7 @@ Param(
     )
 
     $data=Get-ADOrganizationalUnit -Filter * -Properties * -SearchBase $ouPath -SearchScope 0 | Select-Object CanonicalName,cn,City,Country,Created,DisplayName,DistinguishedName,gPLink,isCriticalSystemObject,LinkedGroupPolicyObjects,ManagedBy,Modified,Name,ObjectCategory,ObjectClass,ObjectGuid,ou,PostalCode,ProtectedFromAccidentalDeletion,showInAdvancedViewOnly,State,StreetAddress,uSNChanged,uSNCreated,whenChanged,whenCreated
-    #ObjectGuid,ou,PostalCode,ProtectedFromAccidentalDeletion,showInAdvancedViewOnly,State,StreetAddress,uSNChanged,uSNCreated,whenChanged,whenCreated
+
 
         [PSCustomObject] @{
         'CanonicalName'    = $data.CanonicalName
@@ -37,8 +34,6 @@ Param(
 
         }
 }
-<<<<<<< HEAD:proba/Untitled1.ps1
-=======
 
 function Get-OUACL
 {
@@ -63,7 +58,77 @@ Param(
         'ACLs' = $acls
         }
 }
->>>>>>> master:proba/reportGenerator.ps1
+
+function Get-GPOPolicy #TODO:Analysis
+{
+    $groupPolicies = Get-GPO -Domain $($Env:USERDNSDOMAIN) -All
+
+    foreach ($gpo in $groupPolicies) 
+    {
+        [xml]$xmlGPOReport = $gpo.generatereport('xml')
+        #GPO version
+        if (($xmlGPOReport.GPO.Computer.VersionDirectory -eq 0) -and ($xmlGPOReport.GPO.Computer.VersionSysvol -eq 0)) 
+        {
+            $computerSettings = "NeverModified"
+        } 
+        else 
+        {
+            $computerSettings = "Modified"
+        }
+        if (($xmlGPOReport.GPO.User.VersionDirectory -eq 0) -and ($xmlGPOReport.GPO.User.VersionSysvol -eq 0))
+        {
+            $userSettings = "NeverModified"
+        } 
+        else 
+        {
+            $userSettings = "Modified"
+        }
+
+        #GPO content
+        if ($null -eq $xmlGPOReport.GPO.User.ExtensionData) 
+        {
+            $userSettingsConfigured = $false
+        } 
+        else 
+        {
+            $userSettingsConfigured = $true
+        }
+        if ($null -eq $xmlGPOReport.GPO.Computer.ExtensionData) 
+        {
+            $computerSettingsConfigured = $false
+        } 
+        else 
+        {
+            $computerSettingsConfigured = $true
+        }
+        #Output
+        [PsCustomObject] @{
+            'Name'                   = $xmlGPOReport.GPO.Name
+            'Links'                  = $xmlGPOReport.GPO.LinksTo | Select-Object -ExpandProperty SOMPath
+            'Has Computer Settings'  = $computerSettingsConfigured
+            'Has User Settings'      = $userSettingsConfigured
+            'User Enabled'           = $xmlGPOReport.GPO.User.Enabled
+            'Computer Enabled'       = $xmlGPOReport.GPO.Computer.Enabled
+            'Computer Settings'      = $computerSettings
+            'User Settings'          = $userSettings
+            'Gpo Status'             = $gpo.GpoStatus
+            'Creation Time'          = $gpo.CreationTime
+            'Modification Time'      = $gpo.ModificationTime
+            'WMI Filter'             = $gpo.WmiFilter.name
+            'WMI Filter Description' = $gpo.WmiFilter.Description
+            'Path'                   = $gpo.Path
+            'GUID'                   = $gpo.Id
+            'ACLs'                   = $xmlGPOReport.GPO.SecurityDescriptor.Permissions.TrusteePermissions | ForEach-Object -Process {
+                New-Object -TypeName PSObject -Property @{
+                    'User'            = $_.trustee.name.'#Text'
+                    'Permission Type' = $_.type.PermissionType
+                    'Inherited'       = $_.Inherited
+                    'Permissions'     = $_.Standard.GPOGroupedAccessEnum
+                }
+            }
+        }
+    }
+}
 
 ######################################################
 
@@ -87,32 +152,9 @@ foreach($ou in $ous)
 {
     Add-WordTocItem -WordDocument $reportFile -ListLevel 2 -ListItemType Numbered -HeadingType Heading1 -Text "$ou" -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $(Get-OUInformation -OU $ou) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $ou -Transpose -Supress $True
-<<<<<<< HEAD:proba/Untitled1.ps1
-}
-    <#
-    #OU
-    #DONE
-        foreach($ou in $ous)
-        {
-            DocNumbering -Text $ou -Level 1 -Type Numbered -Heading Heading1 {
-            DocTable -DataTable $(Get-OUInformation -OU $ou -Extended:$true) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $ou -Transpose          
-            DocText -LineBreak
-                DocNumbering -Text "'$ou' Permission" -Level 2 -Type Bulleted -Heading Heading1 {
-                DocTable -DataTable $($(Get-OUACL -OU $ou) | Select-Object -Property * -ExcludeProperty ACLs) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "OU Options" -Transpose
-                DocText -LineBreak
-                    $(Get-OUACL -ouPath $ou).ACLs | ForEach-Object {
-                    DocTable -DataTable $($_) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "Permissions" -Transpose
-                    DocText -LineBreak
-                    }
-                DocText -LineBreak
-                }
-            }
-        }
-        DocText -LineBreak
-=======
     
     
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 3 -ListItemType Numbered -HeadingType Heading1 -Text "'$ou' Permissions" -Supress $true
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 3 -ListItemType Bulleted -HeadingType Heading1 -Text "'$ou' Permissions" -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $($(Get-OUACL -OU $ou) | Select-Object -Property * -ExcludeProperty ACLs) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "OU Options" -Transpose -Supress $true
     Add-WordText -WordDocument $reportFile -Text "" -Supress $true
     
@@ -120,9 +162,27 @@ foreach($ou in $ous)
         Add-WordTable -WordDocument $reportFile -DataTable $($_) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "$($($_).IdentityReference) Permissions" -Transpose -Supress $true
         Add-WordText -WordDocument $reportFile -Text "" -Supress $true
         
->>>>>>> master:proba/reportGenerator.ps1
     }
     
 }
+###########################################################################################################
+Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Numbered -HeadingType Heading1 -Text 'Spis Polis Grup' -Supress $true
+Add-WordText -WordDocument $reportFile -Text 'Tutaj znajduje się opis polis grup. Blok nie pokazuje polis podłączonych do SITE' -Supress $True
+
+$gpoPolicies=Get-GPOPolicy
+foreach($gpoPolicy in $gpoPolicies)
+{
+
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 2 -ListItemType Numbered -HeadingType Heading1 -Text "$($gpoPolicy.Name) Policy" -Supress $true
+    Add-WordTable -WordDocument $reportFile -DataTable $($gpoPolicy | Select-Object -Property * -ExcludeProperty ACLs) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($gpoPolicy.Name) -Transpose -Supress $true
+
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 3 -ListItemType Bulleted -HeadingType Heading1 -Text "'$($gpoPolicy.Name)' Permissions" -Supress $true
+    $($($gpoPolicy).ACLs) | ForEach-Object {
+        Add-WordTable -WordDocument $reportFile -DataTable $($_) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "Permissions" -Supress $true -Transpose
+        Add-WordText -WordDocument $reportFile -Text "" -Supress $true
+    }
+
+}
 
 Save-WordDocument $reportFile -Supress $true -Language 'en-US' -Verbose #-OpenDocument
+
