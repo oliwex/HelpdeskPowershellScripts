@@ -144,24 +144,38 @@ Add-WordTOC -WordDocument $reportFile -Title "Spis treści" -Supress $true
 
 Add-WordPageBreak -WordDocument $reportFile -Supress $true
 
+
 Add-WordText -WordDocument $reportFile -Text 'Wstęp' -HeadingType Heading1 -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Jest to dokumentacja domeny ActiveDirectory przeprowadzona w domena.local. Wszytskie informacje są tajne' -Supress $True 
+
+
 
 Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis jednostek organizacyjnych' -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Ta część zawiera spis jednostek organizacyjnych wraz z informacjami o każdej z nich' -Supress $True
 
-$ous=(Get-ADOrganizationalUnit -Filter "*").DistinguishedName
+$ous=(Get-ADOrganizationalUnit -Filter "*")
 foreach($ou in $ous)
 {
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$ou" -Supress $true
-    Add-WordTable -WordDocument $reportFile -DataTable $(Get-OUInformation -OU $ou) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $ou -Transpose -Supress $True
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$($ou.Name)" -Supress $true
+    Add-WordTable -WordDocument $reportFile -DataTable $(Get-OUInformation -OU $($ou.DistinguishedName)) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($ou.Name) -Transpose -Supress $True
     
-    
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "'$ou' Permissions" -Supress $true
-    Add-WordTable -WordDocument $reportFile -DataTable $($(Get-OUACL -OU $ou) | Select-Object -Property * -ExcludeProperty ACLs) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "OU Options" -Transpose -Supress $true
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "'$($ou.Name)' Graph" -Supress $true
+
+        $image="C:\reporty\$($ou.Name).png"
+        $graph = graph g {
+            edge -from $($ou.Name) -To $($(Get-ADOrganizationalUnit -Filter "*" -SearchBase $ou -SearchScope OneLevel).Name)
+            }
+        Set-Content -Path "C:\reporty\$($ou.Name).vz" -Value $graph
+        Export-PSGraph -Source "C:\reporty\$($ou.Name).vz" -Destination $image
+        Add-WordPicture -WordDocument $reportFile -ImagePath $image -Alignment center -ImageWidth 600 -Supress $True
+       #TODO: Write text if OU is last
+
+
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "'$($ou.Name)' Permissions" -Supress $true
+    Add-WordTable -WordDocument $reportFile -DataTable $($(Get-OUACL -OU $($ou.DistinguishedName)) | Select-Object -Property * -ExcludeProperty ACLs) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "OU Options" -Transpose -Supress $true
     Add-WordText -WordDocument $reportFile -Text "" -Supress $true
     
-    $(Get-OUACL -ouPath $ou).ACLs | ForEach-Object {
+    $(Get-OUACL -ouPath $($ou.DistinguishedName)).ACLs | ForEach-Object {
         Add-WordTable -WordDocument $reportFile -DataTable $($_) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "$($($_).IdentityReference) Permissions" -Transpose -Supress $true
         Add-WordText -WordDocument $reportFile -Text "" -Supress $true
         
