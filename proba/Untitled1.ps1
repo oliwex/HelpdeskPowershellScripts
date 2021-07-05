@@ -5,10 +5,8 @@ function Get-OUInformation
 Param(
         [Parameter(Mandatory=$true)]
         [alias("OU","OrganisationalUnit")]
-        [String] $ouPath,
-        [alias("Extended")]
-        [Switch] $isExtended
-    )
+        [String] $ouPath
+        )
 
     $data=Get-ADOrganizationalUnit -Filter * -Properties * -SearchBase $ouPath -SearchScope 0 | Select-Object CanonicalName,cn,City,Country,Created,DisplayName,DistinguishedName,gPLink,isCriticalSystemObject,LinkedGroupPolicyObjects,ManagedBy,Modified,Name,ObjectCategory,ObjectClass,ObjectGuid,ou,PostalCode,ProtectedFromAccidentalDeletion,showInAdvancedViewOnly,State,StreetAddress,uSNChanged,uSNCreated,whenChanged,whenCreated
 
@@ -130,6 +128,32 @@ function Get-GPOPolicy #TODO:Analysis
     }
 }
 
+function Get-GraphImage
+{
+Param(
+    [Parameter(Mandatory=$true)]
+    $elementObject,
+    $pathToImage
+    )
+
+    $imagePath=Join-Path -Path $pathToImage -ChildPath "$($elementObject.Name).png"
+        
+    $graphTMP = graph g {
+    edge -from $($elementObject.Name) -To $($(Get-ADOrganizationalUnit -Filter "*" -SearchBase $($elementObject.DistinguishedName) -SearchScope OneLevel).Name)
+    }
+    
+    
+    $vizPath=Join-Path -Path $pathToImage -ChildPath "$($elementObject.Name).vz"
+    Set-Content -Path $vizPath -Value $graphTMP
+    Export-PSGraph -Source $vizPath -Destination $imagePath
+    
+    #cleaning
+    Remove-Item -Path $vizPath
+
+    $imagePath
+}
+
+
 ######################################################
 
 $filePath = "C:\reporty\report.docx"
@@ -161,14 +185,11 @@ foreach($ou in $ous)
     
     Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "'$($ou.Name)' Graph" -Supress $true
 
-        $image="C:\reporty\$($ou.Name).png"
-        $graph = graph g {
-            edge -from $($ou.Name) -To $($(Get-ADOrganizationalUnit -Filter "*" -SearchBase $ou -SearchScope OneLevel).Name)
-            }
-        Set-Content -Path "C:\reporty\$($ou.Name).vz" -Value $graph
-        Export-PSGraph -Source "C:\reporty\$($ou.Name).vz" -Destination $image
-        Add-WordPicture -WordDocument $reportFile -ImagePath $image -Alignment center -ImageWidth 600 -Supress $True
-       #TODO: Write text if OU is last
+    
+
+    $imagePath=Get-GraphImage -elementObject $ou -pathToImage "C:\reporty\"
+    Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
+    #TODO: Write text if OU is last in tree
 
 
     Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "'$($ou.Name)' Permissions" -Supress $true
