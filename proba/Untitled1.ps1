@@ -135,26 +135,29 @@ function Get-GPOPolicy #TODO:Analysis
 $filePath = "C:\reporty\report.docx"
 $reportFile = New-WordDocument $filePath
 
+
+
 Add-WordText -WordDocument $reportFile -Text 'Raport z Active Directory' -FontSize 28 -FontFamily 'Calibri Light' -Supress $True
 Add-WordPageBreak -WordDocument $reportFile -Supress $true
 
-Add-WordTOC -WordDocument $reportFile -Title 'Spis treści' -HeaderStyle Heading1 -Supress $true
+Add-WordTOC -WordDocument $reportFile -Title "Spis treści" -Supress $true
+
 Add-WordPageBreak -WordDocument $reportFile -Supress $true
 
-Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Numbered -HeadingType Heading1 -Text 'Wstęp' -Supress $true
+Add-WordText -WordDocument $reportFile -Text 'Wstęp' -HeadingType Heading1 -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Jest to dokumentacja domeny ActiveDirectory przeprowadzona w domena.local. Wszytskie informacje są tajne' -Supress $True 
 
-Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Numbered -HeadingType Heading1 -Text 'Spis jednostek organizacyjnych' -Supress $true
+Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis jednostek organizacyjnych' -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Ta część zawiera spis jednostek organizacyjnych wraz z informacjami o każdej z nich' -Supress $True
 
 $ous=(Get-ADOrganizationalUnit -Filter "*").DistinguishedName
 foreach($ou in $ous)
 {
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 2 -ListItemType Numbered -HeadingType Heading1 -Text "$ou" -Supress $true
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$ou" -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $(Get-OUInformation -OU $ou) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $ou -Transpose -Supress $True
     
     
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 3 -ListItemType Bulleted -HeadingType Heading1 -Text "'$ou' Permissions" -Supress $true
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "'$ou' Permissions" -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $($(Get-OUACL -OU $ou) | Select-Object -Property * -ExcludeProperty ACLs) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "OU Options" -Transpose -Supress $true
     Add-WordText -WordDocument $reportFile -Text "" -Supress $true
     
@@ -166,23 +169,31 @@ foreach($ou in $ous)
     
 }
 ###########################################################################################################
-Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Numbered -HeadingType Heading1 -Text 'Spis Polis Grup' -Supress $true
+Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis Polis Grup' -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Tutaj znajduje się opis polis grup. Blok nie pokazuje polis podłączonych do SITE' -Supress $True
 
 $gpoPolicies=Get-GPOPolicy
+$counter=0
 foreach($gpoPolicy in $gpoPolicies)
 {
 
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 2 -ListItemType Numbered -HeadingType Heading1 -Text "$($gpoPolicy.Name) Policy" -Supress $true
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$($gpoPolicy.Name) Policy" -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $($gpoPolicy | Select-Object -Property * -ExcludeProperty ACLs) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($gpoPolicy.Name) -Transpose -Supress $true
 
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 3 -ListItemType Bulleted -HeadingType Heading1 -Text "'$($gpoPolicy.Name)' Permissions" -Supress $true
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "'$($gpoPolicy.Name)' Permissions" -Supress $true
     $($($gpoPolicy).ACLs) | ForEach-Object {
         Add-WordTable -WordDocument $reportFile -DataTable $($_) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "Permissions" -Supress $true -Transpose
         Add-WordText -WordDocument $reportFile -Text "" -Supress $true
     }
-
+    if ($gpoPolicy.Links -eq $null)
+    {
+        $counter++
+    }
 }
+
+Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Numbered -HeadingType Heading1 -Text "Wykres - Polityki przypisane\nieprzypisane" -Supress $true
+
+Add-WordPieChart -WordDocument $reportFile -ChartName 'Polityki przypisane/nieprzypisane' -Names "Polityki nieprzypisane - $counter", "Polityki przypisane - $($($gpoPolicies.Count)-$counter)" -Values $counter,$($($gpoPolicies.Count)-$counter) -ChartLegendPosition Bottom -ChartLegendOverlay $false
 
 Save-WordDocument $reportFile -Supress $true -Language 'en-US' -Verbose #-OpenDocument
 
