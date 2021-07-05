@@ -12,7 +12,7 @@ Import-Module PSGraph
 
 ######################################################################################################################
 #2.Second way install GraphViz
-
+#idea: https://github.com/PrateekKumarSingh/AzViz/issues/12
 #Set TLS 1.3
 New-Item 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server' -Force | Out-Null
 New-ItemProperty -path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server' -name 'Enabled' -value '0' -PropertyType 'DWord' -Force | Out-Null
