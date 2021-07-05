@@ -4,7 +4,7 @@ function Get-OUInformation
 {
 Param(
         [Parameter(Mandatory=$true)]
-        [alias("OU","OrganisationalUnit")]
+        [alias("OU_DN","OrganisationalUnitDistinguishedName")]
         [String] $ouPath
         )
 
@@ -37,7 +37,7 @@ function Get-OUACL
 {
 Param(
         [Parameter(Mandatory=$true)]
-        [alias("OU","OrganisationalUnit")]
+        [alias("OU_ACL","OrganisationalUnitAccessControlList")]
         [String] $ouPath
     )
         $path = "AD:\" + $ouPath
@@ -132,25 +132,31 @@ function Get-GraphImage
 {
 Param(
     [Parameter(Mandatory=$true)]
-    $elementObject,
+    [Alias("GraphRoot")]
+    $root, 
+    [Alias("GraphLeaf")]
+    $leaf, 
+    [Alias("BasePathToGraphImage")]
     $pathToImage
     )
 
-    $imagePath=Join-Path -Path $pathToImage -ChildPath "$($elementObject.Name).png"
+    $imagePath=Join-Path -Path $pathToImage -ChildPath "$root.png"
         
     $graphTMP = graph g {
-    edge -from $($elementObject.Name) -To $($(Get-ADOrganizationalUnit -Filter "*" -SearchBase $($elementObject.DistinguishedName) -SearchScope OneLevel).Name)
+    edge -from $root -To $leaf
     }
     
     
-    $vizPath=Join-Path -Path $pathToImage -ChildPath "$($elementObject.Name).vz"
+    $vizPath=Join-Path -Path $pathToImage -ChildPath "$root.vz"
     Set-Content -Path $vizPath -Value $graphTMP
     Export-PSGraph -Source $vizPath -Destination $imagePath
     
     #cleaning
     Remove-Item -Path $vizPath
 
+
     $imagePath
+    
 }
 
 
@@ -181,28 +187,28 @@ $ous=(Get-ADOrganizationalUnit -Filter "*")
 foreach($ou in $ous)
 {
     Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$($ou.Name)" -Supress $true
-    Add-WordTable -WordDocument $reportFile -DataTable $(Get-OUInformation -OU $($ou.DistinguishedName)) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($ou.Name) -Transpose -Supress $True
+    Add-WordTable -WordDocument $reportFile -DataTable $(Get-OUInformation -OrganisationalUnitDistinguishedName $($ou.DistinguishedName)) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($ou.Name) -Transpose -Supress $True
     
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "'$($ou.Name)' Graph" -Supress $true
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "$($ou.Name) Graph" -Supress $true
 
-    
-
-    $imagePath=Get-GraphImage -elementObject $ou -pathToImage "C:\reporty\"
+    $imagePath=Get-GraphImage -GraphRoot $($ou.Name) -GraphLeaf $($(Get-ADOrganizationalUnit -Filter "*" -SearchBase $($ou.DistinguishedName) -SearchScope OneLevel).Name) -BasePathToGraphImage "C:\reporty\"
     Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
-    #TODO: Write text if OU is last in tree
 
 
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "'$($ou.Name)' Permissions" -Supress $true
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "$($ou.Name) Permissions" -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $($(Get-OUACL -OU $($ou.DistinguishedName)) | Select-Object -Property * -ExcludeProperty ACLs) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "OU Options" -Transpose -Supress $true
     Add-WordText -WordDocument $reportFile -Text "" -Supress $true
     
-    $(Get-OUACL -ouPath $($ou.DistinguishedName)).ACLs | ForEach-Object {
+    $(Get-OUACL -OrganisationalUnitAccessControlList $($ou.DistinguishedName)).ACLs | ForEach-Object {
         Add-WordTable -WordDocument $reportFile -DataTable $($_) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "$($($_).IdentityReference) Permissions" -Transpose -Supress $true
         Add-WordText -WordDocument $reportFile -Text "" -Supress $true
         
     }
     
 }
+
+#TODO:Create chart
+
 ###########################################################################################################
 Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis Polis Grup' -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Tutaj znajduje się opis polis grup. Blok nie pokazuje polis podłączonych do SITE' -Supress $True
@@ -214,6 +220,11 @@ foreach($gpoPolicy in $gpoPolicies)
 
     Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$($gpoPolicy.Name) Policy" -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $($gpoPolicy | Select-Object -Property * -ExcludeProperty ACLs) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($gpoPolicy.Name) -Transpose -Supress $true
+
+    #$imagePath=Get-GraphImage -ElementObjectToCreateGraph $ou -BasePathToGraphImage "C:\reporty\"
+    #Graph from: GPO.Name To: GPO.Links
+
+
 
     Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "'$($gpoPolicy.Name)' Permissions" -Supress $true
     $($($gpoPolicy).ACLs) | ForEach-Object {
