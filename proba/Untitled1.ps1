@@ -158,12 +158,58 @@ Param(
     $imagePath
     
 }
+function Get-FineGrainedPolicies {
 
+    $fineGrainedPoliciesData = Get-ADFineGrainedPasswordPolicy -Filter * -Server $($Env:USERDNSDOMAIN)
+    $fineGrainedPolicies = foreach ($policy in $fineGrainedPoliciesData) {
+        [PsCustomObject] @{
+            'Name'                          = $policy.Name
+            'Complexity Enabled'            = $policy.ComplexityEnabled
+            'Lockout Duration'              = $policy.LockoutDuration
+            'Lockout Observation Window'    = $policy.LockoutObservationWindow
+            'Lockout Threshold'             = $policy.LockoutThreshold
+            'Max Password Age'              = $policy.MaxPasswordAge
+            'Min Password Length'           = $policy.MinPasswordLength
+            'Min Password Age'              = $policy.MinPasswordAge
+            'Password History Count'        = $policy.PasswordHistoryCount
+            'Reversible Encryption Enabled' = $policy.ReversibleEncryptionEnabled
+            'Precedence'                    = $policy.Precedence
+            'Applies To'                    = $policy.AppliesTo 
+            'Distinguished Name'            = $policy.DistinguishedName
+        }
+    }
+    return $fineGrainedPolicies
+
+}
 
 ######################################################
 
-$filePath = "C:\reporty\report.docx"
-$reportFile = New-WordDocument $filePath
+$basePath="C:\reporty\"
+
+$reportFilePath=Join-Path -Path $basePath -ChildPath "report.docx"
+$reportFile = New-WordDocument $reportFilePath
+
+#TODO:Create easier filePath creator
+#$reportSections = @{
+#    GPO = "GPO_Graph\"
+#    OU   = "OU_Graph\"
+#    FGPP  = "FGPP_Graph\"
+#}
+
+
+#$gpoGraphPath=Join-Path -Path $basePath -ChildPath $reportSections["GPO"]
+#New-Item -Path $gpoGraphPath -ItemType Directory
+
+#$ouGraphPath=Join-Path -Path $basePath -ChildPath $reportSections["OU"]
+#New-Item -Path $ouGraphPath -ItemType Directory
+
+#$fgppGraphPath=Join-Path -Path $basePath -ChildPath $reportSections["FGPP"]
+#New-Item -Path $fgppGraphPath -ItemType Directory
+
+
+
+
+
 
 
 
@@ -174,12 +220,12 @@ Add-WordTOC -WordDocument $reportFile -Title "Spis treści" -Supress $true
 
 Add-WordPageBreak -WordDocument $reportFile -Supress $true
 
-
+#######################################################################################################################
 Add-WordText -WordDocument $reportFile -Text 'Wstęp' -HeadingType Heading1 -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Jest to dokumentacja domeny ActiveDirectory przeprowadzona w domena.local. Wszytskie informacje są tajne' -Supress $True 
 
 
-
+######################################################################################################################
 Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis jednostek organizacyjnych' -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Ta część zawiera spis jednostek organizacyjnych wraz z informacjami o każdej z nich' -Supress $True
 
@@ -239,5 +285,23 @@ Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Numbered -H
 
 Add-WordPieChart -WordDocument $reportFile -ChartName 'Polityki przypisane/nieprzypisane' -Names "Polityki nieprzypisane - $counter", "Polityki przypisane - $($($gpoPolicies.Count)-$counter)" -Values $counter,$($($gpoPolicies.Count)-$counter) -ChartLegendPosition Bottom -ChartLegendOverlay $false
 
-Save-WordDocument $reportFile -Supress $true -Language 'en-US' -Verbose #-OpenDocument
+##############################################################################################################
+Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis Fine Grained Password Policies' -Supress $true
+Add-WordText -WordDocument $reportFile -Text 'Tutaj znajduje się opis obiektów Fine Grained Password Policies' -Supress $True
 
+$fgpps=Get-FineGrainedPolicies
+foreach($fgpp in $fgpps)
+{
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text $($fgpp.Name) -Supress $true
+    Add-WordTable -WordDocument $reportFile -DataTable $($fgpp | Select-Object -Property * -ExcludeProperty "Applies To") -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($fgpp.Name) -Transpose -Supress $true
+
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "'$($fgpp.Name)' is applied to" -Supress $true
+    
+    
+    $imagePath=Get-GraphImage -root $($fgpp.Name) -leaf $($fgpp.'Applies To') -pathToImage "C:\reporty\"
+    Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
+
+}
+
+##############################################################################################################
+Save-WordDocument $reportFile -Supress $true -Language 'en-US' -Verbose #-OpenDocument
