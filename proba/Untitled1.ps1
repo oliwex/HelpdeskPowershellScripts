@@ -221,10 +221,8 @@ foreach($gpoPolicy in $gpoPolicies)
     Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$($gpoPolicy.Name) Policy" -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $($gpoPolicy | Select-Object -Property * -ExcludeProperty ACLs) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($gpoPolicy.Name) -Transpose -Supress $true
 
-    #$imagePath=Get-GraphImage -ElementObjectToCreateGraph $ou -BasePathToGraphImage "C:\reporty\"
-    #Graph from: GPO.Name To: GPO.Links
-
-
+    $imagePath=Get-GraphImage -root $($gpoPolicy.Name) -leaf $($gpoPolicy.Links) -pathToImage "C:\reporty\"
+    Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
 
     Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "'$($gpoPolicy.Name)' Permissions" -Supress $true
     $($($gpoPolicy).ACLs) | ForEach-Object {
