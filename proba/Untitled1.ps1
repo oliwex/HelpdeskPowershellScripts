@@ -57,6 +57,47 @@ Param(
         }
 }
 
+function Get-GROUPInformation
+{
+Param(
+        [Parameter(Mandatory=$true)]
+        [alias("Group_DN","GroupDistinguishedName")]
+        [String] $groupPath
+        )
+$data=Get-ADGroup -Filter * -Properties * -SearchBase $groupPath -SearchScope 0 | Select-Object CanonicalName,cn,Created,Description,DisplayName,DistinguishedName,GroupCategory,GroupScope,groupType,HomePage,instanceType,ManagedBy,member,MemberOf,Members,Modified,Name,ObjectCategory,ObjectClass,ObjectGuid,objectSid,ProtectedFromAccidentalDeletion,SamAccountName,aAMAccountType,uSNChanged,uSNCreated,whenChanged,whenCreated
+
+[PSCustomObject] @{
+        'CanonicalName'    = $data.CanonicalName
+        'Common Name' = $data.cn
+        'Created' = $data.Created
+        'Description' = $data.Description
+        'DisplayName' = $data.DisplayName
+        'DistinguishedName' = $data.DistinguishedName
+        'GroupCategory' = $data.GroupCategory
+        'GroupScope' = $data.GroupScope
+        'groupType' = $data.groupType
+        'HomePage' = $data.HomePage
+        'instanceType' = $data.instanceType
+        'ManagedBy' = $data.ManagedBy
+        'member' = $data.member
+        'MemberOf' = $data.MemberOf
+        'Members' = $data.Members
+        'Modified' = $data.Modified
+        'Name' = $data.Name
+        'ObjectCategory' = $data.ObjectCategory
+        'ObjectClass' = $data.ObjectClass
+        'ObjectGuid' = $data.ObjectGuid
+        'objectSid' = $data.objectSid
+        'ProtectedFromAccidentalDeletion' = $data.ProtectedFromAccidentalDeletion
+        'SamAccountName' = $data.SamAccountName
+        'sAMAccountType' = $data.sAMAccountType
+        'uSNChanged' = $data.uSNChanged
+        'uSNCreated' = $data.uSNCreated
+        'whenChanged' = $data.whenChanged
+        'whenCreated' = $data.whenCreated
+        }
+}
+
 function Get-GPOPolicy #TODO:Analysis
 {
     $groupPolicies = Get-GPO -Domain $($Env:USERDNSDOMAIN) -All
@@ -221,10 +262,18 @@ Add-WordTOC -WordDocument $reportFile -Title "Spis treści" -Supress $true
 Add-WordPageBreak -WordDocument $reportFile -Supress $true
 
 #######################################################################################################################
-Add-WordText -WordDocument $reportFile -Text 'Wstęp' -HeadingType Heading1 -Supress $true
+Add-WordText -WordDocument $reportFile -Text 'Spis Grup' -HeadingType Heading1 -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Jest to dokumentacja domeny ActiveDirectory przeprowadzona w domena.local. Wszytskie informacje są tajne' -Supress $True 
 
-
+$groups=(Get-ADGroup -Filter * -Properties *)
+foreach($group in $groups)
+{
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$($group.Name)" -Supress $true
+    Add-WordTable -WordDocument $reportFile -DataTable $(Get-GROUPInformation -GroupDistinguishedName $($group.DistinguishedName)) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($group.Name) -Transpose -Supress $True
+    
+}
+#TODO:Chart distribution/security
+#TOOD:Chart domain local/global/universal
 ######################################################################################################################
 Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis jednostek organizacyjnych' -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Ta część zawiera spis jednostek organizacyjnych wraz z informacjami o każdej z nich' -Supress $True
@@ -254,6 +303,11 @@ foreach($ou in $ous)
 }
 
 #TODO:Create chart
+###########################################################################################################
+Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis Grup' -Supress $true
+Add-WordText -WordDocument $reportFile -Text 'Tutaj znajduje się spis Grup wraz z właściwościami' -Supress $True
+
+
 
 ###########################################################################################################
 Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis Polis Grup' -Supress $true
