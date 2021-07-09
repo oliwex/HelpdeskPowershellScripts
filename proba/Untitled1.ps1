@@ -100,11 +100,13 @@ $data=Get-ADGroup -Filter * -Properties * -SearchBase $groupPath -SearchScope 0 
 
 function Get-GPOPolicy #TODO:Analysis
 {
-    $groupPolicies = Get-GPO -Domain $($Env:USERDNSDOMAIN) -All
+Param(
+        [Parameter(Mandatory=$true)]
+        [alias("GPOObject","GroupPolicyObject")]
+        $groupPolicyObjectInformation
+        )
 
-    foreach ($gpo in $groupPolicies) 
-    {
-        [xml]$xmlGPOReport = $gpo.generatereport('xml')
+        [xml]$xmlGPOReport = $groupPolicyObjectInformation.generatereport('xml')
         #GPO version
         if (($xmlGPOReport.GPO.Computer.VersionDirectory -eq 0) -and ($xmlGPOReport.GPO.Computer.VersionSysvol -eq 0)) 
         {
@@ -150,24 +152,43 @@ function Get-GPOPolicy #TODO:Analysis
             'Computer Enabled'       = $xmlGPOReport.GPO.Computer.Enabled
             'Computer Settings'      = $computerSettings
             'User Settings'          = $userSettings
-            'Gpo Status'             = $gpo.GpoStatus
-            'Creation Time'          = $gpo.CreationTime
-            'Modification Time'      = $gpo.ModificationTime
-            'WMI Filter'             = $gpo.WmiFilter.name
-            'WMI Filter Description' = $gpo.WmiFilter.Description
-            'Path'                   = $gpo.Path
-            'GUID'                   = $gpo.Id
+            'Gpo Status'             = $groupPolicyObjectInformation.GpoStatus
+            'Creation Time'          = $groupPolicyObjectInformation.CreationTime
+            'Modification Time'      = $groupPolicyObjectInformation.ModificationTime
+            'WMI Filter'             = $groupPolicyObjectInformation.WmiFilter.name
+            'WMI Filter Description' = $groupPolicyObjectInformation.WmiFilter.Description
+            'Path'                   = $groupPolicyObjectInformation.Path
+            'GUID'                   = $groupPolicyObjectInformation.Id
+        }
+    }
+
+
+#TODO:Analysis
+function Get-GPOAcl
+{
+Param(
+        [Parameter(Mandatory=$true)]
+        [alias("GPOObject","GroupPolicyObject")]
+        $groupPolicyObjectAcl
+        )
+
+        [xml]$xmlGPOReport = $groupPolicyObjectAcl.generatereport('xml')
+
+        #Output
+        [PsCustomObject] @{
+            'Name'                   = $xmlGPOReport.GPO.Name
             'ACLs'                   = $xmlGPOReport.GPO.SecurityDescriptor.Permissions.TrusteePermissions | ForEach-Object -Process {
                 New-Object -TypeName PSObject -Property @{
                     'User'            = $_.trustee.name.'#Text'
                     'Permission Type' = $_.type.PermissionType
                     'Inherited'       = $_.Inherited
                     'Permissions'     = $_.Standard.GPOGroupedAccessEnum
-                }
             }
         }
     }
 }
+
+
 
 function Get-GraphImage
 {
@@ -248,33 +269,15 @@ $reportFile = New-WordDocument $reportFilePath
 #New-Item -Path $fgppGraphPath -ItemType Directory
 
 
-
-
-
-
-
-
 Add-WordText -WordDocument $reportFile -Text 'Raport z Active Directory' -FontSize 28 -FontFamily 'Calibri Light' -Supress $True
 Add-WordPageBreak -WordDocument $reportFile -Supress $true
+#######################################################################################################################
 
 Add-WordTOC -WordDocument $reportFile -Title "Spis treści" -Supress $true
 
 Add-WordPageBreak -WordDocument $reportFile -Supress $true
 
 #######################################################################################################################
-Add-WordText -WordDocument $reportFile -Text 'Spis Grup' -HeadingType Heading1 -Supress $true
-Add-WordText -WordDocument $reportFile -Text 'Jest to dokumentacja domeny ActiveDirectory przeprowadzona w domena.local. Wszytskie informacje są tajne' -Supress $True 
-
-$groups=(Get-ADGroup -Filter * -Properties *)
-foreach($group in $groups)
-{
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$($group.Name)" -Supress $true
-    Add-WordTable -WordDocument $reportFile -DataTable $(Get-GROUPInformation -GroupDistinguishedName $($group.DistinguishedName)) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($group.Name) -Transpose -Supress $True
-    
-}
-#TODO:Chart distribution/security
-#TOOD:Chart domain local/global/universal
-######################################################################################################################
 Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis jednostek organizacyjnych' -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Ta część zawiera spis jednostek organizacyjnych wraz z informacjami o każdej z nich' -Supress $True
 
@@ -297,37 +300,54 @@ foreach($ou in $ous)
     $(Get-OUACL -OrganisationalUnitAccessControlList $($ou.DistinguishedName)).ACLs | ForEach-Object {
         Add-WordTable -WordDocument $reportFile -DataTable $($_) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "$($($_).IdentityReference) Permissions" -Transpose -Supress $true
         Add-WordText -WordDocument $reportFile -Text "" -Supress $true
-        
     }
-    
 }
 
 #TODO:Create chart
-###########################################################################################################
-Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis Grup' -Supress $true
-Add-WordText -WordDocument $reportFile -Text 'Tutaj znajduje się spis Grup wraz z właściwościami' -Supress $True
+#######################################################################################################################
+Add-WordText -WordDocument $reportFile -Text 'Spis Grup' -HeadingType Heading1 -Supress $true
+Add-WordText -WordDocument $reportFile -Text 'Jest to dokumentacja domeny ActiveDirectory przeprowadzona w domena.local. Wszytskie informacje są tajne' -Supress $True 
+
+$groups=(Get-ADGroup -Filter * -Properties *)
+foreach($group in $groups)
+{
+    #Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$($group.Name)" -Supress $true
+    #Add-WordTable -WordDocument $reportFile -DataTable $(Get-GROUPInformation -GroupDistinguishedName $($group.DistinguishedName)) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($group.Name) -Transpose -Supress $True
+    
+}
+#TODO:Chart distribution/security
+#TOOD:Chart domain local/global/universal
+######################################################################################################################
+Add-WordText -WordDocument $reportFile -Text 'Spis Użytkowników' -HeadingType Heading1 -Supress $true
+Add-WordText -WordDocument $reportFile -Text 'Ta część zawiera spis użytkowników domeny' -Supress $True 
 
 
-
-###########################################################################################################
+######################################################################################################################
 Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis Polis Grup' -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Tutaj znajduje się opis polis grup. Blok nie pokazuje polis podłączonych do SITE' -Supress $True
 
-$gpoPolicies=Get-GPOPolicy
+$groupPolicyObjects = Get-GPO -Domain $($Env:USERDNSDOMAIN) -All
+
 $counter=0
-foreach($gpoPolicy in $gpoPolicies)
+foreach($gpoPolicyObject in $groupPolicyObjects)
 {
+    $gpoPolicyObjectInformation=Get-GPOPolicy -GroupPolicyObject $gpoPolicyObject
+    
 
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$($gpoPolicy.Name) Policy" -Supress $true
-    Add-WordTable -WordDocument $reportFile -DataTable $($gpoPolicy | Select-Object -Property * -ExcludeProperty ACLs) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($gpoPolicy.Name) -Transpose -Supress $true
-
-    $imagePath=Get-GraphImage -root $($gpoPolicy.Name) -leaf $($gpoPolicy.Links) -pathToImage "C:\reporty\"
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$($gpoPolicyObjectInformation.Name) Policy" -Supress $true
+    Add-WordTable -WordDocument $reportFile -DataTable $gpoPolicyObjectInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($gpoPolicyObjectInformation.Name) -Transpose -Supress $true
+ 
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "$($gpoPolicyObjectInformation.Name) Graph" -Supress $true
+    $imagePath=Get-GraphImage -GraphRoot $($gpoPolicyObjectInformation.Name) -GraphLeaf $($gpoPolicyObjectInformation.Links) -pathToImage "C:\reporty\"
     Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
 
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "'$($gpoPolicy.Name)' Permissions" -Supress $true
-    $($($gpoPolicy).ACLs) | ForEach-Object {
-        Add-WordTable -WordDocument $reportFile -DataTable $($_) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "Permissions" -Supress $true -Transpose
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "$($gpoPolicyObjectInformation.Name) Permissions" -Supress $true
+    
+    
+    $(Get-GPOAcl -GroupPolicyObject $gpoPolicyObject).ACLs | ForEach-Object {
+        Add-WordTable -WordDocument $reportFile -DataTable $($_) -Design ColorfulGridAccent5 -AutoFit Window -Supress $true -Transpose
         Add-WordText -WordDocument $reportFile -Text "" -Supress $true
+
     }
     if ($gpoPolicy.Links -eq $null)
     {
