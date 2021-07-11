@@ -203,9 +203,7 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
     DocText {
         "Jest to dokumentacja domeny ActiveDirectory przeprowadzona w domena.local. Wszytskie informacje są tajne"
     }
-    <#
-    #OU
-    #DONE
+    
     DocNumbering -Text 'Spis jednostek organizacyjnych' -Level 0 -Type Numbered -Heading Heading1 {
         
         DocText {
@@ -244,7 +242,7 @@ Documentimo -FilePath "C:\reporty\Starter-AD.docx" {
         DocText -LineBreak
 
     }
-    #>
+    
     
     #Group Policies
     #DONE
