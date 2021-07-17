@@ -1,5 +1,4 @@
 ﻿
-
 function Get-OUInformation
 {
 Param(
@@ -110,43 +109,6 @@ $data=Get-ADGroup -Filter * -Properties * -SearchBase $groupPath -SearchScope 0 
 #builtin=tworzone przy starcie AD
 
 #TODO:graph with group difference
-function Get-AdGroupDiff
-{
-Param(
-     [Parameter(Mandatory=$true)]
-     [alias("GroupTypeDiff")]
-     [ValidateSet("SystemGroupsScope","GlobalScope","DomainLocalScope","UniversalScope","DistributionGroups")]
-     $groupType
- )
-
-$filter=$null
-if ($groupType -eq "SystemGroupsScope")
-{
-$filter="{GroupType -band 1}"
-}
-elseif($groupType -eq "GlobalScope")
-{
-$filter={GroupType -band 2}
-}
-elseif($groupType -eq "DomainLocalScope")
-{
-$filter={GroupType -band 4}
-}
-elseif($groupType -eq "UniversalScope")
-{
-$filter={GroupType -band 8}
-}
-elseif($groupType -eq "DistributionGroups")
-{
-$filter={-not(GroupType -band 8)}
-}
-Get-ADGroup -Filter $filter -Properties * | Select-Object CanonicalName,CN,Created,Description,DisplayName,DsitinguishedName,GroupCategory,GroupScope,groupType,HomePage,ManagedBy,member,MemberOf,Members,Modified,Name,ObjectCategory,ObjectClass,ObjectGUID,objectSid,ProtectedFromAccidentalDeletion,SamAccountType,SID,uSNChanged,uSNCreated,whenChanged,whenCreated
-}
-
-
-#Get-ADGroupDiff -GroupTypeDiff "UniversalScope"
-
-
 
 ######
 function Get-GPOPolicy #TODO:Analysis
@@ -335,20 +297,34 @@ Add-WordText -WordDocument $reportFile -Text 'Ta część zawiera spis jednostek
 $ous=(Get-ADOrganizationalUnit -Filter "*")
 foreach($ou in $ous)
 {
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$($ou.Name)" -Supress $true
-    Add-WordTable -WordDocument $reportFile -DataTable $(Get-OUInformation -OrganisationalUnitDistinguishedName $($ou.DistinguishedName)) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($ou.Name) -Transpose -Supress $True
+   
+    $ouInformation=Get-OUInformation -OrganisationalUnitDistinguishedName $($ou.DistinguishedName)
+    
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text $($ou.Name) -Supress $true
+    Add-WordTable -WordDocument $reportFile -DataTable $ouInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($ou.Name) -Transpose -Supress $True
     
     Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "$($ou.Name) Graph" -Supress $true
 
-    $imagePath=Get-GraphImage -GraphRoot $($ou.Name) -GraphLeaf $($(Get-ADOrganizationalUnit -Filter "*" -SearchBase $($ou.DistinguishedName) -SearchScope OneLevel).Name) -BasePathToGraphImage "C:\reporty\"
-    Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
+    $ouTMP=$(Get-ADOrganizationalUnit -Filter "*" -SearchBase $($ou.DistinguishedName) -SearchScope OneLevel).Name
+    if ($ouTMP -eq $null)
+    {
+        Add-WordText -WordDocument $reportFile -Text "No Leafs" -Supress $true        
+    }
+    else
+    {
+        $imagePath=Get-GraphImage -GraphRoot $($ou.Name) -GraphLeaf $ouTMP  -BasePathToGraphImage "C:\reporty\"
+        Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
+    }
+    
 
 
+    #ACL
+    $ouACL=Get-OUACL -OU $($ou.DistinguishedName)
     Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "$($ou.Name) Permissions" -Supress $true
-    Add-WordTable -WordDocument $reportFile -DataTable $($(Get-OUACL -OU $($ou.DistinguishedName)) | Select-Object -Property * -ExcludeProperty ACLs) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "OU Options" -Transpose -Supress $true
+    Add-WordTable -WordDocument $reportFile -DataTable $($ouACL | Select-Object -Property * -ExcludeProperty ACLs) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "OU Options" -Transpose -Supress $true
     Add-WordText -WordDocument $reportFile -Text "" -Supress $true
     
-    $(Get-OUACL -OrganisationalUnitAccessControlList $($ou.DistinguishedName)).ACLs | ForEach-Object {
+    $($ouACL.ACLs) | ForEach-Object {
         Add-WordTable -WordDocument $reportFile -DataTable $($_) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "$($($_).IdentityReference) Permissions" -Transpose -Supress $true
         Add-WordText -WordDocument $reportFile -Text "" -Supress $true
     }
@@ -362,9 +338,27 @@ Add-WordText -WordDocument $reportFile -Text 'Jest to dokumentacja domeny Active
 $groups=(Get-ADGroup -Filter * -Properties *)
 foreach($group in $groups)
 {
-    #Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$($group.Name)" -Supress $true
-    #Add-WordTable -WordDocument $reportFile -DataTable $(Get-GROUPInformation -GroupDistinguishedName $($group.DistinguishedName)) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($group.Name) -Transpose -Supress $True
+    $groupInformation=Get-GROUPInformation -GroupDistinguishedName $($group.DistinguishedName)
+
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$($group.Name)" -Supress $true
+    Add-WordTable -WordDocument $reportFile -DataTable $groupInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($group.Name) -Transpose -Supress $True
     
+    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "$($group.Name) Graph" -Supress $true
+    
+
+    if ($($groupInformation.Members) -eq $null)
+    {
+        Add-WordText -WordDocument $reportFile -Text "No Leafs" -Supress $true    
+    }
+    else
+    {
+        $groupMembers=$($($groupInformation.Members) -split ',*..=')[1]
+        $imagePath=Get-GraphImage -GraphRoot $($groupInformation.Name) -GraphLeaf $groupMembers -pathToImage "C:\reporty\"
+        Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
+    }
+
+
+
 }
 #TODO:Chart distribution/security
 #TOOD:Chart domain local/global/universal
@@ -379,7 +373,6 @@ Add-WordText -WordDocument $reportFile -Text 'Tutaj znajduje się opis polis gru
 
 $groupPolicyObjects = Get-GPO -Domain $($Env:USERDNSDOMAIN) -All
 
-$counter=0
 foreach($gpoPolicyObject in $groupPolicyObjects)
 {
     $gpoPolicyObjectInformation=Get-GPOPolicy -GroupPolicyObject $gpoPolicyObject
@@ -389,26 +382,28 @@ foreach($gpoPolicyObject in $groupPolicyObjects)
     Add-WordTable -WordDocument $reportFile -DataTable $gpoPolicyObjectInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($gpoPolicyObjectInformation.Name) -Transpose -Supress $true
  
     Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "$($gpoPolicyObjectInformation.Name) Graph" -Supress $true
-    $imagePath=Get-GraphImage -GraphRoot $($gpoPolicyObjectInformation.Name) -GraphLeaf $($gpoPolicyObjectInformation.Links) -pathToImage "C:\reporty\"
-    Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
+    
+    
+    if ($($gpoPolicyObjectInformation.Links) -eq $null)
+    {
+        Add-WordText -WordDocument $reportFile -Text "No Leafs" -Supress $true    
+    }
+    else
+    {
+        $imagePath=Get-GraphImage -GraphRoot $($gpoPolicyObjectInformation.Name) -GraphLeaf $($gpoPolicyObjectInformation.Links) -pathToImage "C:\reporty\"
+        Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
+    }
 
     Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "$($gpoPolicyObjectInformation.Name) Permissions" -Supress $true
     
-    
-    $(Get-GPOAcl -GroupPolicyObject $gpoPolicyObject).ACLs | ForEach-Object {
+    #ACL
+    $gpoACL=$(Get-GPOAcl -GroupPolicyObject $gpoPolicyObject).ACLs
+    $gpoACL | ForEach-Object {
         Add-WordTable -WordDocument $reportFile -DataTable $($_) -Design ColorfulGridAccent5 -AutoFit Window -Supress $true -Transpose
         Add-WordText -WordDocument $reportFile -Text "" -Supress $true
 
     }
-    if ($gpoPolicy.Links -eq $null)
-    {
-        $counter++
-    }
 }
-
-Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Numbered -HeadingType Heading1 -Text "Wykres - Polityki przypisane\nieprzypisane" -Supress $true
-
-Add-WordPieChart -WordDocument $reportFile -ChartName 'Polityki przypisane/nieprzypisane' -Names "Polityki nieprzypisane - $counter", "Polityki przypisane - $($($gpoPolicies.Count)-$counter)" -Values $counter,$($($gpoPolicies.Count)-$counter) -ChartLegendPosition Bottom -ChartLegendOverlay $false
 
 ##############################################################################################################
 Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis Fine Grained Password Policies' -Supress $true
@@ -418,13 +413,22 @@ $fgpps=Get-FineGrainedPolicies
 foreach($fgpp in $fgpps)
 {
     Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text $($fgpp.Name) -Supress $true
-    Add-WordTable -WordDocument $reportFile -DataTable $($fgpp | Select-Object -Property * -ExcludeProperty "Applies To") -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($fgpp.Name) -Transpose -Supress $true
+    Add-WordTable -WordDocument $reportFile -DataTable $fgpp -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($fgpp.Name) -Transpose -Supress $true
 
     Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "'$($fgpp.Name)' is applied to" -Supress $true
     
     
-    $imagePath=Get-GraphImage -root $($fgpp.Name) -leaf $($fgpp.'Applies To') -pathToImage "C:\reporty\"
-    Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
+    if ($($fgpp.'Applies To') -eq $null)
+    {
+        Add-WordText -WordDocument $reportFile -Text "No Leafs" -Supress $true    
+    }
+    else
+    {
+        $fgppApllied=$($($fgpp.'Applies To') -split ',*..=')[1]
+        $imagePath=Get-GraphImage -GraphRoot $($fgpp.Name) -GraphLeaf $fgppApllied -pathToImage "C:\reporty\"
+        Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
+    }
+    
 
 }
 
