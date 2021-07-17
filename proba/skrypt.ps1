@@ -336,6 +336,7 @@ Add-WordText -WordDocument $reportFile -Text 'Spis Grup' -HeadingType Heading1 -
 Add-WordText -WordDocument $reportFile -Text 'Jest to dokumentacja domeny ActiveDirectory przeprowadzona w domena.local. Wszytskie informacje są tajne' -Supress $True 
 
 $groups=(Get-ADGroup -Filter * -Properties *)
+
 foreach($group in $groups)
 {
     $groupInformation=Get-GROUPInformation -GroupDistinguishedName $($group.DistinguishedName)
@@ -357,9 +358,20 @@ foreach($group in $groups)
         Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
     }
 
-
-
+    if ($($groupInformation.GroupCategory) -like "Security")
+    {
+        $groupGraph.SecurityGroup++
+    }
+    else
+    {
+        $groupGraph.DistributionGroup++
+    }
 }
+$chart=$groups | Group-Object GroupCategory | Select-Object Name,Count
+
+Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text  "Wykresy grup" -Supress $true
+Add-WordBarChart -WordDocument $reportFile -ChartName 'Stosunek liczby grup zabezpieczeń do grup dystrybucyjnych'-ChartLegendPosition Bottom -ChartLegendOverlay $false -Names $($chart[0].Name),$($chart[1].Name) -Values $($chart[0].Count),$($chart[1].Count) -BarDirection Column
+
 #TODO:Chart distribution/security
 #TOOD:Chart domain local/global/universal
 ######################################################################################################################
