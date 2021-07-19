@@ -1,4 +1,15 @@
-﻿
+﻿##########################################################################################
+#                                GLOBAL VARIABLES                                        #
+##########################################################################################
+$basePath="C:\reporty\"
+$graphFolders = @{
+    GPO = "GPO_Graph\"
+    OU   = "OU_Graph\"
+    FGPP  = "FGPP_Graph\"
+}
+
+
+##########################################################################################
 function Get-OUInformation
 {
 Param(
@@ -98,19 +109,6 @@ $data=Get-ADGroup -Filter * -Properties * -SearchBase $groupPath -SearchScope 0 
 }
 
 
-
-####
-#Local security groups - tworzone gdy tworzy się AD
-#Get-ADGroup -Filter {GroupType -eq -2147483643} | Select-Object Name | Sort-Object Name
-#Get-ADGroup -Filter {GroupType -band 1} -Properties Name,GroupType | Select-Object Name,GroupType
-
-#category = security/distribution
-#scope=universal/global/domain_local
-#builtin=tworzone przy starcie AD
-
-#TODO:graph with group difference
-
-######
 function Get-GPOPolicy #TODO:Analysis
 {
 Param(
@@ -256,30 +254,54 @@ function Get-FineGrainedPolicies {
     return $fineGrainedPolicies
 
 }
+##########################################################################################
+#                                TOOL FUNCTIONS                                          #
+##########################################################################################
 
-######################################################
 
-$basePath="C:\reporty\"
+function Get-ReportFolders
+{
+    Param(
+        [Parameter(Mandatory=$true)]
+        [Alias("BasePath")]
+        [string]$reportPath,
+        [Alias("GraphFoldersHashtable")]
+        $graphFolders
+        )
+
+    foreach($key in $($graphFolders.Keys))
+    {
+        $graphPath=Join-Path -Path $reportPath -ChildPath $graphFolders[$key]
+        $graphFolders[$key]=$graphPath
+        New-Item -Path $graphPath -ItemType Directory
+    }
+    $graphFolders
+}
+
+##########################################################################################
+#NOTES
+####
+#Local security groups - tworzone gdy tworzy się AD
+#Get-ADGroup -Filter {GroupType -eq -2147483643} | Select-Object Name | Sort-Object Name
+#Get-ADGroup -Filter {GroupType -band 1} -Properties Name,GroupType | Select-Object Name,GroupType
+
+#category = security/distribution
+#scope=universal/global/domain_local
+#builtin=tworzone przy starcie AD
+
+#TODO:graph with group difference
+
+
+
+##########################################################################################
+
+$reportad=Get-ReportFolders -BasePath $basePath -GraphFoldersHashtable $graphFolders
+#$reportad
+
 
 $reportFilePath=Join-Path -Path $basePath -ChildPath "report.docx"
 $reportFile = New-WordDocument $reportFilePath
 
-#TODO:Create easier filePath creator
-#$reportSections = @{
-#    GPO = "GPO_Graph\"
-#    OU   = "OU_Graph\"
-#    FGPP  = "FGPP_Graph\"
-#}
-
-
-#$gpoGraphPath=Join-Path -Path $basePath -ChildPath $reportSections["GPO"]
-#New-Item -Path $gpoGraphPath -ItemType Directory
-
-#$ouGraphPath=Join-Path -Path $basePath -ChildPath $reportSections["OU"]
-#New-Item -Path $ouGraphPath -ItemType Directory
-
-#$fgppGraphPath=Join-Path -Path $basePath -ChildPath $reportSections["FGPP"]
-#New-Item -Path $fgppGraphPath -ItemType Directory
 
 
 Add-WordText -WordDocument $reportFile -Text 'Raport z Active Directory' -FontSize 28 -FontFamily 'Calibri Light' -Supress $True
@@ -358,22 +380,19 @@ foreach($group in $groups)
         Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
     }
 
-    if ($($groupInformation.GroupCategory) -like "Security")
-    {
-        $groupGraph.SecurityGroup++
-    }
-    else
-    {
-        $groupGraph.DistributionGroup++
-    }
+
 }
 $chart=$groups | Group-Object GroupCategory | Select-Object Name,Count
+Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text  "Wykresy grup dystrybucyjnych/zabezpieczeń" -Supress $true
+Add-WordBarChart -WordDocument $reportFile -ChartName 'Stosunek liczby grup zabezpieczeń do grup dystrybucyjnych'-ChartLegendPosition Bottom -ChartLegendOverlay $false -Names $($chart[0].Name),$($chart[1].Name) -Values "$($chart[0].Count) - $($chart[0].Name)","$($chart[1].Count) - $($chart[1].Name)" -BarDirection Column
 
-Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text  "Wykresy grup" -Supress $true
-Add-WordBarChart -WordDocument $reportFile -ChartName 'Stosunek liczby grup zabezpieczeń do grup dystrybucyjnych'-ChartLegendPosition Bottom -ChartLegendOverlay $false -Names $($chart[0].Name),$($chart[1].Name) -Values $($chart[0].Count),$($chart[1].Count) -BarDirection Column
+$chart=$groups | Group-Object GroupScope | Select-Object Name,Count
+Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text  "Wykresy grup lokalnych/globalnych/uniwersalnych" -Supress $true
+Add-WordBarChart -WordDocument $reportFile -ChartName 'Stosunek liczby grup lokalnych, globalnych,uniwersalnych'-ChartLegendPosition Bottom -ChartLegendOverlay $false -Names $($chart[0].Name),$($chart[1].Name),$($chart[2].Name) -Values "$($chart[0].Count) - $($chart[0].Name)","$($chart[1].Count) - $($chart[1].Name)","$($chart[2].Count) - $($chart[2].Name)" -BarDirection Column
 
-#TODO:Chart distribution/security
-#TOOD:Chart domain local/global/universal
+
+#TODO:More charts
+
 ######################################################################################################################
 Add-WordText -WordDocument $reportFile -Text 'Spis Użytkowników' -HeadingType Heading1 -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Ta część zawiera spis użytkowników domeny' -Supress $True 
