@@ -6,6 +6,7 @@ $graphFolders = @{
     GPO = "GPO_Graph\"
     OU   = "OU_Graph\"
     FGPP  = "FGPP_Graph\"
+    GROUP = "GROUP_Graph\"
 }
 
 
@@ -295,8 +296,7 @@ function Get-ReportFolders
 
 ##########################################################################################
 
-$reportad=Get-ReportFolders -BasePath $basePath -GraphFoldersHashtable $graphFolders
-#$reportad
+$reportGraphFolders=Get-ReportFolders -BasePath $basePath -GraphFoldersHashtable $graphFolders
 
 
 $reportFilePath=Join-Path -Path $basePath -ChildPath "report.docx"
@@ -334,7 +334,8 @@ foreach($ou in $ous)
     }
     else
     {
-        $imagePath=Get-GraphImage -GraphRoot $($ou.Name) -GraphLeaf $ouTMP  -BasePathToGraphImage "C:\reporty\"
+        $imagePath=Get-GraphImage -GraphRoot $($ou.Name) -GraphLeaf $ouTMP  -BasePathToGraphImage $($reportGraphFolders.OU)
+
         Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
     }
     
@@ -376,19 +377,17 @@ foreach($group in $groups)
     else
     {
         $groupMembers=$($($groupInformation.Members) -split ',*..=')[1]
-        $imagePath=Get-GraphImage -GraphRoot $($groupInformation.Name) -GraphLeaf $groupMembers -pathToImage "C:\reporty\"
+        $imagePath=Get-GraphImage -GraphRoot $($groupInformation.Name) -GraphLeaf $groupMembers -pathToImage $($reportGraphFolders.GROUP)
         Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
     }
-
-
 }
 $chart=$groups | Group-Object GroupCategory | Select-Object Name,Count
 Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text  "Wykresy grup dystrybucyjnych/zabezpieczeń" -Supress $true
-Add-WordBarChart -WordDocument $reportFile -ChartName 'Stosunek liczby grup zabezpieczeń do grup dystrybucyjnych'-ChartLegendPosition Bottom -ChartLegendOverlay $false -Names $($chart[0].Name),$($chart[1].Name) -Values "$($chart[0].Count) - $($chart[0].Name)","$($chart[1].Count) - $($chart[1].Name)" -BarDirection Column
+Add-WordBarChart -WordDocument $reportFile -ChartName 'Stosunek liczby grup zabezpieczeń do grup dystrybucyjnych'-ChartLegendPosition Bottom -ChartLegendOverlay $false -Names "$($chart[0].Name) - $($chart[0].Count)","$($chart[1].Name) - $($chart[1].Count)" -Values $($chart[0].Count),$($chart[1].Count) -BarDirection Column
 
 $chart=$groups | Group-Object GroupScope | Select-Object Name,Count
 Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text  "Wykresy grup lokalnych/globalnych/uniwersalnych" -Supress $true
-Add-WordBarChart -WordDocument $reportFile -ChartName 'Stosunek liczby grup lokalnych, globalnych,uniwersalnych'-ChartLegendPosition Bottom -ChartLegendOverlay $false -Names $($chart[0].Name),$($chart[1].Name),$($chart[2].Name) -Values "$($chart[0].Count) - $($chart[0].Name)","$($chart[1].Count) - $($chart[1].Name)","$($chart[2].Count) - $($chart[2].Name)" -BarDirection Column
+Add-WordBarChart -WordDocument $reportFile -ChartName 'Stosunek liczby grup lokalnych, globalnych,uniwersalnych'-ChartLegendPosition Bottom -ChartLegendOverlay $false -Names "$($chart[0].Name) - $($chart[0].Count)","$($chart[1].Name) - $($chart[1].Count)","$($chart[2].Name) - $($chart[2].Count)" -Values $($chart[0].Count),$($chart[1].Count),$($chart[2].Count) -BarDirection Column
 
 
 #TODO:More charts
@@ -421,7 +420,7 @@ foreach($gpoPolicyObject in $groupPolicyObjects)
     }
     else
     {
-        $imagePath=Get-GraphImage -GraphRoot $($gpoPolicyObjectInformation.Name) -GraphLeaf $($gpoPolicyObjectInformation.Links) -pathToImage "C:\reporty\"
+        $imagePath=Get-GraphImage -GraphRoot $($gpoPolicyObjectInformation.Name) -GraphLeaf $($gpoPolicyObjectInformation.Links) -pathToImage $($reportGraphFolders.GPO)
         Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
     }
 
@@ -456,7 +455,7 @@ foreach($fgpp in $fgpps)
     else
     {
         $fgppApllied=$($($fgpp.'Applies To') -split ',*..=')[1]
-        $imagePath=Get-GraphImage -GraphRoot $($fgpp.Name) -GraphLeaf $fgppApllied -pathToImage "C:\reporty\"
+        $imagePath=Get-GraphImage -GraphRoot $($fgpp.Name) -GraphLeaf $fgppApllied -pathToImage $reportGraphFolders.FGPP
         Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
     }
     
