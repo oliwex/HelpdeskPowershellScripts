@@ -284,7 +284,12 @@ function Get-ReportFolders
 ####
 #Local security groups - tworzone gdy tworzy się AD
 #Get-ADGroup -Filter {GroupType -eq -2147483643} | Select-Object Name | Sort-Object Name
-#Get-ADGroup -Filter {GroupType -band 1} -Properties Name,GroupType | Select-Object Name,GroupType
+#Get-ADGroup -Filter {GroupType -band 1} -Properties Name,GroupType,GroupScope,GroupCategory | Select-Object Name,GroupType,GroupScope,GroupCategory #created by system/builtin
+#Get-ADGroup -Filter {GroupType -band 2} -Properties Name,GroupType,GroupScope,GroupCategory | Select-Object Name,GroupType,GroupScope,GroupCategory #global
+#Get-ADGroup -Filter {GroupType -band 4} -Properties Name,GroupType,GroupScope,GroupCategory | Select-Object Name,GroupType,GroupScope,GroupCategory #domain local
+#Get-ADGroup -Filter {GroupType -band 8} -Properties Name,GroupType,GroupScope,GroupCategory | Select-Object Name,GroupType,GroupScope,GroupCategory #universal
+#Get-ADGroup -Filter {GroupType -band 2147483648} -Properties Name,GroupType,GroupScope,GroupCategory | Select-Object Name,GroupType,GroupScope,GroupCategory #security
+
 
 #category = security/distribution
 #scope=universal/global/domain_local
