@@ -285,12 +285,6 @@ function Get-ReportFolders
 #NOTES
 ####
 #Local security groups - tworzone gdy tworzy się AD
-#Get-ADGroup -Filter {GroupType -eq -2147483643} | Select-Object Name | Sort-Object Name
-#Get-ADGroup -Filter {GroupType -band 1} -Properties Name,GroupType,GroupScope,GroupCategory | Select-Object Name,GroupType,GroupScope,GroupCategory #created by system/builtin
-#Get-ADGroup -Filter {GroupType -band 2} -Properties Name,GroupType,GroupScope,GroupCategory | Select-Object Name,GroupType,GroupScope,GroupCategory #global
-#Get-ADGroup -Filter {GroupType -band 4} -Properties Name,GroupType,GroupScope,GroupCategory | Select-Object Name,GroupType,GroupScope,GroupCategory #domain local
-#Get-ADGroup -Filter {GroupType -band 8} -Properties Name,GroupType,GroupScope,GroupCategory | Select-Object Name,GroupType,GroupScope,GroupCategory #universal
-#Get-ADGroup -Filter {GroupType -band 2147483648} -Properties Name,GroupType,GroupScope,GroupCategory | Select-Object Name,GroupType,GroupScope,GroupCategory #security
 
 
 #category = security/distribution
@@ -298,8 +292,6 @@ function Get-ReportFolders
 #builtin=tworzone przy starcie AD
 
 #TODO:graph with group difference
-
-
 
 ##########################################################################################
 
@@ -333,9 +325,11 @@ foreach($ou in $ous)
     $ouInformation=Get-OUInformation -OrganisationalUnitDistinguishedName $($ou.DistinguishedName)
     
     Add-WordText -WordDocument $reportFile -HeadingType Heading2 -Text $($ou.Name) -Supress $true
+    
+    Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "$($ou.Name) Informtion" -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $ouInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($ou.Name) -Transpose -Supress $True
     
-    Add-WordText -WordDocument $reportFile -Text "$($ou.Name) Graph" -Bold $true -FontSize 15 -Alignment center -Supress $true 
+    Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "$($ou.Name) Graph" -Supress $true 
 
     $ouTMP=$(Get-ADOrganizationalUnit -Filter "*" -SearchBase $($ou.DistinguishedName) -SearchScope OneLevel).Name
     if ($ouTMP -eq $null)
@@ -345,7 +339,6 @@ foreach($ou in $ous)
     else
     {
         $imagePath=Get-GraphImage -GraphRoot $($ou.Name) -GraphLeaf $ouTMP  -BasePathToGraphImage $($reportGraphFolders.OU)
-
         Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
     }
     
@@ -354,7 +347,7 @@ foreach($ou in $ous)
     #ACL
     $ouACL=Get-OUACL -OU $($ou.DistinguishedName)
     
-    Add-WordText -WordDocument $reportFile -Text "$($ou.Name) Permissions" -Bold $true -FontSize 15 -Alignment center -Supress $true 
+    Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "$($ou.Name) Permissions" -Supress $true 
     Add-WordTable -WordDocument $reportFile -DataTable $($ouACL | Select-Object -Property * -ExcludeProperty ACLs) -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "OU Options" -Transpose -Supress $true
     Add-WordText -WordDocument $reportFile -Text "" -Supress $true
     
@@ -371,19 +364,25 @@ foreach($ou in $ous)
 Add-WordText -WordDocument $reportFile -Text 'Spis Grup' -HeadingType Heading1 -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Jest to dokumentacja domeny ActiveDirectory przeprowadzona w domena.local. Wszytskie informacje są tajne' -Supress $True 
 
+$groupObject = [PsCustomObject] @{
+            "DomainLocal"   = Get-ADGroup -Filter {GroupType -band 1} -Properties *
+            "Security"      = Get-ADGroup -Filter {(-not(GroupType -band 1)) -and (GroupCategory -eq "Security")} -Properties *
+            "Distribution"  = Get-ADGroup -Filter {GroupCategory -eq "Distribution"} -Properties *
+        }
 
 
 Add-WordText -WordDocument $reportFile -Text "Builtin groups"  -HeadingType Heading2 -Supress $true
-$groupsTMP=Get-ADGroup -Filter {GroupType -band 1} -Properties *
 
-foreach($group in $groupsTMP)
+foreach ($group in $($groupObject.DomainLocal))
 {
     $groupInformation=Get-GROUPInformation -GroupDistinguishedName $($group.DistinguishedName)
 
     Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text $($group.Name) -Supress $true
+    
+    Add-WordText -WordDocument $reportFile -HeadingType Heading4 -Text "$($group.Name) Informtion" -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $groupInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($group.Name) -Transpose -Supress $True
     
-    Add-WordText -WordDocument $reportFile -Text "$($group.Name) Graph" -Bold $true -FontSize 15 -Alignment center -Supress $true
+    Add-WordText -WordDocument $reportFile -HeadingType Heading4 -Text "$($group.Name) Graph" -Supress $true
 
     if ($($groupInformation.Members) -eq $null)
     {
@@ -399,17 +398,17 @@ foreach($group in $groupsTMP)
 
 
 Add-WordText -WordDocument $reportFile -Text "Security Groups"  -HeadingType Heading2 -Supress $true
-$groupsTMP=Get-ADGroup -Filter {(-not(GroupType -band 1)) -and (GroupCategory -eq "Security")} -Properties *
 
-
-foreach($group in $groupsTMP)
+foreach($group in $($groupObject.Security))
 {
     $groupInformation=Get-GROUPInformation -GroupDistinguishedName $($group.DistinguishedName)
     
     Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text $($group.Name) -Supress $true
+    
+    Add-WordText -WordDocument $reportFile -HeadingType Heading4 -Text "$($group.Name) Informtion" -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $groupInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($group.Name) -Transpose -Supress $True
     
-    Add-WordText -WordDocument $reportFile -Text "$($group.Name) Graph" -Bold $true -FontSize 15 -Alignment center -Supress $true
+    Add-WordText -WordDocument $reportFile -HeadingType Heading4 -Text "$($group.Name) Graph" -Supress $true
     
 
     if ($($groupInformation.Members) -eq $null)
@@ -425,17 +424,17 @@ foreach($group in $groupsTMP)
 }
 
 Add-WordText -WordDocument $reportFile -Text "Distribution Groups"  -HeadingType Heading2 -Supress $true
-$groupsTMP=Get-ADGroup -Filter {GroupCategory -eq "Distribution"} -Properties *
 
-
-foreach($group in $groupsTMP)
+foreach($group in $($groupObject.Distribution))
 {
     $groupInformation=Get-GROUPInformation -GroupDistinguishedName $($group.DistinguishedName)
 
     Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text $($group.Name) -Supress $true
+    
+    Add-WordText -WordDocument $reportFile -HeadingType Heading4 -Text "$($group.Name) Information" -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $groupInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($group.Name) -Transpose -Supress $True
     
-    Add-WordText -WordDocument $reportFile -Text "$($group.Name) Graph" -Bold $true -FontSize 15 -Alignment center -Supress $true
+    Add-WordText -WordDocument $reportFile -HeadingType Heading4 -Text "$($group.Name) Graph" -Supress $true
     
 
     if ($($groupInformation.Members) -eq $null)
@@ -461,7 +460,6 @@ $chart=$groups | Group-Object GroupScope | Select-Object Name,Count
 Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "Wykresy grup lokalnych/globalnych/uniwersalnych" -Supress $true
 Add-WordBarChart -WordDocument $reportFile -ChartName 'Stosunek liczby grup lokalnych, globalnych,uniwersalnych'-ChartLegendPosition Bottom -ChartLegendOverlay $false -Names "$($chart[0].Name) - $($chart[0].Count)","$($chart[1].Name) - $($chart[1].Count)","$($chart[2].Name) - $($chart[2].Count)" -Values $($chart[0].Count),$($chart[1].Count),$($chart[2].Count) -BarDirection Column
 
-
 #TODO:More charts
 #TODO:Count members in every Builtin group and show in chart
 #endregion GROUPS#####################################################################################################
@@ -482,10 +480,12 @@ foreach($gpoPolicyObject in $groupPolicyObjects)
 {
     $gpoPolicyObjectInformation=Get-GPOPolicy -GroupPolicyObject $gpoPolicyObject
     
-    Add-WordText -WordDocument $reportFile -HeadingType Heading2 -Text "$($gpoPolicyObjectInformation.Name) Policy" -Supress $true
+    Add-WordText -WordDocument $reportFile -HeadingType Heading2 -Text $($gpoPolicyObjectInformation.Name) -Supress $true
+    
+    Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "$($gpoPolicyObjectInformation.Name) Information" -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $gpoPolicyObjectInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($gpoPolicyObjectInformation.Name) -Transpose -Supress $true
  
-    Add-WordText -WordDocument $reportFile -Text "$($gpoPolicyObjectInformation.Name) Graph" -Bold $true -FontSize 15 -Alignment center -Supress $true
+    Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "$($gpoPolicyObjectInformation.Name) Graph" -Supress $true
     
     if ($($gpoPolicyObjectInformation.Links) -eq $null)
     {
@@ -496,7 +496,8 @@ foreach($gpoPolicyObject in $groupPolicyObjects)
         $imagePath=Get-GraphImage -GraphRoot $($gpoPolicyObjectInformation.Name) -GraphLeaf $($gpoPolicyObjectInformation.Links) -pathToImage $($reportGraphFolders.GPO)
         Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
     }
-    Add-WordText -WordDocument $reportFile -Text "$($gpoPolicyObjectInformation.Name) Permissions" -Bold $true -FontSize 15 -Alignment center -Supress $true
+
+    Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "$($gpoPolicyObjectInformation.Name) Permissions"-Supress $true
     
     #ACL
     $gpoACL=$(Get-GPOAcl -GroupPolicyObject $gpoPolicyObject).ACLs
@@ -517,9 +518,11 @@ $fgpps=Get-FineGrainedPolicies
 foreach($fgpp in $fgpps)
 {
     Add-WordText -WordDocument $reportFile -HeadingType Heading2 -Text $($fgpp.Name) -Supress $true
+    
+    Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "$($fgpp.Name) Information" -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $fgpp -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($fgpp.Name) -Transpose -Supress $true
 
-    Add-WordText -WordDocument $reportFile -Text "$($fgpp.Name) is applied to" -Bold $true -FontSize 15 -Alignment center -Supress $true
+    Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "$($fgpp.Name) is applied to" -Supress $true
     
     if ($($fgpp.'Applies To') -eq $null)
     {
