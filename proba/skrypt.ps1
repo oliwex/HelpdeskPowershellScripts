@@ -1,4 +1,6 @@
-﻿##########################################################################################
+﻿$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+
+##########################################################################################
 #                                GLOBAL VARIABLES                                        #
 ##########################################################################################
 $basePath="C:\reporty\"
@@ -320,7 +322,7 @@ Add-WordPageBreak -WordDocument $reportFile -Supress $true
 
 #endregion TOC ########################################################################################################
 
-#region OU
+#region OU ############################################################################################################
 Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis jednostek organizacyjnych' -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Ta część zawiera spis jednostek organizacyjnych wraz z informacjami o każdej z nich' -Supress $True
 
@@ -365,7 +367,7 @@ foreach($ou in $ous)
 #endregion OU #####################################################################################################
 
 #TODO:Create chart
-#######################################################################################################################
+#region GROUPS#####################################################################################################
 Add-WordText -WordDocument $reportFile -Text 'Spis Grup' -HeadingType Heading1 -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Jest to dokumentacja domeny ActiveDirectory przeprowadzona w domena.local. Wszytskie informacje są tajne' -Supress $True 
 
@@ -378,11 +380,10 @@ foreach($group in $groupsTMP)
 {
     $groupInformation=Get-GROUPInformation -GroupDistinguishedName $($group.DistinguishedName)
 
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$($group.Name)" -Supress $true
+    Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text $($group.Name) -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $groupInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($group.Name) -Transpose -Supress $True
     
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "$($group.Name) Graph" -Supress $true
-    
+    Add-WordText -WordDocument $reportFile -Text "$($group.Name) Graph" -Bold $true -FontSize 15 -Alignment center -Supress $true
 
     if ($($groupInformation.Members) -eq $null)
     {
@@ -397,18 +398,18 @@ foreach($group in $groupsTMP)
 }
 
 
-Add-WordText -WordDocument $reportFile -Text "Security Groups"  -HeadingType Heading1 -Supress $true
+Add-WordText -WordDocument $reportFile -Text "Security Groups"  -HeadingType Heading2 -Supress $true
 $groupsTMP=Get-ADGroup -Filter {(-not(GroupType -band 1)) -and (GroupCategory -eq "Security")} -Properties *
 
 
 foreach($group in $groupsTMP)
 {
     $groupInformation=Get-GROUPInformation -GroupDistinguishedName $($group.DistinguishedName)
-
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$($group.Name)" -Supress $true
+    
+    Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text $($group.Name) -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $groupInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($group.Name) -Transpose -Supress $True
     
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "$($group.Name) Graph" -Supress $true
+    Add-WordText -WordDocument $reportFile -Text "$($group.Name) Graph" -Bold $true -FontSize 15 -Alignment center -Supress $true
     
 
     if ($($groupInformation.Members) -eq $null)
@@ -423,7 +424,7 @@ foreach($group in $groupsTMP)
     }
 }
 
-Add-WordText -WordDocument $reportFile -Text "Distribution Groups"  -HeadingType Heading1 -Supress $true
+Add-WordText -WordDocument $reportFile -Text "Distribution Groups"  -HeadingType Heading2 -Supress $true
 $groupsTMP=Get-ADGroup -Filter {GroupCategory -eq "Distribution"} -Properties *
 
 
@@ -431,10 +432,10 @@ foreach($group in $groupsTMP)
 {
     $groupInformation=Get-GROUPInformation -GroupDistinguishedName $($group.DistinguishedName)
 
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$($group.Name)" -Supress $true
+    Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text $($group.Name) -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $groupInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($group.Name) -Transpose -Supress $True
     
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "$($group.Name) Graph" -Supress $true
+    Add-WordText -WordDocument $reportFile -Text "$($group.Name) Graph" -Bold $true -FontSize 15 -Alignment center -Supress $true
     
 
     if ($($groupInformation.Members) -eq $null)
@@ -448,25 +449,30 @@ foreach($group in $groupsTMP)
         Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
     }
 }
+
+Add-WordText -WordDocument $reportFile -Text "Group Charts"  -HeadingType Heading2 -Supress $true
 $groups=Get-ADGroup -Filter * -Properties *
 
 $chart=$groups | Group-Object GroupCategory | Select-Object Name,Count
-Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text  "Wykresy grup dystrybucyjnych/zabezpieczeń" -Supress $true
+Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "Wykresy grup dystrybucyjnych/zabezpieczeń" -Supress $true
 Add-WordBarChart -WordDocument $reportFile -ChartName 'Stosunek liczby grup zabezpieczeń do grup dystrybucyjnych'-ChartLegendPosition Bottom -ChartLegendOverlay $false -Names "$($chart[0].Name) - $($chart[0].Count)","$($chart[1].Name) - $($chart[1].Count)" -Values $($chart[0].Count),$($chart[1].Count) -BarDirection Column
 
 $chart=$groups | Group-Object GroupScope | Select-Object Name,Count
-Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text  "Wykresy grup lokalnych/globalnych/uniwersalnych" -Supress $true
+Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "Wykresy grup lokalnych/globalnych/uniwersalnych" -Supress $true
 Add-WordBarChart -WordDocument $reportFile -ChartName 'Stosunek liczby grup lokalnych, globalnych,uniwersalnych'-ChartLegendPosition Bottom -ChartLegendOverlay $false -Names "$($chart[0].Name) - $($chart[0].Count)","$($chart[1].Name) - $($chart[1].Count)","$($chart[2].Name) - $($chart[2].Count)" -Values $($chart[0].Count),$($chart[1].Count),$($chart[2].Count) -BarDirection Column
 
 
 #TODO:More charts
 #TODO:Count members in every Builtin group and show in chart
-######################################################################################################################
+#endregion GROUPS#####################################################################################################
+
+#region USERS#####################################################################################################
 Add-WordText -WordDocument $reportFile -Text 'Spis Użytkowników' -HeadingType Heading1 -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Ta część zawiera spis użytkowników domeny' -Supress $True 
 
+#endregion USERS#####################################################################################################
 
-######################################################################################################################
+#region GPO############################################################################################################
 Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis Polis Grup' -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Tutaj znajduje się opis polis grup. Blok nie pokazuje polis podłączonych do SITE' -Supress $True
 
@@ -476,12 +482,10 @@ foreach($gpoPolicyObject in $groupPolicyObjects)
 {
     $gpoPolicyObjectInformation=Get-GPOPolicy -GroupPolicyObject $gpoPolicyObject
     
-
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text "$($gpoPolicyObjectInformation.Name) Policy" -Supress $true
+    Add-WordText -WordDocument $reportFile -HeadingType Heading2 -Text "$($gpoPolicyObjectInformation.Name) Policy" -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $gpoPolicyObjectInformation -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($gpoPolicyObjectInformation.Name) -Transpose -Supress $true
  
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "$($gpoPolicyObjectInformation.Name) Graph" -Supress $true
-    
+    Add-WordText -WordDocument $reportFile -Text "$($gpoPolicyObjectInformation.Name) Graph" -Bold $true -FontSize 15 -Alignment center -Supress $true
     
     if ($($gpoPolicyObjectInformation.Links) -eq $null)
     {
@@ -492,8 +496,7 @@ foreach($gpoPolicyObject in $groupPolicyObjects)
         $imagePath=Get-GraphImage -GraphRoot $($gpoPolicyObjectInformation.Name) -GraphLeaf $($gpoPolicyObjectInformation.Links) -pathToImage $($reportGraphFolders.GPO)
         Add-WordPicture -WordDocument $reportFile -ImagePath $imagePath -Alignment center -ImageWidth 600 -Supress $True
     }
-
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "$($gpoPolicyObjectInformation.Name) Permissions" -Supress $true
+    Add-WordText -WordDocument $reportFile -Text "$($gpoPolicyObjectInformation.Name) Permissions" -Bold $true -FontSize 15 -Alignment center -Supress $true
     
     #ACL
     $gpoACL=$(Get-GPOAcl -GroupPolicyObject $gpoPolicyObject).ACLs
@@ -503,19 +506,20 @@ foreach($gpoPolicyObject in $groupPolicyObjects)
 
     }
 }
+#endregion GPO################################################################################################
 
-##############################################################################################################
+#region FGPP##################################################################################################
+
 Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis Fine Grained Password Policies' -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Tutaj znajduje się opis obiektów Fine Grained Password Policies' -Supress $True
 
 $fgpps=Get-FineGrainedPolicies
 foreach($fgpp in $fgpps)
 {
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 0 -ListItemType Bulleted -HeadingType Heading1 -Text $($fgpp.Name) -Supress $true
+    Add-WordText -WordDocument $reportFile -HeadingType Heading2 -Text $($fgpp.Name) -Supress $true
     Add-WordTable -WordDocument $reportFile -DataTable $fgpp -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle $($fgpp.Name) -Transpose -Supress $true
 
-    Add-WordTocItem -WordDocument $reportFile -ListLevel 1 -ListItemType Bulleted -HeadingType Heading1 -Text "'$($fgpp.Name)' is applied to" -Supress $true
-    
+    Add-WordText -WordDocument $reportFile -Text "$($fgpp.Name) is applied to" -Bold $true -FontSize 15 -Alignment center -Supress $true
     
     if ($($fgpp.'Applies To') -eq $null)
     {
@@ -530,6 +534,9 @@ foreach($fgpp in $fgpps)
     
 
 }
+#endregion FGPP###############################################################################################
 
 ##############################################################################################################
 Save-WordDocument $reportFile -Supress $true -Language 'en-US' -Verbose #-OpenDocument
+
+$stopwatch.Elapsed
