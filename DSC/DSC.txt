@@ -1,0 +1,21 @@
+Configuration ConfigureADFS1 {
+    param ([string[]]$MachineName = "localhost")
+  
+    Node $MachineName {
+
+        WindowsFeature IIS {
+            Ensure = "Present"
+            Name = "Web-Server"
+        }
+    }
+}
+ 
+ConfigureIIS -MachineName "localhost"
+
+---------------------------------------------------------------
+1.Wykonujemy skrypt powyżej, który w wyniku tworzy nam w określonej lokalizacji plik Mof
+2.Następnie wykonujemy polecenie:
+	
+Start-DSCConfiguration –Path "C:\path" -Wait -Verbose
+Start-DscConfiguration -Path "C:\Users\Administrator\Desktop\ConfigureIIS" -Wait -Verbose
+Gdzie Path ma wskazać na folder, gdzie znajduje się folder w którym znajduje się plik mof

@@ -1,0 +1,38 @@
+Configuration TestDSC
+{
+    Param 
+    (
+        [String[]]$NodeName=$env:COMPUTERNAME
+    )
+
+    Node $NodeName
+    {
+        WindowsFeature IIS
+        {
+            Ensure = "Present"
+            Name = "Web-Server"
+        }
+        File DirectoryCreate
+        {
+            Ensure = "Present"
+            Type="Directory"
+            Recurse = $true
+            DestinationPath = "C:\test"
+        }
+        File FileCreting
+        {
+            Ensure = "Present"
+            Type="File"
+            Contents="Dupa"
+            DestinationPath="C:\test\lama.txt"
+            DependsOn = "[File]DirectoryCreate"
+        }
+        Log AfterCreating
+        {
+            Message="Utworzono"
+            DependsOn="[File]DirectoryCreate"
+        }
+    }
+}
+
+TestDSC -NodeName SERVER
