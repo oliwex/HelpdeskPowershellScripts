@@ -460,8 +460,32 @@ $chart=$groups | Group-Object GroupScope | Select-Object Name,Count
 Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "Wykresy grup lokalnych/globalnych/uniwersalnych" -Supress $true
 Add-WordBarChart -WordDocument $reportFile -ChartName 'Stosunek liczby grup lokalnych, globalnych,uniwersalnych'-ChartLegendPosition Bottom -ChartLegendOverlay $false -Names "$($chart[0].Name) - $($chart[0].Count)","$($chart[1].Name) - $($chart[1].Count)","$($chart[2].Name) - $($chart[2].Count)" -Values $($chart[0].Count),$($chart[1].Count),$($chart[2].Count) -BarDirection Column
 
+Add-WordText -WordDocument $reportFile -Text "Group Lists"  -HeadingType Heading2 -Supress $true
+
+Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "Ostatnie 10 zmienionych grup" -Supress $true
+$list=$($($groups | Select-Object whenChanged,Name | Sort-Object -Descending whenChanged | Select-Object -First 10) | Select-Object @{Name="GroupName";Expression={ "$($_.Name) - $($_.whenChanged)"}}).GroupName
+Add-WordList -WordDocument $reportFile -ListType Numbered -ListData $list -Supress $true -Verbose
+
+Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "Ostatnie 10 utworzonych grup" -Supress $true
+$list=$($($groups | Select-Object whenCreated,Name | Sort-Object -Descending whenCreated | Select-Object -First 10) | Select-Object @{Name="GroupName";Expression={ "$($_.Name) - $($_.whenCreated)"}}).GroupName
+Add-WordList -WordDocument $reportFile -ListType Numbered -ListData $list -Supress $true -Verbose
+
+
+#TEST
+$groupObject = [PsCustomObject] @{
+            "DomainLocal"   = $groups | Where-Object {$_.GroupScope -like "*DomainLocal*"} | Select-Object Name,GroupCategory | Group-Object GroupCategory | Select-Object @{Name="Name";Expression={$($_.Name) }},@{Name="Count";Expression={$($_.Count) }}
+            "Universal" = $groups | Where-Object {$_.GroupScope -like "*Universal*"} | Select-Object Name,GroupCategory | Group-Object GroupCategory | Select-Object @{Name="Name";Expression={$($_.Name) }},@{Name="Count";Expression={$($_.Count) }}
+            "Global"  = $groups | Where-Object {$_.GroupScope -like "*Global*"} | Select-Object Name,GroupCategory | Group-Object GroupCategory | Select-Object @{Name="Name";Expression={$($_.Name) }},@{Name="Count";Expression={$($_.Count) }}
+        }
+$groupObject
+
+Add-WordText -WordDocument $reportFile -Text "Group Tables"  -HeadingType Heading2 -Supress $true
+Add-WordTable -WordDocument $reportFile -DataTable $groupObject -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "Group types" -Transpose -Supress $True
+    
+
 #TODO:More charts
 #TODO:Count members in every Builtin group and show in chart
+#TODO:Table domainLocal,global,universal-distribution,security
 #endregion GROUPS#####################################################################################################
 
 #region USERS#####################################################################################################
