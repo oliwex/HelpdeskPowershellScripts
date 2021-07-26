@@ -1,4 +1,6 @@
-﻿$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+﻿#TODO:Sprawdzenie właściwości elementów OU,GRUPY itd
+
+$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
 ##########################################################################################
 #                                GLOBAL VARIABLES                                        #
@@ -42,7 +44,10 @@ Param(
         'ObjectGuid' = $data.ObjectGuid
         'OrganizationalUnit' = $data.ou
         'PostalCode' = $data.PostalCode
-
+        'uSNChanged' = $data.uSNChanged
+        'uSNCreated' = $data.uSNCreated
+        'whenChanged' = $data.whenChanged
+        'whenCreated' = $data.whenCreated
         }
 }
 
@@ -56,7 +61,7 @@ Param(
         $path = "AD:\" + $ouPath
         $acls = (Get-Acl -Path $path).Access | Where-Object {$_.IsInherited -eq $false} | Select-Object ActiveDirectoryRights,InheritanceType,ObjectType,InheritedObjectType,ObjectFlags,IdentityReference,IsInherited,InheritanceFlags,PropagationFlags,AccessControlType
 
-        $info=(Get-ACL -Path $path | Select Owner,Group,'AreAccessRulesProtected','AreAuditRulesProtected','AreAccessRulesCanonical','AreAuditRulesCanonical')
+        $info=(Get-ACL -Path $path | Select-Object Owner,Group,'AreAccessRulesProtected','AreAuditRulesProtected','AreAccessRulesCanonical','AreAuditRulesCanonical')
     
         [PSCustomObject] @{
         'DN'    = $ouPath
@@ -318,7 +323,7 @@ Add-WordPageBreak -WordDocument $reportFile -Supress $true
 Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis jednostek organizacyjnych' -Supress $true
 Add-WordText -WordDocument $reportFile -Text 'Ta część zawiera spis jednostek organizacyjnych wraz z informacjami o każdej z nich' -Supress $True
 
-$ous=(Get-ADOrganizationalUnit -Filter "*")
+$ous=(Get-ADOrganizationalUnit -Filter "*" -Properties "*")
 foreach($ou in $ous)
 {
    
@@ -356,6 +361,18 @@ foreach($ou in $ous)
         Add-WordText -WordDocument $reportFile -Text "" -Supress $true
     }
 }
+
+Add-WordText -WordDocument $reportFile -Text "OrganizationalUnit Lists"  -HeadingType Heading2 -Supress $true
+
+Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "Ostatnie 10 zmienionych jednostek organizacyjnych" -Supress $true
+$list = $($($ous | Select-Object whenChanged, Name | Sort-Object -Descending whenChanged | Select-Object -First 10) | Select-Object @{Name = "OUName"; Expression = { "$($_.Name) - $($_.whenChanged)" } }).OUName
+Add-WordList -WordDocument $reportFile -ListType Numbered -ListData $list -Supress $true -Verbose
+
+Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "Ostatnie 10 utworzonych jednostek organizacyjnych" -Supress $true
+$list = $($($ous | Select-Object whenCreated, Name | Sort-Object -Descending whenCreated | Select-Object -First 10) | Select-Object @{Name = "OUName"; Expression = { "$($_.Name) - $($_.whenCreated)" } }).OUName
+Add-WordList -WordDocument $reportFile -ListType Numbered -ListData $list -Supress $true -Verbose
+
+#TODO:Tabela z miastami i krajami z OU
 
 #endregion OU #####################################################################################################
 
@@ -471,21 +488,30 @@ $list=$($($groups | Select-Object whenCreated,Name | Sort-Object -Descending whe
 Add-WordList -WordDocument $reportFile -ListType Numbered -ListData $list -Supress $true -Verbose
 
 
+
+<#
+#TODO:Table domainLocal,global,universal-distribution,security
 #TEST
+$groupObject1 = [PsCustomObject] @{
+    "Security"     = $groups | Where-Object { $_.GroupCategory -like "Security" } | Group-Object GroupScope | Select-Object Name, Count  
+    "Distribution" = $groups | Where-Object { $_.GroupCategory -like "Distribution" } | Group-Object GroupScope | Select-Object Name, Count
+}
+$myitems = @(
+    [pscustomobject]@{name = "Joe"; age = 32 },
+    [pscustomobject]@{name = "Sue"; age = 29; info = "Dog lover" },
+    [pscustomobject]@{name = "Jason"; age = 42; info = "Food lover" }
+)
+
 $groupObject = [PsCustomObject] @{
             "DomainLocal"   = $groups | Where-Object {$_.GroupScope -like "*DomainLocal*"} | Select-Object Name,GroupCategory | Group-Object GroupCategory | Select-Object @{Name="Name";Expression={$($_.Name) }},@{Name="Count";Expression={$($_.Count) }}
             "Universal" = $groups | Where-Object {$_.GroupScope -like "*Universal*"} | Select-Object Name,GroupCategory | Group-Object GroupCategory | Select-Object @{Name="Name";Expression={$($_.Name) }},@{Name="Count";Expression={$($_.Count) }}
             "Global"  = $groups | Where-Object {$_.GroupScope -like "*Global*"} | Select-Object Name,GroupCategory | Group-Object GroupCategory | Select-Object @{Name="Name";Expression={$($_.Name) }},@{Name="Count";Expression={$($_.Count) }}
         }
-$groupObject
 
-Add-WordText -WordDocument $reportFile -Text "Group Tables"  -HeadingType Heading2 -Supress $true
-Add-WordTable -WordDocument $reportFile -DataTable $groupObject -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "Group types" -Transpose -Supress $True
-    
+     Add-WordText -WordDocument $reportFile -Text "Group Tables"  -HeadingType Heading2 -Supress $true
+Add-WordTable -WordDocument $reportFile -DataTable $myitems -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "Group types" -Supress $True   
+#>
 
-#TODO:More charts
-#TODO:Count members in every Builtin group and show in chart
-#TODO:Table domainLocal,global,universal-distribution,security
 #endregion GROUPS#####################################################################################################
 
 #region USERS#####################################################################################################
@@ -531,6 +557,21 @@ foreach($gpoPolicyObject in $groupPolicyObjects)
 
     }
 }
+
+
+Add-WordText -WordDocument $reportFile -Text "Group Policy Lists"  -HeadingType Heading2 -Supress $true
+
+Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "Ostatnie 10 utworzonych jednostek organizacyjnych" -Supress $true
+$list = $($($groupPolicyObjects | Select-Object ModificationTime, DisplayName | Sort-Object -Descending ModificationTime | Select-Object -First 10) | Select-Object @{Name = "GPOName"; Expression = { "$($_.DisplayName) - $($_.ModificationTime)" } }).GPOName
+Add-WordList -WordDocument $reportFile -ListType Numbered -ListData $list -Supress $true -Verbose
+
+Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "Ostatnie 10 utworzonych polis grup" -Supress $true
+$list = $($($groupPolicyObjects | Select-Object CreationTime, DisplayName | Sort-Object -Descending CreationTime | Select-Object -First 10) | Select-Object @{Name = "GPOName"; Expression = { "$($_.DisplayName) - $($_.CreationTime)" } }).GPOName
+Add-WordList -WordDocument $reportFile -ListType Numbered -ListData $list -Supress $true -Verbose
+
+#TODO:Tabela: HasComputerSettings,HasUSerSettings,UserEnabled,ComputerEnabled,ComputerSettings,UserSettings
+
+
 #endregion GPO################################################################################################
 
 #region FGPP##################################################################################################
