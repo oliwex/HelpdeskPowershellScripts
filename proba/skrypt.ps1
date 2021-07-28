@@ -497,20 +497,18 @@ Add-WordList -WordDocument $reportFile -ListType Numbered -ListData $list -Supre
 Add-WordText -WordDocument $reportFile -Text "Group Tables"  -HeadingType Heading2 -Supress $true
 Add-WordText -WordDocument $reportFile -Text "Tabela grup"  -HeadingType Heading3 -Supress $true
 
-#region TEST
-$groupObject1 = [PsCustomObject] @{
-    "DomainLocal"     = $groups | Where-Object { $_.GroupScope -like "DomainLocal" } | Group-Object GroupCategory | Select-Object Name, Count  
-    "Universal" = $groups | Where-Object { $_.GroupScope -like "Universal" } | Group-Object GroupCategory | Select-Object Name, Count
-    "Global" = $groups | Where-Object { $_.GroupScope -like "Global" } | Group-Object GroupCategory | Select-Object Name, Count
+
+$groupTable = $groups | Group-Object GroupScope | ForEach-Object {
+    $categories = $_.Group | Group-Object GroupCategory -AsHashtable -AsString
+
+    [PSCustomObject]@{
+        GroupName    = $_.Name
+        Security     = $categories['Security'].Count
+        Distribution = $categories['Distribution'].Count
+    }
 }
-$groupTable = @(
-    [pscustomobject]@{GroupName = "DomainLocal"; Security = $($groupObject1.DomainLocal[1]).Count; Distribution = $($groupObject1.DomainLocal[1]).Count},
-    [pscustomobject]@{GroupName = "Universal"; Security = $($groupObject1.Universal[0]).Count; Distribution = $($groupObject1.Universal[1]).Count},
-    [pscustomobject]@{GroupName = "Global"; Security = $($groupObject1.Global[0]).Count; Distribution = $($groupObject1.Global[1]).Count}
-)
 
 Add-WordTable -WordDocument $reportFile -DataTable $groupTable -Design ColorfulGridAccent1 -Supress $True #-Verbose
-#endregion TEST
 
 #endregion GROUPS#####################################################################################################
 
