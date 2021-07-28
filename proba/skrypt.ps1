@@ -523,9 +523,9 @@ Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis Polis G
 Add-WordText -WordDocument $reportFile -Text 'Tutaj znajduje się opis polis grup. Blok nie pokazuje polis podłączonych do SITE' -Supress $True
 
 $groupPolicyObjects = Get-GPO -Domain $($Env:USERDNSDOMAIN) -All
-$groupPolicyTable=New-Object System.Collections.ArrayList
 
-foreach($gpoPolicyObject in $groupPolicyObjects)
+
+$groupPolicyTable=foreach($gpoPolicyObject in $groupPolicyObjects)
 {
     $gpoPolicyObjectInformation=Get-GPOPolicy -GroupPolicyObject $gpoPolicyObject
     
@@ -553,10 +553,8 @@ foreach($gpoPolicyObject in $groupPolicyObjects)
     $gpoACL | ForEach-Object {
         Add-WordTable -WordDocument $reportFile -DataTable $($_) -Design ColorfulGridAccent5 -AutoFit Window -Supress $true -Transpose
         Add-WordText -WordDocument $reportFile -Text "" -Supress $true
-
     }
-
-    $groupPolicyTable.Add($($gpoPolicyObjectInformation | Select-Object Name,'Has Computer Settings','Has User Settings','User Enabled','Computer Enabled','Computer Settings','User Settings'))
+    $($gpoPolicyObjectInformation | Select-Object Name,'Has Computer Settings','Has User Settings','User Enabled','Computer Enabled','Computer Settings','User Settings')
 }
 
 
