@@ -372,7 +372,12 @@ Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "Ostatnie 10 
 $list = $($($ous | Select-Object whenCreated, Name | Sort-Object -Descending whenCreated | Select-Object -First 10) | Select-Object @{Name = "OUName"; Expression = { "$($_.Name) - $($_.whenCreated)" } }).OUName
 Add-WordList -WordDocument $reportFile -ListType Numbered -ListData $list -Supress $true -Verbose
 
-#TODO:Tabela z miastami i krajami z OU
+Add-WordText -WordDocument $reportFile -Text "OrganizationalUnit Tables"  -HeadingType Heading2 -Supress $true
+Add-WordText -WordDocument $reportFile -Text "Tabela miast i Państw"  -HeadingType Heading3 -Supress $true
+
+$ouTable=$ous| Select-Object Name,City,Country
+
+Add-WordTable -WordDocument $reportFile -DataTable $ouTable -Design ColorfulGridAccent1 -Supress $True #-Verbose
 
 #endregion OU #####################################################################################################
 
@@ -489,28 +494,23 @@ Add-WordList -WordDocument $reportFile -ListType Numbered -ListData $list -Supre
 
 
 
-<#
-#TODO:Table domainLocal,global,universal-distribution,security
-#TEST
+Add-WordText -WordDocument $reportFile -Text "Group Tables"  -HeadingType Heading2 -Supress $true
+Add-WordText -WordDocument $reportFile -Text "Tabela grup"  -HeadingType Heading3 -Supress $true
+
+#region TEST
 $groupObject1 = [PsCustomObject] @{
-    "Security"     = $groups | Where-Object { $_.GroupCategory -like "Security" } | Group-Object GroupScope | Select-Object Name, Count  
-    "Distribution" = $groups | Where-Object { $_.GroupCategory -like "Distribution" } | Group-Object GroupScope | Select-Object Name, Count
+    "DomainLocal"     = $groups | Where-Object { $_.GroupScope -like "DomainLocal" } | Group-Object GroupCategory | Select-Object Name, Count  
+    "Universal" = $groups | Where-Object { $_.GroupScope -like "Universal" } | Group-Object GroupCategory | Select-Object Name, Count
+    "Global" = $groups | Where-Object { $_.GroupScope -like "Global" } | Group-Object GroupCategory | Select-Object Name, Count
 }
-$myitems = @(
-    [pscustomobject]@{name = "Joe"; age = 32 },
-    [pscustomobject]@{name = "Sue"; age = 29; info = "Dog lover" },
-    [pscustomobject]@{name = "Jason"; age = 42; info = "Food lover" }
+$groupTable = @(
+    [pscustomobject]@{GroupName = "DomainLocal"; Security = $($groupObject1.DomainLocal[1]).Count; Distribution = $($groupObject1.DomainLocal[1]).Count},
+    [pscustomobject]@{GroupName = "Universal"; Security = $($groupObject1.Universal[0]).Count; Distribution = $($groupObject1.Universal[1]).Count},
+    [pscustomobject]@{GroupName = "Global"; Security = $($groupObject1.Global[0]).Count; Distribution = $($groupObject1.Global[1]).Count}
 )
 
-$groupObject = [PsCustomObject] @{
-            "DomainLocal"   = $groups | Where-Object {$_.GroupScope -like "*DomainLocal*"} | Select-Object Name,GroupCategory | Group-Object GroupCategory | Select-Object @{Name="Name";Expression={$($_.Name) }},@{Name="Count";Expression={$($_.Count) }}
-            "Universal" = $groups | Where-Object {$_.GroupScope -like "*Universal*"} | Select-Object Name,GroupCategory | Group-Object GroupCategory | Select-Object @{Name="Name";Expression={$($_.Name) }},@{Name="Count";Expression={$($_.Count) }}
-            "Global"  = $groups | Where-Object {$_.GroupScope -like "*Global*"} | Select-Object Name,GroupCategory | Group-Object GroupCategory | Select-Object @{Name="Name";Expression={$($_.Name) }},@{Name="Count";Expression={$($_.Count) }}
-        }
-
-     Add-WordText -WordDocument $reportFile -Text "Group Tables"  -HeadingType Heading2 -Supress $true
-Add-WordTable -WordDocument $reportFile -DataTable $myitems -Design ColorfulGridAccent5 -AutoFit Window -OverwriteTitle "Group types" -Supress $True   
-#>
+Add-WordTable -WordDocument $reportFile -DataTable $groupTable -Design ColorfulGridAccent1 -Supress $True #-Verbose
+#endregion TEST
 
 #endregion GROUPS#####################################################################################################
 
@@ -525,6 +525,7 @@ Add-WordText -WordDocument $reportFile -HeadingType Heading1 -Text 'Spis Polis G
 Add-WordText -WordDocument $reportFile -Text 'Tutaj znajduje się opis polis grup. Blok nie pokazuje polis podłączonych do SITE' -Supress $True
 
 $groupPolicyObjects = Get-GPO -Domain $($Env:USERDNSDOMAIN) -All
+$groupPolicyTable=New-Object System.Collections.ArrayList
 
 foreach($gpoPolicyObject in $groupPolicyObjects)
 {
@@ -556,6 +557,8 @@ foreach($gpoPolicyObject in $groupPolicyObjects)
         Add-WordText -WordDocument $reportFile -Text "" -Supress $true
 
     }
+
+    $groupPolicyTable.Add($($gpoPolicyObjectInformation | Select-Object Name,'Has Computer Settings','Has User Settings','User Enabled','Computer Enabled','Computer Settings','User Settings'))
 }
 
 
@@ -569,8 +572,10 @@ Add-WordText -WordDocument $reportFile -HeadingType Heading3 -Text "Ostatnie 10 
 $list = $($($groupPolicyObjects | Select-Object CreationTime, DisplayName | Sort-Object -Descending CreationTime | Select-Object -First 10) | Select-Object @{Name = "GPOName"; Expression = { "$($_.DisplayName) - $($_.CreationTime)" } }).GPOName
 Add-WordList -WordDocument $reportFile -ListType Numbered -ListData $list -Supress $true -Verbose
 
-#TODO:Tabela: HasComputerSettings,HasUSerSettings,UserEnabled,ComputerEnabled,ComputerSettings,UserSettings
 
+Add-WordText -WordDocument $reportFile -Text "GroupPolicy Tables"  -HeadingType Heading2 -Supress $true
+Add-WordText -WordDocument $reportFile -Text "Tabela polis grup"  -HeadingType Heading3 -Supress $true
+Add-WordTable -WordDocument $reportFile -DataTable $groupPolicyTable -Design ColorfulGridAccent1 -Supress $True #-Verbose
 
 #endregion GPO################################################################################################
 
@@ -605,6 +610,4 @@ foreach($fgpp in $fgpps)
 #endregion FGPP###############################################################################################
 
 ##############################################################################################################
-Save-WordDocument $reportFile -Supress $true -Language 'en-US' -Verbose #-OpenDocument
-
-$stopwatch.Elapsed
+Save-WordDocument $reportFile -Supress $true -Language "pl-PL" -Verbose #-OpenDocument
