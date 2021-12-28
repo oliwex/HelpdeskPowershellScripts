@@ -97,8 +97,14 @@ return $title
 
 function New-HTMLAccordion()
 {
+    [CmdletBinding()]
+    param (
+    [Parameter(HelpMessage="Title,Position=0")]
+    [Alias("Title","T")]
+    [String]$accordionTitle
+    )
 $accordion=@"
-    <button class="accordion">Section 1</button>
+    <button class="accordion">$accordionTitle</button>
         <div class="panel">
         <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
     </div>
@@ -114,18 +120,15 @@ $report=@"
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         $(New-CSSStyles)
-        $(New-JSScript)
         </head>
     <body>
 
     $(New-HTMLTitle)
 
-    $(New-HTMLAccordion)
+    $(New-HTMLAccordion -Title "LAMA")
 
-    $(New-HTMLAccordion)
 
-    $(New-HTMLAccordion)
-
+    $(New-JSScript)
     </body>
     </html>
 "@
@@ -133,4 +136,3 @@ return $report
 }
 
 New-HTMLReport | Out-File "lama.html"
-
