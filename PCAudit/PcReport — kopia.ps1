@@ -1,10 +1,96 @@
-
 function Get-BasicComputerInfo
 {
-    $computerInfo=Get-ComputerInfo
-    $basic=$computerInfo | Select-Object WindowsEditionId,WindowsInstallationType,WindowsInstallDateFromRegistry,WindowsProductName,WindowsRegisteredOrganization,WindowsRegisteredOwner,WindowsSystemRoot,TimeZone,LogonServer,PowerPlatformRole
-    $bios=$computerInfo | Select-Object BiosInstallDate,BiosManufacturer,BiosName,BiosReleaseDate,BiosSeralNumber,BiosStatus,BiosSystemMajorVersion,BiosSystemMinorVersion
-    $computerSystem=$computerInfo | Select-Object CsCaption,CsChassisSKUNumber,CsCurrentTimeZone,CsDescription,CsDNSHostName,CsDomain,CsDomainRole,CsManufacturer,CsModel,CsName,CsNumberOfLogicalProcessors,CsNumberOfProcessors,CsPartOfDomain,CsPCSystemType,CsPowerManagementSupported,CsPowerOnPasswordStatus,CsPowerState,CsSystemFamily,CsSystemType,CsThermalState,CsTotalPhysicalMemory,CsPhysicallyInstalledMemory,CsUserName
+    $computerInfo=Get-ComputerInfo | Select * 
+    
+    $basic=$computerInfo | Select-Object Windows*,TimeZone,LogonServer,PowerPlatformRole
+    switch($basic.PowerPlatformRole)
+    {
+        "AppliancePC" { $basic.PowerPlatformRole="$($basic.PowerPlatformRole) - The OEM specified an appliance PC role"}
+        "Desktop" { $basic.PowerPlatformRole="$($basic.PowerPlatformRole) - The OEM specified a desktop role"}
+        "EnterpriseServer" { $basic.PowerPlatformRole="$($basic.PowerPlatformRole) - The OEM specified an enterprise server role"}
+        "MaximumEnumValue" { $basic.PowerPlatformRole="$($basic.PowerPlatformRole) - Max enum value"}
+        "Mobile" { $basic.PowerPlatformRole="$($basic.PowerPlatformRole) - The OEM specified a mobile role (for example, a laptop)"}
+        "PerformanceServer" { $basic.PowerPlatformRole="$($basic.PowerPlatformRole) - The OEM specified a performance server role"}
+        "Slate" { $basic.PowerPlatformRole="$($basic.PowerPlatformRole) - The OEM specified a tablet form factor role"}
+        "SOHOServer" { $basic.PowerPlatformRole="$($basic.PowerPlatformRole) - The OEM specified a single office/home office (SOHO) server role"}
+        "Unspecified" { $basic.PowerPlatformRole="$($basic.PowerPlatformRole) - UnspecifieThe OEM did not specify a specific role"}
+        "Workstation" { $basic.PowerPlatformRole="$($basic.PowerPlatformRole) - The OEM specified a workstation role"}
+    }
+
+    $bios=$computerInfo | Select-Object Bios*
+    switch($bios.BiosFirmwareType)
+    {
+        "Bios"{$bios.BiosFirmwareType="$($bios.BiosFirmwareType) - The computer booted in legacy BIOS mode"}
+        "Max"{$bios.BiosFirmwareType="$($bios.BiosFirmwareType) - Not implemented"}
+        "Uefi"{$bios.BiosFirmwareType="$($bios.BiosFirmwareType) - The computer booted in UEFI mode"}
+        "Unknown"{$bios.BiosFirmwareType="$($bios.BiosFirmwareType) - The firmware type is unknown"}
+    }
+
+    if($bios.BiosSMBIOSMajorVersion -eq $null)
+    {
+        $bios.BiosSMBIOSMajorVersion="SMBIOS Major Version not found"
+    }
+    if($bios.BiosSMBIOSMinorVersion -eq $null)
+    {
+        $bios.BiosSMBIOSMinorVersion="SMBIOS Minor Version not found"
+    }
+    if($bios.BiosSMBIOSPresent -eq $true)
+    {
+        $bios.BiosSMBIOSPresent="SMBIOS is available on this computer system"
+    }
+    switch($bios.BiosSoftwareElementState)
+    {
+        "Deployable"{$bios.BiosSoftwareElementState="$($bios.BiosSoftwareElementState) - Software element is deployable"}
+        "Executable"{$bios.BiosSoftwareElementState="$($bios.BiosSoftwareElementState) - Software element is executable"}
+        "Installable"{$bios.BiosSoftwareElementState="$($bios.BiosSoftwareElementState) - Software element is installable"}
+        "Running"{$bios.BiosSoftwareElementState="$($bios.BiosSoftwareElementState) - Software element is running"}
+    }
+
+    $computerSystem=$computerInfo | Select-Object Cs*
+    
+    switch($computerSystem.CsAdminPasswordStatus)
+    {
+        "Disabled"{$computerSystem.CsAdminPasswordStatus="$($computerSystem.CsAdminPasswordStatus) - Hardware security is disabled"}
+        "Enabled"{$computerSystem.CsAdminPasswordStatus="$($computerSystem.CsAdminPasswordStatus) - Hardware security is enabled"}
+        "NotImplemented"{$computerSystem.CsAdminPasswordStatus="$($computerSystem.CsAdminPasswordStatus) - Hardware security is not implemented"}
+        "Unknown"{$computerSystem.CsAdminPasswordStatus="$($computerSystem.CsAdminPasswordStatus) - Hardware security is unknown"}
+    }
+    if ($computerSystem.CsAutomaticManagedPagefile)
+    {
+        $computerSystem.CsAutomaticManagedPagefile="System manages the pagefile.sys file"
+    }
+    else
+    {
+        $computerSystem.CsAutomaticManagedPagefile="System is not managing the pagefile.sys file"
+    }
+
+    if ($computerSystem.CsAutomaticResetBootOption)
+    {
+        $computerSystem.CsAutomaticResetBootOption="Automatic reset boot option is enabled"
+    }
+    else
+    {
+        $computerSystem.CsAutomaticResetBootOption="Automatic reset boot option is disabled"
+    }
+
+    if ($computerSystem.CsAutomaticResetCapability)
+    {
+        $computerSystem.CsAutomaticResetCapability="Automatic reset is enabled"
+    }
+    else
+    {
+        $computerSystem.CsAutomaticResetCapability="Automatic reset is disabled"
+    }
+
+    #if ($computerSystem.CsCurrentTimeZone -ne $null)
+    #{
+    #    $calc=($($computerSystem.CsCurrentTimeZone) / 60)
+    #    $computerSystem.CsCurrentTimeZone="+ $calc hour to London Time"
+    #}
+    
+    
+    
+    
     $os=$computerInfo | Select-Object OsName,OsType,OsVersion,OsBuildNumber,OsBootDevice,OsSystemDevice,OsSystemDirectory,OsSystemDrive,OsWindowsDirectory,OsCountryCode,OsCurrentTimeZone,OsLastBootUpTime,OsUptime,OsDataExecutionPrevention,OsDataExecutionPrevention32bitApplications,OsDataExecutionPreventionDrivers,OsDataExecutionPreventionSupportPolicy,OsTotalVisibleMemorySize,OsFreePhysicalMemory,OsTotalVirtualMemorySize,OsFreeVirtualMemory,OsInUserVirtualMemory,OsTotalSwapSpaceSize,OsSizeStoredInPagingFiles,OsFreeSpaceInPagingFiles,OsManufacturer,OsMaxNumberOfProcesses,OsOrganization,OsArchitecture,OsLanguage,OsPortableOperatingSystem,OsProductType,OsRegisteredUser
     $hyperV=$computerInfo | Select-Object HyperVisorPresent,HyperVRequirementDataExecutionPreventionAvailable,HyperVRequirementSecondLevelAddressTranslation,HyperVRequirementVirtualizationFirmwareEnabled,HyperVRequirementVMMonitorModeExtensions
     $deviceGuard=$computerInfo | Select-Object DeviceGuardSmartStatus,DeviceGuardRequiredSecurityProperties,DeviceGuardAvailableSecurityProperties,DeviceGuardSecurityServicesConfigured,DeviceGuardSecurityServicesRunning,DeviceGuardCodeIntegrityPolicyEnforcementStatus,DeviceGuardUserModeCodeIntegrityPolicyEnforcementStatus
@@ -75,8 +161,12 @@ function Get-HardwareInfo
     }
     $hardwareInformation
 }
+function Get-MotherBoard
+{
+Get-CimInstance Win32_BaseBoard | Select-Object * -ExcludeProperty CreationClassNAme,PSComputerName,Cim*
 
-$($(Get-HardwareInfo).DesktopMonitor)
+}
+
 
 function New-HTMLTable()
 {
@@ -102,6 +192,8 @@ $HTMLBody3 = New-HTMLTable -TableContent $($(Get-BasicComputerInfo).ComputerSyst
 $HTMLBody4 = New-HTMLTable -TableContent $($(Get-BasicComputerInfo).OperatingSystem)
 $HTMLBody5 = New-HTMLTable -TableContent $($(Get-BasicComputerInfo).HyperV)
 $HTMLBody6 = New-HTMLTable -TableContent $($(Get-BasicComputerInfo).DeviceGuard)
+
+$HTMLBody7 = New-HTMLTable -TableContent $(Get-MotherBoard)
 ############################################################################################################
 function New-JSScript()
 {
@@ -168,7 +260,7 @@ $(New-HTMLHead)
             <a class="w3-bar-item w3-button" onclick="changeContent('$HTMLBody6')">DeviceGuard</a>
         </div>
         
-        <a class="w3-bar-item w3-button" onclick="changeContent('$HTMLBody1')">Link 2</a>
+        <a class="w3-bar-item w3-button" onclick="changeContent('$HTMLBody7')">MotherBoard</a>
         
         <a class="w3-bar-item w3-button" >Link 3</a>
         
