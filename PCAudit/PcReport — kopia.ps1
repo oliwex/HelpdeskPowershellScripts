@@ -38,23 +38,13 @@ function Get-BasicComputerInfo
     {
         $bios.BiosSMBIOSPresent="SMBIOS is available on this computer system"
     }
-    switch($bios.BiosSoftwareElementState)
-    {
-        "Deployable"{$bios.BiosSoftwareElementState="$($bios.BiosSoftwareElementState) - Software element is deployable"}
-        "Executable"{$bios.BiosSoftwareElementState="$($bios.BiosSoftwareElementState) - Software element is executable"}
-        "Installable"{$bios.BiosSoftwareElementState="$($bios.BiosSoftwareElementState) - Software element is installable"}
-        "Running"{$bios.BiosSoftwareElementState="$($bios.BiosSoftwareElementState) - Software element is running"}
-    }
+    
+    $bios.BiosSoftwareElementState="$($bios.BiosSoftwareElementState) - Software element is $($bios.BiosSoftwareElementState)"
 
     $computerSystem=$computerInfo | Select-Object Cs*
     
-    switch($computerSystem.CsAdminPasswordStatus)
-    {
-        "Disabled"{$computerSystem.CsAdminPasswordStatus="$($computerSystem.CsAdminPasswordStatus) - Hardware security is disabled"}
-        "Enabled"{$computerSystem.CsAdminPasswordStatus="$($computerSystem.CsAdminPasswordStatus) - Hardware security is enabled"}
-        "NotImplemented"{$computerSystem.CsAdminPasswordStatus="$($computerSystem.CsAdminPasswordStatus) - Hardware security is not implemented"}
-        "Unknown"{$computerSystem.CsAdminPasswordStatus="$($computerSystem.CsAdminPasswordStatus) - Hardware security is unknown"}
-    }
+    $computerSystem.CsAdminPasswordStatus="$($computerSystem.CsAdminPasswordStatus) - Hardware security is $($computerSystem.CsAdminPasswordStatus)"
+
     if ($computerSystem.CsAutomaticManagedPagefile)
     {
         $computerSystem.CsAutomaticManagedPagefile="System manages the pagefile.sys file"
@@ -81,16 +71,125 @@ function Get-BasicComputerInfo
     {
         $computerSystem.CsAutomaticResetCapability="Automatic reset is disabled"
     }
+    #
+    switch($computerSystem.CsBootOptionOnLimit)
+    {
+        "DoNotReboot" {$computerSystem.CsBootOptionOnLimit = "$($computerSystem.CsBootOptionOnLimit) - do not reboot"}
+        "OperatingSystem" {$computerSystem.CsBootOptionOnLimit = "$($computerSystem.CsBootOptionOnLimit) - Boot into operating system"}
+        "SystemUtilities" {$computerSystem.CsBootOptionOnLimit = "$($computerSystem.CsBootOptionOnLimit) - Boot into system utilites"}
+    }
+    #
+    switch($computerSystem.CsBootOptionOnWatchdog)
+    {
+        "DoNotReboot" {$computerSystem.CsBootOptionOnWatchdog = "$($computerSystem.CsBootOptionOnWatchdog) - do not reboot"}
+        "OperatingSystem" {$computerSystem.CsBootOptionOnWatchdog = "$($computerSystem.CsBootOptionOnWatchdog) - Boot into operating system"}
+        "SystemUtilities" {$computerSystem.CsBootOptionOnWatchdog = "$($computerSystem.CsBootOptionOnWatchdog) - Boot into system utilites"}
+    }
 
-    #if ($computerSystem.CsCurrentTimeZone -ne $null)
-    #{
-    #    $calc=($($computerSystem.CsCurrentTimeZone) / 60)
-    #    $computerSystem.CsCurrentTimeZone="+ $calc hour to London Time"
-    #}
+    if ( $computerSystem.CsBootROMSupported)
+    {
+        $computerSystem.CsBootROMSupported = "Boot ROM is supported"
+    }
+    else
+    {
+        $computerSystem.CsBootROMSupported = "Boot ROM is not supported"
+    }
+
+    if($computerSystem.CsChassisBootupState -like "Other")
+    {
+        $computerSystem.CsChassisBootupState = "$($computerSystem.CsChassisBootupState) - The element is something other than in documentation" 
+    }
+    else
+    {
+        $computerSystem.CsChassisBootupState = "$($computerSystem.CsChassisBootupState) - The element is in $($computerSystem.CsChassisBootupState) state" 
+    }
     
+    if ($computerSystem.CsCurrentTimeZone -ne $null)
+    {
+        $calc=$computerSystem.CsCurrentTimeZone / 60
+        $computerSystem.CsCurrentTimeZone = "$calc h is from London time"
+    }
+
+    if ($computerSystem.CsDaylightInEffect)
+    {
+        $computerSystem.CsDaylightInEffect = "Daylight saving mode is ON"
+    }
+    else
+    {
+        $computerSystem.CsDaylightInEffect = "Daylight saving mode is OFF"
+    }
+
+    switch($computerSystem.CsDomainRole)
+    {
+        "BackupDomainController" {$computerSystem.CsDomainRole = "Computer is Backup Domain Controller"}
+        "MemberServer" {$computerSystem.CsDomainRole = "Computer is Member Server of Domain"}
+        "MemberWorkstation" {$computerSystem.CsDomainRole = "Computer is Member Workstation of Domain"}
+        "PrimaryDomainController" {$computerSystem.CsDomainRole = "Computer is Primary Domain Controller"}
+        "StandaloneServer" {$computerSystem.CsDomainRole = "Computer is Standalone Server"}
+        "StandaloneWorkstation" {$computerSystem.CsDomainRole = "Computer is Standalone Workstation"}
+    }
+    switch($computerSystem.CsEnableDaylightSavingsTime)
+    {
+        "True"{$computerSystem.CsEnableDaylightSavingsTime="Daylight saving time is enabled.System time is change 1 hour forward or backward when daylight saving time is started or ended."}
+        "False"{$computerSystem.CsEnableDaylightSavingsTime="Daylight saving time is disabled."}
+        ""{$computerSystem.CsEnableDaylightSavingsTime="State of daylight saving time is unknown"}
+    }
     
-    
-    
+    $computerSystem.CsFrontPanelResetStatus="Hardware security setting for the reset button on front Panel is $($computerSystem.CsFrontPanelResetStatus)"
+
+    $computerSystem.CsKeyboardPasswordStatus="Hardware security setting for keyboard password status is $($computerSystem.CsKeyboardPasswordStatus)"
+
+    if ($computerSystem.CsPauseAfterReset -eq -1)
+    {
+        $computerSystem.CsPauseAfterReset="Time Delay before reboot is initaited value is unknown"
+    }
+    else
+    {
+        $calc=$computerSystem.CsPauseAfterReset/1000
+        $computerSystem.CsPauseAfterReset="$calc seconds before reboot is initaited"
+    }
+
+    switch($computerSystem.CsPCSystemType)
+    {
+        "AppliancePC" { $computerSystem.CsPCSystemType="$($computerSystem.CsPCSystemType) - The OEM specified an appliance PC role"}
+        "Desktop" { $computerSystem.CsPCSystemType="$($computerSystem.CsPCSystemType) - The OEM specified a desktop role"}
+        "EnterpriseServer" { $computerSystem.CsPCSystemType="$($computerSystem.CsPCSystemType) - The OEM specified an enterprise server role"}
+        "MaximumEnumValue" { $computerSystem.CsPCSystemType="$($computerSystem.CsPCSystemType) - Max enum value"}
+        "Mobile" { $computerSystem.CsPCSystemType="$($computerSystem.CsPCSystemType) - The OEM specified a mobile role (for example, a laptop)"}
+        "PerformanceServer" { $computerSystem.CsPCSystemType="$($computerSystem.CsPCSystemType) - The OEM specified a performance server role"}
+        "Slate" { $computerSystem.CsPCSystemType="$($computerSystem.CsPCSystemType) - The OEM specified a tablet form factor role"}
+        "SOHOServer" { $computerSystem.CsPCSystemType="$($computerSystem.CsPCSystemType) - The OEM specified a single office/home office (SOHO) server role"}
+        "Unspecified" { $computerSystem.CsPCSystemType="$($computerSystem.CsPCSystemType) - UnspecifieThe OEM did not specify a specific role"}
+        "Workstation" { $computerSystem.CsPCSystemType="$($computerSystem.CsPCSystemType) - The OEM specified a workstation role"}
+    }
+
+    switch($computerSystem.CsPCSystemTypeEx)
+    {
+        "AppliancePC" { $computerSystem.CsPCSystemTypeEx="$($computerSystem.CsPCSystemTypeEx) - The OEM specified an appliance PC role"}
+        "Desktop" { $computerSystem.CsPCSystemTypeEx="$($computerSystem.CsPCSystemTypeEx) - The OEM specified a desktop role"}
+        "EnterpriseServer" { $computerSystem.CsPCSystemTypeEx="$($computerSystem.CsPCSystemTypeEx) - The OEM specified an enterprise server role"}
+        "MaximumEnumValue" { $computerSystem.CsPCSystemTypeEx="$($computerSystem.CsPCSystemTypeEx) - Max enum value"}
+        "Mobile" { $computerSystem.CsPCSystemTypeEx="$($computerSystem.CsPCSystemTypeEx) - The OEM specified a mobile role (for example, a laptop)"}
+        "PerformanceServer" { $computerSystem.CsPCSystemTypeEx="$($computerSystem.CsPCSystemTypeEx) - The OEM specified a performance server role"}
+        "Slate" { $computerSystem.CsPCSystemTypeEx="$($computerSystem.CsPCSystemTypeEx) - The OEM specified a tablet form factor role"}
+        "SOHOServer" { $computerSystem.CsPCSystemTypeEx="$($computerSystem.CsPCSystemTypeEx) - The OEM specified a single office/home office (SOHO) server role"}
+        "Unspecified" { $computerSystem.CsPCSystemTypeEx="$($computerSystem.CsPCSystemTypeEx) - UnspecifieThe OEM did not specify a specific role"}
+        "Workstation" { $computerSystem.CsPCSystemTypeEx="$($computerSystem.CsPCSystemTypeEx) - The OEM specified a workstation role"}
+    }
+    if ($computerSystem.CsPowerManagementSupported)
+    {
+        $computerSystem.CsPowerManagementSupported="Device can be power managed. Property does not indicate that power management features are not enabled currently, but it indicates that the device is capable of power management."       
+    }
+    else
+    {
+         $computerSystem.CsPowerManagementSupported="Device cannot be power managed."   
+    }
+    $computerSystem.CsPowerOnPasswordStatus="$($computerSystem.CsPowerOnPasswordStatus) - Hardware security setting for PowerOn Password Status is $($computerSystem.CsPowerOnPasswordStatus)"
+
+    $computerSystem.CsPowerState="$($computerSystem.CsPowerState) - Current power state of computer is  $($computerSystem.CsPowerState)"
+
+    #CsPowerSupplyState
+
     $os=$computerInfo | Select-Object OsName,OsType,OsVersion,OsBuildNumber,OsBootDevice,OsSystemDevice,OsSystemDirectory,OsSystemDrive,OsWindowsDirectory,OsCountryCode,OsCurrentTimeZone,OsLastBootUpTime,OsUptime,OsDataExecutionPrevention,OsDataExecutionPrevention32bitApplications,OsDataExecutionPreventionDrivers,OsDataExecutionPreventionSupportPolicy,OsTotalVisibleMemorySize,OsFreePhysicalMemory,OsTotalVirtualMemorySize,OsFreeVirtualMemory,OsInUserVirtualMemory,OsTotalSwapSpaceSize,OsSizeStoredInPagingFiles,OsFreeSpaceInPagingFiles,OsManufacturer,OsMaxNumberOfProcesses,OsOrganization,OsArchitecture,OsLanguage,OsPortableOperatingSystem,OsProductType,OsRegisteredUser
     $hyperV=$computerInfo | Select-Object HyperVisorPresent,HyperVRequirementDataExecutionPreventionAvailable,HyperVRequirementSecondLevelAddressTranslation,HyperVRequirementVirtualizationFirmwareEnabled,HyperVRequirementVMMonitorModeExtensions
     $deviceGuard=$computerInfo | Select-Object DeviceGuardSmartStatus,DeviceGuardRequiredSecurityProperties,DeviceGuardAvailableSecurityProperties,DeviceGuardSecurityServicesConfigured,DeviceGuardSecurityServicesRunning,DeviceGuardCodeIntegrityPolicyEnforcementStatus,DeviceGuardUserModeCodeIntegrityPolicyEnforcementStatus
