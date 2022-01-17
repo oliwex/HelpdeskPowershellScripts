@@ -41,6 +41,8 @@ function Get-BasicComputerInfo
     
     $bios.BiosSoftwareElementState="$($bios.BiosSoftwareElementState) - Software element is $($bios.BiosSoftwareElementState)"
 
+    ###
+
     $computerSystem=$computerInfo | Select-Object Cs*
     
     $computerSystem.CsAdminPasswordStatus="$($computerSystem.CsAdminPasswordStatus) - Hardware security is $($computerSystem.CsAdminPasswordStatus)"
@@ -187,10 +189,174 @@ function Get-BasicComputerInfo
     $computerSystem.CsPowerOnPasswordStatus="$($computerSystem.CsPowerOnPasswordStatus) - Hardware security setting for PowerOn Password Status is $($computerSystem.CsPowerOnPasswordStatus)"
 
     $computerSystem.CsPowerState="$($computerSystem.CsPowerState) - Current power state of computer is  $($computerSystem.CsPowerState)"
+    if($computerSystem.CsPowerSupplyState -eq "Other")
+    {
+        $computerSystem.CsPowerSupplyState="$($computerSystem.CsPowerSupplyState) - Element is in state not provided in documentation"  
+    }
+    else
+    {
+        $computerSystem.CsPowerSupplyState="$($computerSystem.CsPowerSupplyState) - Current power supply state is in $($computerSystem.CsPowerSupplyState) state"
+    }
+    if ($computerSystem.CsResetCapability -eq "Other")
+    {
+        $computerSystem.CsResetCapability="$($computerSystem.CsResetCapability) - indicates that the computer system can be reset. Capability value is other than provided in documentation."
+    }
+    else
+    {
+        $computerSystem.CsResetCapability="$($computerSystem.CsResetCapability) - indicates that the computer system can be reset. Capability is $($computerSystem.CsResetCapability)"
+    }
+    if ($computerSystem.CsResetCount -eq -1)
+    {
+        $computerSystem.CsResetCount="The value of automatic reset since last reset is unknown."        
+    }
+    else
+    {
+        $computerSystem.CsResetCount="The value of automatic reset since last reset is $($computerSystem.CsResetCount)."
+    }
+    if ($computerSystem.CsResetLimit -eq -1)
+    {
+        $computerSystem.CsResetLimit="Number of consecutive times a system reset is attempted. The value is uknonwn."        
+    }
+    else
+    {
+        $computerSystem.CsResetLimit="Number of consecutive times a system reset is attempted. The value is $($computerSystem.CsResetLimit)" 
+    }
 
-    #CsPowerSupplyState
+    $computerSystem.CsSystemSKUNumber="$($computerSystem.CsSystemSKUNumber) - identifies computer configuration  for sale. It is product ID or purcharse order number" 
 
-    $os=$computerInfo | Select-Object OsName,OsType,OsVersion,OsBuildNumber,OsBootDevice,OsSystemDevice,OsSystemDirectory,OsSystemDrive,OsWindowsDirectory,OsCountryCode,OsCurrentTimeZone,OsLastBootUpTime,OsUptime,OsDataExecutionPrevention,OsDataExecutionPrevention32bitApplications,OsDataExecutionPreventionDrivers,OsDataExecutionPreventionSupportPolicy,OsTotalVisibleMemorySize,OsFreePhysicalMemory,OsTotalVirtualMemorySize,OsFreeVirtualMemory,OsInUserVirtualMemory,OsTotalSwapSpaceSize,OsSizeStoredInPagingFiles,OsFreeSpaceInPagingFiles,OsManufacturer,OsMaxNumberOfProcesses,OsOrganization,OsArchitecture,OsLanguage,OsPortableOperatingSystem,OsProductType,OsRegisteredUser
+    if($computerSystem.CsThermalState -eq "Other")
+    {
+        $computerSystem.CsThermalState="$($computerSystem.CsThermalState) - Element is in state other than provided in documentation"    
+    }
+    else
+    {
+        $computerSystem.CsThermalState="$($computerSystem.CsThermalState) - Element is in $($computerSystem.CsThermalState) state"
+    }
+    $computerSystem.CsTotalPhysicalMemory="$($($computerSystem.CsTotalPhysicalMemory)/1GB)GB - it is physically installed memory without memory used by system"
+    $computerSystem.CsPhyicallyInstalledMemory="$($($computerSystem.CsPhyicallyInstalledMemory)/1MB) GB"
+
+
+    switch($computerSystem.CsWakeUpType)
+    {
+        "ACPowerRestored"{ $computerSystem.CsWakeUpType = "ACPower was restored"}
+        "APMTimer"{$computerSystem.CsWakeUpType = "Event is APM timer" }
+        "LANRemote"{$computerSystem.CsWakeUpType = "Event is a LAN Remove"}
+        "ModemRing"{$computerSystem.CsWakeUpType = "Event is Modem Ring"}
+        "Other"{$computerSystem.CsWakeUpType = "An event is other then specified in documentation"}
+        "PCIPME"{$computerSystem.CsWakeUpType = "Event is a PCI PME# signal"}
+        "PowerSwitch"{$computerSystem.CsWakeUpType = "Event is a power switch"}
+        "Unknown" {$computerSystem.CsWakeUpType = "Event type is unknown"}
+    }
+    ############
+    $os=$computerInfo | Select-Object Os*
+
+    switch($os.OsOperatingSystemSKU)
+    {
+        "0" {$os.OsOperatingSystemSKU="The SKU is undefined"}
+        "1" {$os.OsOperatingSystemSKU="SKU is Ultimate Edition"}
+        "2" {$os.OsOperatingSystemSKU="SKU is Home Basic Edition"}
+        "3" {$os.OsOperatingSystemSKU="SKU is Home Premium Edition"}
+        "4" {$os.OsOperatingSystemSKU="SKU is Enterprise Edition"}
+        "5" {$os.OsOperatingSystemSKU="SKU is Home Basic N Edition"}
+        "6" {$os.OsOperatingSystemSKU="SKU is Business Edition"}
+        "7" {$os.OsOperatingSystemSKU="SKU is Standard Server Edition"}
+        "8" {$os.OsOperatingSystemSKU="SKU is Datacenter Server Edition"}
+        "9" {$os.OsOperatingSystemSKU="SKU is Small Business Server Edition"}
+        "10" {$os.OsOperatingSystemSKU="SKU is Enterprise Server Edition"}
+        "11" {$os.OsOperatingSystemSKU="SKU is Starter Edition"}
+        "12" {$os.OsOperatingSystemSKU="SKU is Datacenter Server Core Edition"}
+        "13" {$os.OsOperatingSystemSKU="SKU is Standard Server Core Edition"}
+        "14" {$os.OsOperatingSystemSKU="SKU is Enterprise Server Core Edition"}
+        "15" {$os.OsOperatingSystemSKU="SKU is Enterprise Server IA64 Edition"}
+        "16" {$os.OsOperatingSystemSKU="SKU is Business N Edition"}
+        "17" {$os.OsOperatingSystemSKU="SKU is Web Server Edition"}
+        "18" {$os.OsOperatingSystemSKU="SKU is Cluster Server Edition"}
+        "19" {$os.OsOperatingSystemSKU="SKU is Home Server Edition"}
+        "20" {$os.OsOperatingSystemSKU="SKU is Storage Express Server Edition"}
+        "21" {$os.OsOperatingSystemSKU="SKU is Storage Standard Server Edition"}
+        "22" {$os.OsOperatingSystemSKU="SKU is Storage Workgroup Server Edition"}
+        "23" {$os.OsOperatingSystemSKU="SKU is Storage Enterprise Server Edition"}
+        "24" {$os.OsOperatingSystemSKU="SKU is Server For Small Business Edition"}
+        "25" {$os.OsOperatingSystemSKU="SKU is Small Business Server Premium Edition"}
+        "27" {$os.OsOperatingSystemSKU="SKU is Windows Enterprise"}
+        "28" {$os.OsOperatingSystemSKU="SKU is Windows Ultimate"}
+        "29" {$os.OsOperatingSystemSKU="SKU is Web Server (core installation)"}
+        "33" {$os.OsOperatingSystemSKU="SKU is Server Foundation"}
+        "34" {$os.OsOperatingSystemSKU="SKU is Windows Home Server"}
+        "36" {$os.OsOperatingSystemSKU="SKU is Windows Server Standard without Hyper-V"}
+        "37" {$os.OsOperatingSystemSKU="SKU is Windows Server Datacenter without Hyper-V (full installation)"}
+        "38" {$os.OsOperatingSystemSKU="SKU is Windows Server Enterprise without Hyper-V (full installation)"}
+        "39" {$os.OsOperatingSystemSKU="SKU is Windows Server Datacenter without Hyper-V (core installation)"}
+        "40" {$os.OsOperatingSystemSKU="SKU is Windows Server Standard without Hyper-V (core installation)"}
+        "41" {$os.OsOperatingSystemSKU="SKU is Windows Server Enterprise without Hyper-V (core installation)"}
+        "42" {$os.OsOperatingSystemSKU="SKU is Microsoft Hyper-V Server"}
+        "43" {$os.OsOperatingSystemSKU="SKU is Storage Server Express (core installation)"}
+        "44" {$os.OsOperatingSystemSKU="SKU is Storage Server Standard (core installation)"}
+        "45" {$os.OsOperatingSystemSKU="SKU is Storage Server Workgroup (core installation)"}
+        "46" {$os.OsOperatingSystemSKU="SKU is Storage Server Enterprise (core installation)"}
+        "48" {$os.OsOperatingSystemSKU="SKU is Windows Professional"}
+        "50" {$os.OsOperatingSystemSKU="SKU is Windows Server Essentials (Desktop Experience installation)"}
+        "63" {$os.OsOperatingSystemSKU="SKU is Small Business Server Premium (core installation)"}
+        "64" {$os.OsOperatingSystemSKU="SKU is Windows Server Hyper Core V"}
+        "87" {$os.OsOperatingSystemSKU="SKU is Windows Thin PC"}
+        "89" {$os.OsOperatingSystemSKU="SKU is Windows Embedded Industry"}
+        "97" {$os.OsOperatingSystemSKU="SKU is Windows RT"}
+        "101" {$os.OsOperatingSystemSKU="SKU is Windows Home"}
+        "103" {$os.OsOperatingSystemSKU="SKU is Windows Professional with Media Center"}
+        "104" {$os.OsOperatingSystemSKU="SKU is Windows Mobile"}
+        "118" {$os.OsOperatingSystemSKU="SKU is Windows Embedded Handheld"}
+        "123" {$os.OsOperatingSystemSKU="SKU is Windows IoT (Internet of Things) Core"}
+        "143" {$os.OsOperatingSystemSKU="SKU is Windows Server Datacenter Edition (Nano Server installation)"}
+        "144" {$os.OsOperatingSystemSKU="SKU is Windows Server Standard Edition (Nano Server installation)"}
+        "147" {$os.OsOperatingSystemSKU="SKU is Windows Server Datacenter Edition (Server Core installation)"}
+        "148" {$os.OsOperatingSystemSKU="SKU is Windows Server Standard Edition (Server Core installation)"}
+    }
+    if ($os.OsCSDVersion -eq $null)
+    {
+        $os.OsCSDVersion = "No service Pack Installed."
+    }
+    $os.OsCountryCode="$($os.OsCountryCode) - country code based on international prefixes"
+
+    $os.OsCurrentTimeZone="$($($os.OsCurrentTimeZone)/60) h from London Time"
+    
+    $os.OsLocaleID="$($os.OsCountryCode) - country code based on international prefixes"
+    $os.OsLocale="$($os.OsLocale) - culture name derived from OsLocaleID"
+    $os.OsLocale ="$($os.CodeSet) - Code page operating system uses"
+
+    switch($os.OsDataExecutionPreventionSupportPolicy)
+    {
+        "AlwaysOff"{$os.OsDataExecutionPreventionSupportPolicy="DEP is turned off for all 32-bit applications on the computer with no exceptions"}
+        "AlwaysOn"{$os.OsDataExecutionPreventionSupportPolicy="DEP is enabled for all 32-bit applications on the computer"}
+        "OptIn"{$os.OsDataExecutionPreventionSupportPolicy="DEP is enabled for a limited number of binaries, the kernel, and all Windows-based services. However, it is off by default for all 32-bit applications. A user or administrator must explicitly choose either the Always On or the Opt Out setting before DEP can be applied to 32-bit applications"}
+        "OptOff"{$os.OsDataExecutionPreventionSupportPolicy="DEP is enabled by default for all 32-bit applications. A user or administrator can explicitly remove support for a 32-bit application by adding the application to an exceptions list"}
+    }
+    if ($os.OsDebug)
+    {
+        $os.OsDebug = "The computer is debug build"
+    }
+    else
+    {
+        $os.OsDebug = "The computer is not debug build"
+    }
+    if($os.OsDistributed)
+    {
+        $os.OsDistributed="Computer works as cluster node"
+    }
+    else
+    {
+        $os.OsDistributed="Computer works single workstation"
+    }
+
+    $os.OsEncryptionLevel = "$($os.OsEncryptionLevel) bit - level of operating system encryption"
+
+    switch($os.OsForegroundApplicationBoost)
+    {
+        "Maximum"{$os.OsForegroundApplicationBoost="$($os.OsForegroundApplicationBoost) - system boosts the quantum length by 18 for foreground application"}
+        "Minimum"{$os.OsForegroundApplicationBoost="$($os.OsForegroundApplicationBoost) - system boosts the quantum length by 12 for foreground application"}
+        "None"{$os.OsForegroundApplicationBoost="$($os.OsForegroundApplicationBoost) - system boosts the quantum length by 6 for foreground application"}
+    }
+
+
     $hyperV=$computerInfo | Select-Object HyperVisorPresent,HyperVRequirementDataExecutionPreventionAvailable,HyperVRequirementSecondLevelAddressTranslation,HyperVRequirementVirtualizationFirmwareEnabled,HyperVRequirementVMMonitorModeExtensions
     $deviceGuard=$computerInfo | Select-Object DeviceGuardSmartStatus,DeviceGuardRequiredSecurityProperties,DeviceGuardAvailableSecurityProperties,DeviceGuardSecurityServicesConfigured,DeviceGuardSecurityServicesRunning,DeviceGuardCodeIntegrityPolicyEnforcementStatus,DeviceGuardUserModeCodeIntegrityPolicyEnforcementStatus
 
