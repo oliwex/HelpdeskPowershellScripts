@@ -1,6 +1,6 @@
 function Get-BasicComputerInfo
 {
-    $computerInfo=Get-ComputerInfo | Select * 
+    $computerInfo=Get-ComputerInfo | Select-Object * 
     
     $basic=$computerInfo | Select-Object Windows*,TimeZone,LogonServer,PowerPlatformRole
     switch($basic.PowerPlatformRole)
@@ -26,11 +26,11 @@ function Get-BasicComputerInfo
         "Unknown"{$bios.BiosFirmwareType="$($bios.BiosFirmwareType) - The firmware type is unknown"}
     }
 
-    if($bios.BiosSMBIOSMajorVersion -eq $null)
+    if($null -eq $bios.BiosSMBIOSMajorVersion)
     {
         $bios.BiosSMBIOSMajorVersion="SMBIOS Major Version not found"
     }
-    if($bios.BiosSMBIOSMinorVersion -eq $null)
+    if($null -eq $bios.BiosSMBIOSMinorVersion)
     {
         $bios.BiosSMBIOSMinorVersion="SMBIOS Minor Version not found"
     }
@@ -88,7 +88,7 @@ function Get-BasicComputerInfo
         "SystemUtilities" {$computerSystem.CsBootOptionOnWatchdog = "$($computerSystem.CsBootOptionOnWatchdog) - Boot into system utilites"}
     }
 
-    if ( $computerSystem.CsBootROMSupported)
+    if ($computerSystem.CsBootROMSupported)
     {
         $computerSystem.CsBootROMSupported = "Boot ROM is supported"
     }
@@ -106,7 +106,7 @@ function Get-BasicComputerInfo
         $computerSystem.CsChassisBootupState = "$($computerSystem.CsChassisBootupState) - The element is in $($computerSystem.CsChassisBootupState) state" 
     }
     
-    if ($computerSystem.CsCurrentTimeZone -ne $null)
+    if ($null -ne $computerSystem.CsCurrentTimeZone)
     {
         $calc=$computerSystem.CsCurrentTimeZone / 60
         $computerSystem.CsCurrentTimeZone = "$calc h is from London time"
@@ -233,7 +233,7 @@ function Get-BasicComputerInfo
         $computerSystem.CsThermalState="$($computerSystem.CsThermalState) - Element is in $($computerSystem.CsThermalState) state"
     }
     $computerSystem.CsTotalPhysicalMemory="$($($computerSystem.CsTotalPhysicalMemory)/1GB)GB - it is physically installed memory without memory used by system"
-    $computerSystem.CsPhyicallyInstalledMemory="$($($computerSystem.CsPhyicallyInstalledMemory)/1MB) GB"
+    $computerSystem.CsPhysicallyInstalledMemory="$($($computerSystem.CsPhyicallyInstalledMemory)/1MB) GB"
 
 
     switch($computerSystem.CsWakeUpType)
@@ -311,7 +311,7 @@ function Get-BasicComputerInfo
         "147" {$os.OsOperatingSystemSKU="SKU is Windows Server Datacenter Edition (Server Core installation)"}
         "148" {$os.OsOperatingSystemSKU="SKU is Windows Server Standard Edition (Server Core installation)"}
     }
-    if ($os.OsCSDVersion -eq $null)
+    if ($null -eq $os.OsCSDVersion)
     {
         $os.OsCSDVersion = "No service Pack Installed."
     }
@@ -355,6 +355,54 @@ function Get-BasicComputerInfo
         "Minimum"{$os.OsForegroundApplicationBoost="$($os.OsForegroundApplicationBoost) - system boosts the quantum length by 12 for foreground application"}
         "None"{$os.OsForegroundApplicationBoost="$($os.OsForegroundApplicationBoost) - system boosts the quantum length by 6 for foreground application"}
     }
+    ###
+    $os.OsTotalVisibleMemorySize = "$($($os.OsTotalVisibleMemorySize) / 1GB)GB - Total amount, in kilobytes, of physical memory available to the operating system. This value does not necessarily indicate the true amount of physical memory, but what is reported to the operating system as available to it."
+    
+    $os.OsFreePhysicalMemory = "$($($os.OsFreePhysicalMemory) / 1GB)GB - Number, in kilobytes, of physical memory currently unused and available."
+
+    $os.OsTotalVirtualMemorySize = "$($($os.OsTotalVirtualMemorySize) / 1GB)GB - Number, in kilobytes, of virtual memory. For example, this may be calculated by adding the amount of total RAM to the amount of paging space, that is, adding the amount of memory in or aggregated by the computer system to the property, SizeStoredInPagingFiles."
+
+    $os.OsFreeVirtualMemory = "$($($os.OsFreeVirtualMemorySize) / 1GB)GB - Number, in kilobytes, of virtual memory currently unused and available."
+
+    $os.OsInUseVirtualMemory = "$($($os.OsInUseVirtualMemory) / 1GB)GB"
+
+    if($null -ne $os.OsTotalSwapSpaceSize)
+    {
+        $os.OsTotalSwapSpaceSize = "$($($os.OsTotalSwapSpaceSize) / 1GB)GB - total swap size"
+    }
+    else 
+    {
+        $os.OsTotalSwapSpaceSize = "The swap space is not distinguished from page files."
+    }
+    ####
+    if ($os.OsSizeStoredInPagingFiles -eq 0)
+    {
+        $os.OsSizeStoredInPagingFiles = "There are no paging files"
+    }
+    else 
+    {
+        $os.OsSizeStoredInPagingFiles = "$($os.OsSizeStoredInPagingFiles) KB paging file"
+    }
+
+    $os.OsFreeSpaceInPagingFiles = "$($os.OsFreeSpaceInPagingFiles) KB - Number, in kilobytes, that can be mapped into the operating system paging files without causing any other pages to be swapped out"
+    
+    $os.OsPagingFiles = "$($os.OsPagingFiles) - array of field paths to the operating system paging files"
+    
+    $os.OsHardwareAbstractionLayer = " $($os.OsHardwareAbstractionLayer) - version of the operating system's Hardware Abstraction Layer (HAL)"
+    
+    $os.OsMaxNumberOfProcesses = "$($os.OsMaxNumberOfProcesses) maximum number of process contexts the operating system can support"
+    
+    $os.OsMaxProcessMemorySize = "$($os.OsMaxProcessMemorySize) maximum number of kilobytes of memory that can be allocated to a process"
+    
+    $os.OsMuiLanguages = "$($os.OsMuiLanguages) array of languages installed on computer"
+    
+    $os.OsNumberOfProcesses = "$($os.OsNumberOfProcesses) - Number of process contexts currently loaded or running on the operating system"
+    
+    $os.OsNumberOfUsers = "$($os.OsNumberOfUsers) - Number of user sessions for which the operating system is storing state information currently"
+    
+    ######
+    $os.OsProductSuites
+    ####
 
 
     $hyperV=$computerInfo | Select-Object HyperVisorPresent,HyperVRequirementDataExecutionPreventionAvailable,HyperVRequirementSecondLevelAddressTranslation,HyperVRequirementVirtualizationFirmwareEnabled,HyperVRequirementVMMonitorModeExtensions
