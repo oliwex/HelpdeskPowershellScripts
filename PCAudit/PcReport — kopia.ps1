@@ -2,6 +2,8 @@ function Get-BasicComputerInfo
 {
     $computerInfo=Get-ComputerInfo | Select-Object * 
     
+    #region BIOS
+
     $basic=$computerInfo | Select-Object Windows*,TimeZone,LogonServer,PowerPlatformRole
     switch($basic.PowerPlatformRole)
     {
@@ -25,7 +27,14 @@ function Get-BasicComputerInfo
         "Uefi"{$bios.BiosFirmwareType="$($bios.BiosFirmwareType) - The computer booted in UEFI mode"}
         "Unknown"{$bios.BiosFirmwareType="$($bios.BiosFirmwareType) - The firmware type is unknown"}
     }
-
+    if ($bios.BiosPrimaryBIOS)
+    {
+        $bios.BiosPrimaryBIOS="Primary BIOS of computerSystem"
+    }
+    else 
+    {
+        $bios.BiosPrimaryBIOS = "Not primary BIOS of computerSystem"    
+    }
     if($null -eq $bios.BiosSMBIOSMajorVersion)
     {
         $bios.BiosSMBIOSMajorVersion="SMBIOS Major Version not found"
@@ -41,7 +50,9 @@ function Get-BasicComputerInfo
     
     $bios.BiosSoftwareElementState="$($bios.BiosSoftwareElementState) - Software element is $($bios.BiosSoftwareElementState)"
 
-    ###
+    #endregion BIOS
+
+    #region ComputerSystem
 
     $computerSystem=$computerInfo | Select-Object Cs*
     
@@ -247,7 +258,10 @@ function Get-BasicComputerInfo
         "PowerSwitch"{$computerSystem.CsWakeUpType = "Event is a power switch"}
         "Unknown" {$computerSystem.CsWakeUpType = "Event type is unknown"}
     }
-    ############
+
+    #endregion ComputerSystem
+
+    #region OperatingSystem
     $os=$computerInfo | Select-Object Os*
 
     switch($os.OsOperatingSystemSKU)
@@ -355,11 +369,11 @@ function Get-BasicComputerInfo
         "Minimum"{$os.OsForegroundApplicationBoost="$($os.OsForegroundApplicationBoost) - system boosts the quantum length by 12 for foreground application"}
         "None"{$os.OsForegroundApplicationBoost="$($os.OsForegroundApplicationBoost) - system boosts the quantum length by 6 for foreground application"}
     }
-    ###
+    
     $os.OsTotalVisibleMemorySize = "$($($os.OsTotalVisibleMemorySize) / 1GB)GB - Total amount, in kilobytes, of physical memory available to the operating system. This value does not necessarily indicate the true amount of physical memory, but what is reported to the operating system as available to it."
     
     $os.OsFreePhysicalMemory = "$($($os.OsFreePhysicalMemory) / 1GB)GB - Number, in kilobytes, of physical memory currently unused and available."
-
+    
     $os.OsTotalVirtualMemorySize = "$($($os.OsTotalVirtualMemorySize) / 1GB)GB - Number, in kilobytes, of virtual memory. For example, this may be calculated by adding the amount of total RAM to the amount of paging space, that is, adding the amount of memory in or aggregated by the computer system to the property, SizeStoredInPagingFiles."
 
     $os.OsFreeVirtualMemory = "$($($os.OsFreeVirtualMemorySize) / 1GB)GB - Number, in kilobytes, of virtual memory currently unused and available."
@@ -374,7 +388,7 @@ function Get-BasicComputerInfo
     {
         $os.OsTotalSwapSpaceSize = "The swap space is not distinguished from page files."
     }
-    ####
+    
     if ($os.OsSizeStoredInPagingFiles -eq 0)
     {
         $os.OsSizeStoredInPagingFiles = "There are no paging files"
@@ -400,12 +414,16 @@ function Get-BasicComputerInfo
     
     $os.OsNumberOfUsers = "$($os.OsNumberOfUsers) - Number of user sessions for which the operating system is storing state information currently"
     
-    ######
-    $os.OsProductSuites
-    ####
+    #$os.OsProductSuites #TODO: Returning Array. Table in Table?
 
+    #endregion OperatingSystem
+    
+    #region HyperV
+    $hyperV=$computerInfo | Select-Object HyperV*
 
-    $hyperV=$computerInfo | Select-Object HyperVisorPresent,HyperVRequirementDataExecutionPreventionAvailable,HyperVRequirementSecondLevelAddressTranslation,HyperVRequirementVirtualizationFirmwareEnabled,HyperVRequirementVMMonitorModeExtensions
+    #endregion HyperV
+
+    
     $deviceGuard=$computerInfo | Select-Object DeviceGuardSmartStatus,DeviceGuardRequiredSecurityProperties,DeviceGuardAvailableSecurityProperties,DeviceGuardSecurityServicesConfigured,DeviceGuardSecurityServicesRunning,DeviceGuardCodeIntegrityPolicyEnforcementStatus,DeviceGuardUserModeCodeIntegrityPolicyEnforcementStatus
 
     $basicInformation = [PSCustomObject]@{
