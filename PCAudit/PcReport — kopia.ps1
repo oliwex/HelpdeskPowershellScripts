@@ -421,10 +421,50 @@ function Get-BasicComputerInfo
     #region HyperV
     $hyperV=$computerInfo | Select-Object HyperV*
 
+    if($hyperV.HyperVisorPresent)
+    {
+        $hyperV.HyperVisorPresent = "HyperVisor is detected"
+    }
+    else 
+    {
+        $hyperV.HyperVisorPresent = "HyperVisor is  not detected"
+        
+    }
+    if ($hyperV.HyperVRequirementDataExecutionPreventionAvailable)
+        {
+            $hyperV.HyperVRequirementDataExecutionPreventionAvailable = "Data Execution Prevention is available"
+        }
+        else 
+        {
+            $hyperV.HyperVRequirementDataExecutionPreventionAvailable = "Data Execution Prevention is not available or unknown"
+        }
+        
+        if ($hyperV.HyperVRequirementSecondLevelAddressTranslation) 
+        {
+            $hyperV.HyperVRequirementSecondLevelAddressTranslation = "Second Level Address Translation is available"
+        }
+        else 
+        {
+            $hyperV.HyperVRequirementSecondLevelAddressTranslation = "Second Level Address Translation is not available or unknown"
+        }
+        
+        if ($hyperV.HyperVRequirementVirtualizationFirmwareEnabled) {
+            $hyperV.HyperVRequirementVirtualizationFirmwareEnabled = "Virtualization is enabled by firmware"
+        }
+        else {
+            $hyperV.HyperVRequirementVirtualizationFirmwareEnabled = "Virtualization is not enabled by firmware or is unknown"
+        }
+
+        if ($hyperV.HyperVRequirementVMMonitorModeExtensions) {
+            $hyperV.HyperVRequirementVMMonitorModeExtensions = "The processor supports Intel or AMD Virtual Machine Monitor extensions"
+        }
+        else {
+            $hyperV.HyperVRequirementVMMonitorModeExtensions = "The processor not supports Intel or AMD Virtual Machine Monitor extensions or the state is unknown"
+        }
     #endregion HyperV
 
     
-    $deviceGuard=$computerInfo | Select-Object DeviceGuardSmartStatus,DeviceGuardRequiredSecurityProperties,DeviceGuardAvailableSecurityProperties,DeviceGuardSecurityServicesConfigured,DeviceGuardSecurityServicesRunning,DeviceGuardCodeIntegrityPolicyEnforcementStatus,DeviceGuardUserModeCodeIntegrityPolicyEnforcementStatus
+    $deviceGuard=$computerInfo | Select-Object DeviceGuard*
 
     $basicInformation = [PSCustomObject]@{
         BasicInformation = $basic
