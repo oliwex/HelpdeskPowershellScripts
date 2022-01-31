@@ -2,8 +2,8 @@ function Get-BasicComputerInfo
 {
     $computerInfo=Get-ComputerInfo | Select-Object * 
     
-    #region BIOS
-
+    
+    #region Basic
     $basic=$computerInfo | Select-Object Windows*,TimeZone,LogonServer,PowerPlatformRole
     switch($basic.PowerPlatformRole)
     {
@@ -18,7 +18,9 @@ function Get-BasicComputerInfo
         "Unspecified" { $basic.PowerPlatformRole="$($basic.PowerPlatformRole) - UnspecifieThe OEM did not specify a specific role"}
         "Workstation" { $basic.PowerPlatformRole="$($basic.PowerPlatformRole) - The OEM specified a workstation role"}
     }
-
+    #region Basic
+    
+    #region BIOS
     $bios=$computerInfo | Select-Object Bios*
     switch($bios.BiosFirmwareType)
     {
@@ -463,8 +465,19 @@ function Get-BasicComputerInfo
         }
     #endregion HyperV
 
-    
+    #region DeviceGuard
     $deviceGuard=$computerInfo | Select-Object DeviceGuard*
+
+    $deviceGuard.DeviceGuardSmartStatus = "DeviceGuard is $($deviceGuard.DeviceGuardSmartStatus)"
+
+    $deviceGuard.DeviceGuardRequiredSecurityProperties = #TODO: Returning Array. Table in Table?
+    $deviceGuard.DeviceGuardAvailableSecurityProperties = #TODO: Returning Array. Table in Table?
+    $deviceGuard.DeviceGuardSecurityServicesConfigured = #TODO: Returning Array. Table in Table?
+    $deviceGuard.DeviceGuardSecurityServicesRunning = #TODO: Returning Array. Table in Table?
+    $deviceGuard.DeviceGuardCodeIntegrityPolicyEnforcementStatus = #TODO: Test it?
+    $deviceGuard.DeviceGuardUserModeCodeIntegrityPolicyEnforcementStatus = #TODO: Test it?
+
+    #endregion DeviceGuard
 
     $basicInformation = [PSCustomObject]@{
         BasicInformation = $basic
@@ -538,7 +551,7 @@ Get-CimInstance Win32_BaseBoard | Select-Object * -ExcludeProperty CreationClass
 
 }
 
-
+#region HTMLStructures
 function New-HTMLTable()
 {
     [CmdletBinding()]
@@ -556,7 +569,9 @@ function New-HTMLTable()
     return $output
 }
 
+#endregion HTMLStructures
 
+#region HTMLDeclarations
 $HTMLBody1 = New-HTMLTable -TableContent $($(Get-BasicComputerInfo).BasicInformation)
 $HTMLBody2 = New-HTMLTable -TableContent $($(Get-BasicComputerInfo).Bios)
 $HTMLBody3 = New-HTMLTable -TableContent $($(Get-BasicComputerInfo).ComputerSystem)
