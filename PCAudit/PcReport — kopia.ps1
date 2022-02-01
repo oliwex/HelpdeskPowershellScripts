@@ -18,9 +18,12 @@ function Get-BasicComputerInfo
         "Unspecified" { $basic.PowerPlatformRole="$($basic.PowerPlatformRole) - UnspecifieThe OEM did not specify a specific role"}
         "Workstation" { $basic.PowerPlatformRole="$($basic.PowerPlatformRole) - The OEM specified a workstation role"}
     }
-    #region Basic
+    #endregion Basic
     
     #region BIOS
+    # TODO: $bios.BiosCharacteristics
+    # TODO: $bios.BiosBIOSVersion
+    # TODO: $bios.BiosListOfLanguages
     $bios=$computerInfo | Select-Object Bios*
     switch($bios.BiosFirmwareType)
     {
@@ -56,6 +59,13 @@ function Get-BasicComputerInfo
 
     #region ComputerSystem
 
+    # TODO: $computerSystem.CsBootStatus
+    # TODO: $computerSystem.CsNetworkAdapters
+    # TODO: $computerSystem.CsOEMStringArray
+    # TODO: $computerSystem.CsPowerManagementCapabilities
+    # TODO: $computerSystem.CsRoles
+    # TODO: $computerSystem.CsSupportcontactDescription
+
     $computerSystem=$computerInfo | Select-Object Cs*
     
     $computerSystem.CsAdminPasswordStatus="$($computerSystem.CsAdminPasswordStatus) - Hardware security is $($computerSystem.CsAdminPasswordStatus)"
@@ -86,19 +96,21 @@ function Get-BasicComputerInfo
     {
         $computerSystem.CsAutomaticResetCapability="Automatic reset is disabled"
     }
-    #
+    
     switch($computerSystem.CsBootOptionOnLimit)
     {
         "DoNotReboot" {$computerSystem.CsBootOptionOnLimit = "$($computerSystem.CsBootOptionOnLimit) - do not reboot"}
         "OperatingSystem" {$computerSystem.CsBootOptionOnLimit = "$($computerSystem.CsBootOptionOnLimit) - Boot into operating system"}
         "SystemUtilities" {$computerSystem.CsBootOptionOnLimit = "$($computerSystem.CsBootOptionOnLimit) - Boot into system utilites"}
+        default { $computerSystem.CsBootOptionOnLimit = "No information" }
     }
-    #
+    
     switch($computerSystem.CsBootOptionOnWatchdog)
     {
         "DoNotReboot" {$computerSystem.CsBootOptionOnWatchdog = "$($computerSystem.CsBootOptionOnWatchdog) - do not reboot"}
         "OperatingSystem" {$computerSystem.CsBootOptionOnWatchdog = "$($computerSystem.CsBootOptionOnWatchdog) - Boot into operating system"}
         "SystemUtilities" {$computerSystem.CsBootOptionOnWatchdog = "$($computerSystem.CsBootOptionOnWatchdog) - Boot into system utilites"}
+        default { $computerSystem.CsBootOptionOnWatchdog = "No information"}
     }
 
     if ($computerSystem.CsBootROMSupported)
@@ -154,6 +166,20 @@ function Get-BasicComputerInfo
 
     $computerSystem.CsKeyboardPasswordStatus="Hardware security setting for keyboard password status is $($computerSystem.CsKeyboardPasswordStatus)"
 
+    if ($computerSystem.CsNetworkServerModeEnabled)
+    {
+        $computerSystem.CsNetworkServerModeEnabled="Server Mode is Enabled"
+    }
+    else 
+    {
+        $computerSystem.CsNetworkServerModeEnabled = "Server Mode is Disabled"    
+    }
+
+
+    $computerSystem.CsNumberOfLogicalProcessors = "$($computerSystem.CsNumberOfLogicalProcessors) - Number of Processor threads enabled for system"
+    $computerSystem.CsNumberOfProcessors = "$($computerSystem.CsNumberOfProcessors) - Number of Processors enabled for system"
+
+
     if ($computerSystem.CsPauseAfterReset -eq -1)
     {
         $computerSystem.CsPauseAfterReset="Time Delay before reboot is initaited value is unknown"
@@ -197,7 +223,7 @@ function Get-BasicComputerInfo
     }
     else
     {
-         $computerSystem.CsPowerManagementSupported="Device cannot be power managed."   
+        $computerSystem.CsPowerManagementSupported="Device cannot be power managed."   
     }
     $computerSystem.CsPowerOnPasswordStatus="$($computerSystem.CsPowerOnPasswordStatus) - Hardware security setting for PowerOn Password Status is $($computerSystem.CsPowerOnPasswordStatus)"
 
@@ -264,6 +290,14 @@ function Get-BasicComputerInfo
     #endregion ComputerSystem
 
     #region OperatingSystem
+
+    # TODO: $computerInfo.OsHotFixes
+    #! TODO: $computerInfo.OsCountryCode - 238 elements to translate code
+    # TODO: $os.OsPagingFiles 
+    # TODO: $os.OsMuiLanguages
+    # TODO: $os.OsProductSuites 
+    # TODO: $os.OsSuites 
+
     $os=$computerInfo | Select-Object Os*
 
     switch($os.OsOperatingSystemSKU)
@@ -337,7 +371,7 @@ function Get-BasicComputerInfo
     
     $os.OsLocaleID="$($os.OsCountryCode) - country code based on international prefixes"
     $os.OsLocale="$($os.OsLocale) - culture name derived from OsLocaleID"
-    $os.OsLocale ="$($os.CodeSet) - Code page operating system uses"
+    $os.CodeSet = "$($os.CodeSet) - Code page operating system uses"
 
     switch($os.OsDataExecutionPreventionSupportPolicy)
     {
@@ -402,7 +436,7 @@ function Get-BasicComputerInfo
 
     $os.OsFreeSpaceInPagingFiles = "$($os.OsFreeSpaceInPagingFiles) KB - Number, in kilobytes, that can be mapped into the operating system paging files without causing any other pages to be swapped out"
     
-    $os.OsPagingFiles = "$($os.OsPagingFiles) - array of field paths to the operating system paging files"
+    #$os.OsPagingFiles = "$($os.OsPagingFiles) - array of field paths to the operating system paging files"
     
     $os.OsHardwareAbstractionLayer = " $($os.OsHardwareAbstractionLayer) - version of the operating system's Hardware Abstraction Layer (HAL)"
     
@@ -410,14 +444,39 @@ function Get-BasicComputerInfo
     
     $os.OsMaxProcessMemorySize = "$($os.OsMaxProcessMemorySize) maximum number of kilobytes of memory that can be allocated to a process"
     
-    $os.OsMuiLanguages = "$($os.OsMuiLanguages) array of languages installed on computer"
+    #$os.OsMuiLanguages = "$($os.OsMuiLanguages) array of languages installed on computer"
     
     $os.OsNumberOfProcesses = "$($os.OsNumberOfProcesses) - Number of process contexts currently loaded or running on the operating system"
     
     $os.OsNumberOfUsers = "$($os.OsNumberOfUsers) - Number of user sessions for which the operating system is storing state information currently"
     
     #$os.OsProductSuites #TODO: Returning Array. Table in Table?
+    if ($os.OsPAEEnabled)
+    {
+        $os.OsPAEEnabled ="Physical Address extension are enabled by operating system on Intel processors"
+    }
+    else 
+    {
+        $os.OsPAEEnabled = "Physical Address extension are disabled by operating system on Intel processors"
+    }
 
+    if ($os.OsPortableOperatingSystem) 
+    {
+        $os.OsPortableOperatingSystem = "System is booted from external device"
+    }
+    else 
+    {
+        $os.OsPortableOperatingSystem = "System is booted from local disk"
+    }
+    if ($os.OsPrimary) 
+    {
+        $os.OsPrimary = "This system is primary OS."
+    }
+    else 
+    {
+        $os.OsPrimary = "This system is not primary OS."
+    }
+    
     #endregion OperatingSystem
     
     #region HyperV
@@ -433,39 +492,48 @@ function Get-BasicComputerInfo
         
     }
     if ($hyperV.HyperVRequirementDataExecutionPreventionAvailable)
-        {
-            $hyperV.HyperVRequirementDataExecutionPreventionAvailable = "Data Execution Prevention is available"
-        }
-        else 
-        {
-            $hyperV.HyperVRequirementDataExecutionPreventionAvailable = "Data Execution Prevention is not available or unknown"
-        }
-        
-        if ($hyperV.HyperVRequirementSecondLevelAddressTranslation) 
-        {
-            $hyperV.HyperVRequirementSecondLevelAddressTranslation = "Second Level Address Translation is available"
-        }
-        else 
-        {
-            $hyperV.HyperVRequirementSecondLevelAddressTranslation = "Second Level Address Translation is not available or unknown"
-        }
-        
-        if ($hyperV.HyperVRequirementVirtualizationFirmwareEnabled) {
-            $hyperV.HyperVRequirementVirtualizationFirmwareEnabled = "Virtualization is enabled by firmware"
-        }
-        else {
-            $hyperV.HyperVRequirementVirtualizationFirmwareEnabled = "Virtualization is not enabled by firmware or is unknown"
-        }
-
-        if ($hyperV.HyperVRequirementVMMonitorModeExtensions) {
-            $hyperV.HyperVRequirementVMMonitorModeExtensions = "The processor supports Intel or AMD Virtual Machine Monitor extensions"
-        }
-        else {
-            $hyperV.HyperVRequirementVMMonitorModeExtensions = "The processor not supports Intel or AMD Virtual Machine Monitor extensions or the state is unknown"
-        }
+    {
+        $hyperV.HyperVRequirementDataExecutionPreventionAvailable = "Data Execution Prevention is available"
+    }
+    else 
+    {
+        $hyperV.HyperVRequirementDataExecutionPreventionAvailable = "Data Execution Prevention is not available or unknown"
+    }
+    if ($hyperV.HyperVRequirementSecondLevelAddressTranslation) 
+    {
+        $hyperV.HyperVRequirementSecondLevelAddressTranslation = "Second Level Address Translation is available"
+    }
+    else 
+    {
+        $hyperV.HyperVRequirementSecondLevelAddressTranslation = "Second Level Address Translation is not available or unknown"
+    }
+    if ($hyperV.HyperVRequirementVirtualizationFirmwareEnabled) 
+    {
+        $hyperV.HyperVRequirementVirtualizationFirmwareEnabled = "Virtualization is enabled by firmware"
+    }
+    else 
+    {
+        $hyperV.HyperVRequirementVirtualizationFirmwareEnabled = "Virtualization is not enabled by firmware or is unknown"
+    }
+    if ($hyperV.HyperVRequirementVMMonitorModeExtensions) 
+    {
+        $hyperV.HyperVRequirementVMMonitorModeExtensions = "The processor supports Intel or AMD Virtual Machine Monitor extensions"
+    }
+    else 
+    {
+        $hyperV.HyperVRequirementVMMonitorModeExtensions = "The processor not supports Intel or AMD Virtual Machine Monitor extensions or the state is unknown"
+    }
     #endregion HyperV
 
     #region DeviceGuard
+
+    #TODO: $deviceGuard.DeviceGuardRequiredSecurityProperties
+    #TODO: $deviceGuard.DeviceGuardAvailableSecurityProperties
+    #TODO: $deviceGuard.DeviceGuardSecurityServicesConfigured
+    #TODO: $deviceGuard.DeviceGuardSecurityServicesRunning
+    #TODO: $deviceGuard.DeviceGuardCodeIntegrityPolicyEnforcementStatus
+    #TODO: $deviceGuard.DeviceGuardUserModeCodeIntegrityPolicyEnforcementStatus
+
     $deviceGuard=$computerInfo | Select-Object DeviceGuard*
 
     $deviceGuard.DeviceGuardSmartStatus = "DeviceGuard is $($deviceGuard.DeviceGuardSmartStatus)"
@@ -489,6 +557,7 @@ function Get-BasicComputerInfo
     }
     $basicInformation
 }
+
 function Get-HardwareInfo
 {
     $hardwareInformation = [PSCustomObject]@{
