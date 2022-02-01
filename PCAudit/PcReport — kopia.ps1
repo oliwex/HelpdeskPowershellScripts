@@ -621,6 +621,7 @@ Get-CimInstance Win32_BaseBoard | Select-Object * -ExcludeProperty CreationClass
 }
 
 #region HTMLStructures
+# TODO: implement classes with strategy pattern
 function New-HTMLTable()
 {
     [CmdletBinding()]
@@ -637,6 +638,24 @@ function New-HTMLTable()
     $output += "</table>"
     return $output
 }
+
+
+function New-HTMLList() {
+    [CmdletBinding()]
+    param (
+        [Parameter(HelpMessage = "List Content,Position=0")]
+        [Alias("ListContent", "LC")]
+        $content
+    )
+
+    $output = "<ul class='w3-ul w3-small'>"
+    $content | ForEach-Object {
+        $output += "<li>$($_)</li>"
+    }
+    $output += "</ul>"
+    return $output
+}
+#New-HTMLList -ListContent $data
 
 #endregion HTMLStructures
 
