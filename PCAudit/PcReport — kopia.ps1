@@ -1,6 +1,6 @@
 function Get-BasicComputerInfo
 {
-    $computerInfo=Get-ComputerInfo | Select-Object * 
+    $computerInfo=Get-ComputerInfo
     
     
     #region Basic
@@ -291,8 +291,8 @@ function Get-BasicComputerInfo
 
     #region OperatingSystem
 
-    # TODO: $computerInfo.OsHotFixes
-    #! TODO: $computerInfo.OsCountryCode - 238 elements to translate code
+    # TODO: $os.OsHotFixes
+    #! TODO: $os.OsCountryCode - 238 elements to translate code
     # TODO: $os.OsPagingFiles 
     # TODO: $os.OsMuiLanguages
     # TODO: $os.OsProductSuites 
@@ -371,7 +371,7 @@ function Get-BasicComputerInfo
     
     $os.OsLocaleID="$($os.OsCountryCode) - country code based on international prefixes"
     $os.OsLocale="$($os.OsLocale) - culture name derived from OsLocaleID"
-    $os.CodeSet = "$($os.CodeSet) - Code page operating system uses"
+    $os.OsCodeSet = "$($os.OsCodeSet) - Code page operating system uses"
 
     switch($os.OsDataExecutionPreventionSupportPolicy)
     {
@@ -406,19 +406,19 @@ function Get-BasicComputerInfo
         "None"{$os.OsForegroundApplicationBoost="$($os.OsForegroundApplicationBoost) - system boosts the quantum length by 6 for foreground application"}
     }
     
-    $os.OsTotalVisibleMemorySize = "$($($os.OsTotalVisibleMemorySize) / 1GB)GB - Total amount, in kilobytes, of physical memory available to the operating system. This value does not necessarily indicate the true amount of physical memory, but what is reported to the operating system as available to it."
+    $os.OsTotalVisibleMemorySize = "$($($os.OsTotalVisibleMemorySize)/1GB) GB - Total amount, in kilobytes, of physical memory available to the operating system. This value does not necessarily indicate the true amount of physical memory, but what is reported to the operating system as available to it."
     
-    $os.OsFreePhysicalMemory = "$($($os.OsFreePhysicalMemory) / 1GB)GB - Number, in kilobytes, of physical memory currently unused and available."
+    $os.OsFreePhysicalMemory = "$($($os.OsFreePhysicalMemory)/1GB) GB - Number, in kilobytes, of physical memory currently unused and available."
     
-    $os.OsTotalVirtualMemorySize = "$($($os.OsTotalVirtualMemorySize) / 1GB)GB - Number, in kilobytes, of virtual memory. For example, this may be calculated by adding the amount of total RAM to the amount of paging space, that is, adding the amount of memory in or aggregated by the computer system to the property, SizeStoredInPagingFiles."
+    $os.OsTotalVirtualMemorySize = "$($($os.OsTotalVirtualMemorySize)/1GB) GB - Number, in kilobytes, of virtual memory. For example, this may be calculated by adding the amount of total RAM to the amount of paging space, that is, adding the amount of memory in or aggregated by the computer system to the property, SizeStoredInPagingFiles."
 
-    $os.OsFreeVirtualMemory = "$($($os.OsFreeVirtualMemorySize) / 1GB)GB - Number, in kilobytes, of virtual memory currently unused and available."
+    $os.OsFreeVirtualMemory = "$($($os.OsFreeVirtualMemorySize)/1GB) GB - Number, in kilobytes, of virtual memory currently unused and available."
 
-    $os.OsInUseVirtualMemory = "$($($os.OsInUseVirtualMemory) / 1GB)GB"
+    $os.OsInUseVirtualMemory = "$($($os.OsInUseVirtualMemory)/1GB) GB"
 
     if($null -ne $os.OsTotalSwapSpaceSize)
     {
-        $os.OsTotalSwapSpaceSize = "$($($os.OsTotalSwapSpaceSize) / 1GB)GB - total swap size"
+        $os.OsTotalSwapSpaceSize = "$($($os.OsTotalSwapSpaceSize)/1GB) GB - total swap size"
     }
     else 
     {
@@ -640,7 +640,8 @@ function New-HTMLTable()
 }
 
 
-function New-HTMLList() {
+function New-HTMLList() 
+{
     [CmdletBinding()]
     param (
         [Parameter(HelpMessage = "List Content,Position=0")]
