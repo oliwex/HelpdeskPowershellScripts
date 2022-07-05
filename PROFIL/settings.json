@@ -1,0 +1,40 @@
+{
+    "powershell.powerShellAdditionalExePaths": {
+        "PowerShell 7 PC": "D:\\narzedzia\\PowerShell\\7\\pwsh.exe"
+    },
+    "powershell.powerShellDefaultVersion": "PowerShell 7 PC",
+    "powershell.codeFormatting.preset": "Allman",
+    "editor.codeActionsOnSave": {
+
+    },
+    "better-comments.tags": [
+
+        { 
+            "tag": "ERROR",
+            "color": "#FF0000", //red
+            "strikethrough": false,
+            "underline": false,
+            "backgroundColor": "transparent",
+            "bold": false,
+            "italic": false
+        },
+        {
+            "tag": "IDEA",
+            "color": "#0000FF", //blue
+            "strikethrough": false,
+            "underline": false,
+            "backgroundColor": "transparent",
+            "bold": false,
+            "italic": false
+        },
+        {
+            "tag": "TODO",
+            "color": "#FF8C00", //orange
+            "strikethrough": false,
+            "underline": false,
+            "backgroundColor": "transparent",
+            "bold": false,
+            "italic": false
+        }
+    ]
+}
