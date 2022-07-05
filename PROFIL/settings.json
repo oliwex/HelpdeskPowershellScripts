@@ -8,7 +8,6 @@
 
     },
     "better-comments.tags": [
-
         { 
             "tag": "ERROR",
             "color": "#FF0000", //red
@@ -20,7 +19,7 @@
         },
         {
             "tag": "IDEA",
-            "color": "#0000FF", //blue
+            "color": "#00BFFF", //blue
             "strikethrough": false,
             "underline": false,
             "backgroundColor": "transparent",
