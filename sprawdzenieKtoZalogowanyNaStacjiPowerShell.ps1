@@ -1,0 +1,1 @@
+﻿Get-CimInstance Win32_UserProfile -ComputerName computer | Select-Object LocalPath,Loaded
